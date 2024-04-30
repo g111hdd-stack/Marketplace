@@ -34,11 +34,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
     api_user = WBApi(api_key=api_key)
 
     # Получение списка продаж
-    try:
-        answer_sales = await api_user.get_supplier_sales_response(date_from=from_date, flag=0)
-    except TypeError:
-        await asyncio.sleep(60)
-        answer_sales = await api_user.get_supplier_sales_response(date_from=from_date, flag=0)
+    answer_sales = await api_user.get_supplier_sales_response(date_from=from_date, flag=0)
 
     # Обработка полученных результатов
     for operation in answer_sales.result:
@@ -47,7 +43,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
 
         # Извлечение информации о доставке и отправлении
         accrual_date = operation.date.date()  # Дата принятия учёта
-        posting_number = operation.gNumber   # Номер отправления
+        posting_number = operation.srid   # Уникальный идентификатор заказа
         vendor_cod = operation.supplierArticle  # Артикул продукта
         sku = str(operation.nmId)  # Артикул продукта внутри системы WB
         sale = round(float(operation.priceWithDisc), 2)  # Стоимость продажи товара
