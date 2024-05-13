@@ -1,22 +1,14 @@
-import csv
-import datetime
 import logging
 
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine, and_, desc
-from sqlalchemy.sql import select, delete
+from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
 from classes import *
 from database.models import *
 
 logger = logging.getLogger(__name__)
-
-DB_USER = "postgres"
-DB_PASS = "216_Bogvina"
-DB_HOST = "localhost"
-DB_NAME = "azure"
-DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
 
 class AzureDbConnection:
@@ -30,15 +22,12 @@ class AzureDbConnection:
             'Pwd=%s;' % conn_settings.password +
             'Encrypt=yes;' +
             'TrustServerCertificate=no;' +
-            'Connection Timeout=%s;' % conn_settings.timeout
-        )
-        conn_string = f'mssql+pyodbc:///?odbc_connect={conn_params}'
-        self.engine = create_engine(DB_URL, echo=echo, pool_pre_ping=True)
-        self.session = Session(self.engine)
+            'Connection Timeout=%s;' % conn_settings.timeout)
 
-    def create_table(self) -> None:
-        with self.session.begin():
-            metadata.create_all(self.session.bind)
+        conn_string = f'mssql+pyodbc:///?odbc_connect={conn_params}'
+
+        self.engine = create_engine(url=conn_string, echo=echo, pool_pre_ping=True)
+        self.session = Session(self.engine)
 
     def add_oz_operation(self, client_id: str, list_operations: list[DataOperation]) -> None:
         """
