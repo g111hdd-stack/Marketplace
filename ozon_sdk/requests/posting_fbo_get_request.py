@@ -26,4 +26,4 @@ class PostingFBOGetRequest(BaseRequest):
     """
     posting_number: str
     translit: bool = False
-    with_field: PostingFBOGetWith = Field(default=PostingFBOGetWith, serialization_alias='with')
+    with_field: PostingFBOGetWith = Field(default=PostingFBOGetWith, alias='with')

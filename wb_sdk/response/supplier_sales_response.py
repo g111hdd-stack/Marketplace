@@ -3,5 +3,5 @@ from ..entities import SupplierSales
 
 
 class SupplierSalesResponse(BaseResponse):
-    """Продажи"""
+    """Продажи."""
     result: list[SupplierSales] = []

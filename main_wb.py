@@ -1,20 +1,24 @@
 import asyncio
 import os
 import nest_asyncio
+import logging
 
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from sqlalchemy.exc import OperationalError
 
-from class_operation import Operation
+from classes import DataOperation
 from wb_sdk.wb_api import WBApi
 from database import AzureDbConnection, ConnectionSettings
 
 nest_asyncio.apply()
 load_dotenv()
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+logger = logging.getLogger(__name__)
 
-async def get_operations(client_id: str, api_key: str, from_date: str) -> list[Operation]:
+
+async def get_operations(client_id: str, api_key: str, from_date: str) -> list[DataOperation]:
     """
         Получает список операций для указанного клиента за определенный период времени.
 
@@ -26,7 +30,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
                 Пример: 2019-11-25T10:43:06.51Z.
 
         Returns:
-            list[Operation]: Список операций.
+            list[DataOperation]: Список операций.
     """
     list_operation = []
 
@@ -34,7 +38,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
     api_user = WBApi(api_key=api_key)
 
     # Получение списка продаж
-    answer_sales = await api_user.get_supplier_sales_response(date_from=from_date, flag=0)
+    answer_sales = await api_user.get_supplier_sales_response(date_from=from_date, flag=1)
 
     # Обработка полученных результатов
     for operation in answer_sales.result:
@@ -44,7 +48,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
         # Извлечение информации о доставке и отправлении
         accrual_date = operation.date.date()  # Дата принятия учёта
         posting_number = operation.srid   # Уникальный идентификатор заказа
-        vendor_cod = operation.supplierArticle  # Артикул продукта
+        vendor_code = operation.supplierArticle  # Артикул продукта
         sku = str(operation.nmId)  # Артикул продукта внутри системы WB
         sale = round(float(operation.priceWithDisc), 2)  # Стоимость продажи товара
         if sale > 0:
@@ -55,15 +59,15 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[O
             quantities = -1
 
         # Добавление операции в список
-        list_operation.append(Operation(client_id=client_id,
-                                        accrual_date=accrual_date,
-                                        type_of_transaction=type_of_transaction,
-                                        vendor_cod=vendor_cod,
-                                        delivery_schema="-",
-                                        posting_number=posting_number,
-                                        sku=sku,
-                                        sale=sale,
-                                        quantities=quantities))
+        list_operation.append(DataOperation(client_id=client_id,
+                                            accrual_date=accrual_date,
+                                            type_of_transaction=type_of_transaction,
+                                            vendor_code=vendor_code,
+                                            delivery_schema="-",
+                                            posting_number=posting_number,
+                                            sku=sku,
+                                            sale=sale,
+                                            quantities=quantities))
     return list_operation
 
 
@@ -79,12 +83,12 @@ async def add_wb_main_entry(db_conn: AzureDbConnection, client_id: str, api_key:
     """
     start = date.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1) - timedelta(microseconds=1)
-    print(f"За период с <{start}> до <{end}>")
+    logger.info(f"За период с <{start}> до <{end}>")
     operations = await get_operations(client_id=client_id,
                                       api_key=api_key,
                                       from_date=start.isoformat())
-    print(f"Количество записей: {len(operations)}")
-    db_conn.add_pack_wb_main_entry(client_id=client_id, list_operations=operations)
+    logger.info(f"Количество записей: {len(operations)}")
+    db_conn.add_wb_operation(client_id=client_id, list_operations=operations)
 
 
 async def main_func_wb(retries: int = 6) -> None:
@@ -96,18 +100,19 @@ async def main_func_wb(retries: int = 6) -> None:
                                            password=os.getenv("PASSWORD"),
                                            timeout=int(os.getenv("LOGIN_TIMEOUT")))
         db_conn = AzureDbConnection(conn_settings=conn_settings)
-        clients = db_conn.get_select_client(marketplace="WB")
+        db_conn.start_db()
+        clients = db_conn.get_client(marketplace="WB")
         for client in clients:
-            print(f"Добавление в базу данных компании '{client.name_company}'")
+            logger.info(f"Добавление в базу данных компании '{client.name_company}'")
             date = datetime.now(tz=timezone.utc) - timedelta(days=1)
             await add_wb_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
-    except OperationalError as e:
-        print(f'{e}', datetime.now().isoformat())
+    except OperationalError:
+        logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
             await main_func_wb(retries=retries - 1)
     except Exception as e:
-        print(f'{e}')
+        logger.error(f'{e}')
 
 
 if __name__ == "__main__":

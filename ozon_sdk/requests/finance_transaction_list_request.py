@@ -15,7 +15,7 @@ class FinanceTransactionListDate(BaseRequest):
                 Формат: YYYY-MM-DDTHH:mm:ss.sssZ. \n
                 Пример: 2019-11-25T10:43:06.51Z.
     """
-    from_field: str = Field(serialization_alias='from')
+    from_field: str = Field(alias='from')
     to: str
 
 
