@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 import logging
 
@@ -29,17 +30,31 @@ class OzonAsyncEngine:
         else:
             return f"{self._base_url}/{url}"
 
-    async def _perform_get_request(self, url, params):
+    async def _perform_get_request(self, url, params, retry: int = 6):
         async with await self._get_session() as session:
-            async with session.get(url, params=params) as response:
-                logger.info(f"Получен ответ от {url} ({response.status})")
-                return await response.json(content_type=None)
+            while retry != 0:
+                async with session.get(url, params=params) as response:
+                    if response.status != 200:
+                        logger.info(f"Получен ответ от {url} ({response.status})")
+                        logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                        await asyncio.sleep(60)
+                        retry -= 1
+                        continue
+                    return await response.json(content_type=None)
+            raise Exception
 
-    async def _perform_post_request(self, url, params):
+    async def _perform_post_request(self, url, params, retry: int = 6):
         async with await self._get_session() as session:
-            async with session.post(url, json=params) as response:
-                logger.info(f"Получен ответ от {url} ({response.status})")
-                return await response.json()
+            while retry != 0:
+                async with session.post(url, json=params) as response:
+                    if response.status != 200:
+                        logger.info(f"Получен ответ от {url} ({response.status})")
+                        logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                        await asyncio.sleep(60)
+                        retry -= 1
+                        continue
+                    return await response.json()
+            raise Exception
 
     async def _get_session(self):
         session = aiohttp.ClientSession()

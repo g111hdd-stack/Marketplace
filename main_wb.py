@@ -1,20 +1,17 @@
 import asyncio
-import os
 import nest_asyncio
 import logging
 
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 from sqlalchemy.exc import OperationalError
 
 from classes import DataOperation
 from wb_sdk.wb_api import WBApi
-from database import AzureDbConnection, ConnectionSettings
+from database import AzureDbConnection
 
 nest_asyncio.apply()
-load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -93,13 +90,7 @@ async def add_wb_main_entry(db_conn: AzureDbConnection, client_id: str, api_key:
 
 async def main_func_wb(retries: int = 6) -> None:
     try:
-        conn_settings = ConnectionSettings(server=os.getenv("SERVER"),
-                                           database=os.getenv("DATABASE"),
-                                           driver=os.getenv("DRIVER"),
-                                           username=os.getenv("USER"),
-                                           password=os.getenv("PASSWORD"),
-                                           timeout=int(os.getenv("LOGIN_TIMEOUT")))
-        db_conn = AzureDbConnection(conn_settings=conn_settings)
+        db_conn = AzureDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
         for client in clients:

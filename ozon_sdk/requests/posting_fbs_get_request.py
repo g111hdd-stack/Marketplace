@@ -33,4 +33,4 @@ class PostingFBSGetRequest(BaseRequest):
             with_field (PostingFBSGetWith, optional): Дополнительные поля, которые нужно добавить в ответ.
     """
     posting_number: str
-    with_field: PostingFBSGetWith = Field(default=PostingFBSGetWith, alias='with')
+    with_field: PostingFBSGetWith = Field(default=PostingFBSGetWith, serialization_alias='with')

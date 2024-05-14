@@ -1,19 +1,27 @@
 import logging
 
 from urllib.parse import quote_plus
-from sqlalchemy import create_engine, and_, desc
+from sqlalchemy import create_engine, and_, desc, or_
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
 from classes import *
 from database.models import *
+from config import *
 
 logger = logging.getLogger(__name__)
+
+conn_setting = ConnectionSettings(server=SERVER,
+                                  database=DATABASE,
+                                  driver=DRIVER,
+                                  username=USER,
+                                  password=PASSWORD,
+                                  timeout=LOGIN_TIMEOUT)
 
 
 class AzureDbConnection:
 
-    def __init__(self, conn_settings: ConnectionSettings, echo: bool = False) -> None:
+    def __init__(self, conn_settings: ConnectionSettings = conn_setting, echo: bool = False) -> None:
         conn_params = quote_plus(
             'Driver=%s;' % conn_settings.driver +
             'Server=tcp:%s.database.windows.net,1433;' % conn_settings.server +
@@ -239,9 +247,8 @@ class AzureDbConnection:
         """
         with self.session.begin_nested():
             result = self.session.execute(select(WBAdverts).filter(and_(WBAdverts.client_id == client_id,
-                                                                        WBAdverts.id_status == 9,
-                                                                        WBAdverts.create_time <= date,
-                                                                        WBAdverts.end_time >= date))).fetchall()
+                                                                        or_(WBAdverts.id_status == 9,
+                                                                            WBAdverts.change_time >= date)))).fetchall()
         return [advert[0].id_advert for advert in result]
 
     def start_db(self) -> None:

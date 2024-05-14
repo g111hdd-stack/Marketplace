@@ -1,20 +1,17 @@
 import asyncio
-import os
 import nest_asyncio
 import logging
 
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
 from sqlalchemy.exc import OperationalError
 
 from classes import DataWBAdvert, DataWBProductCard, DataWBStatisticAdvert, DataWBStatisticCardProduct
 from wb_sdk.wb_api import WBApi
-from database import AzureDbConnection, ConnectionSettings
+from database import AzureDbConnection
 
 nest_asyncio.apply()
-load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -61,8 +58,7 @@ async def add_adverts(db_conn: AzureDbConnection,
                     change_time = format_date(date_format=advert.changeTime)
                     start_time = format_date(date_format=advert.startTime)
                     end_time = format_date(date_format=advert.endTime)
-                    if change_time >= (date - timedelta(days=1)):
-                        print(123)
+                    if change_time >= date:
                         adverts_list.append(DataWBAdvert(id_advert=advert.advertId,
                                                          id_type=advert.type,
                                                          type_field=type_dict.get(advert.type, ''),
@@ -149,12 +145,12 @@ async def add_statistic_adverts(db_conn: AzureDbConnection, client_id: str, api_
                                                                                       date=day.date_field,
                                                                                       views=position.views,
                                                                                       clicks=position.clicks,
-                                                                                      ctr=position.ctr,
+                                                                                      ctr=round(position.ctr / 100, 2),
                                                                                       cpc=position.cpc,
                                                                                       sum_field=position.sum,
                                                                                       atbs=position.atbs,
                                                                                       orders=position.orders,
-                                                                                      cr=position.cr,
+                                                                                      cr=round(position.cr / 100, 2),
                                                                                       shks=position.shks,
                                                                                       sum_price=position.sum_price,
                                                                                       name=position.name,
@@ -195,8 +191,8 @@ async def get_statistic_product_card(client_id: str,
                 open_card_count = int(stat.openCardCount)
                 add_to_cart_count = int(stat.addToCartCount)
                 orders_count = int(stat.ordersCount)
-                add_to_cart_percent = round(float(stat.conversions.addToCartPercent), 2)
-                cart_to_order_percent = round(float(stat.conversions.cartToOrderPercent), 2)
+                add_to_cart_percent = round(stat.conversions.addToCartPercent / 100, 2)
+                cart_to_order_percent = round(stat.conversions.cartToOrderPercent / 100, 2)
 
                 if not open_card_count and not add_to_cart_count and not orders_count and stocks:
                     continue
@@ -225,31 +221,29 @@ async def get_statistic_product_card(client_id: str,
 
 async def main_advert(retries: int = 6) -> None:
     try:
-        conn_settings = ConnectionSettings(server=os.getenv("SERVER"),
-                                           database=os.getenv("DATABASE"),
-                                           driver=os.getenv("DRIVER"),
-                                           username=os.getenv("USER"),
-                                           password=os.getenv("PASSWORD"),
-                                           timeout=int(os.getenv("LOGIN_TIMEOUT")))
-        db_conn = AzureDbConnection(conn_settings=conn_settings)
+        db_conn = AzureDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
         date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
         for client in clients:
             date_yesterday = date - timedelta(days=1)
+
+            logger.info(f"Сбор рекламных компаний {client.name_company}")
+            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+
             logger.info(f"Статистика карточек товара {client.name_company} за {date_yesterday.date().isoformat()}")
             list_card_product = await get_statistic_product_card(client_id=client.client_id,
                                                                  api_key=client.api_key,
                                                                  date_from=date_yesterday)
             db_conn.add_wb_cards_products_statistics(client_id=client.client_id, list_card_product=list_card_product)
+
             logger.info(f"Статистика рекламы {client.name_company} за {date_yesterday.date().isoformat()}")
             await add_statistic_adverts(db_conn=db_conn,
                                         client_id=client.client_id,
                                         api_key=client.api_key,
                                         date=date_yesterday)
         for client in clients:
-            logger.info(f"Сбор рекламных компаний {client.name_company}")
-            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
             logger.info(f"Сбор карточек товаров {client.name_company}")
             card_products_list = await get_product_card(db_conn=db_conn,
                                                         client_id=client.client_id,

@@ -5,5 +5,4 @@ SQLAlchemy~=2.0.29
 aiohttp~=3.9.5
 pydantic~=2.7.1
 pyodbc~=5.1.0
-python-dotenv~=1.0.1
 nest-asyncio~=1.6.0
