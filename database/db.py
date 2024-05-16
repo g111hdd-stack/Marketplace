@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from urllib.parse import quote_plus
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 from classes import *
 from database.models import *
 from config import *
+from wb_sdk.wb_api import WBApi
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,11 @@ conn_setting = ConnectionSettings(server=SERVER,
                                   password=PASSWORD,
                                   timeout=LOGIN_TIMEOUT)
 
+DB_USER = "postgres"
+DB_PASS = "216_Bogvina"
+DB_HOST = "localhost"
+DB_NAME = "azure"
+DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
 class AzureDbConnection:
 
@@ -34,7 +41,7 @@ class AzureDbConnection:
 
         conn_string = f'mssql+pyodbc:///?odbc_connect={conn_params}'
 
-        self.engine = create_engine(url=conn_string, echo=echo, pool_pre_ping=True)
+        self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
         self.session = Session(self.engine)
 
     def add_oz_operation(self, client_id: str, list_operations: list[DataOperation]) -> None:
@@ -77,6 +84,34 @@ class AzureDbConnection:
         if existing_client:
             for operation in list_operations:
                 new_operation = WBMain(client_id=operation.client_id,
+                                       accrual_date=operation.accrual_date,
+                                       type_of_transaction=operation.type_of_transaction,
+                                       vendor_code=operation.vendor_code,
+                                       posting_number=operation.posting_number,
+                                       delivery_schema=operation.delivery_schema,
+                                       sku=operation.sku,
+                                       sale=operation.sale,
+                                       quantities=operation.quantities)
+                self.session.add(new_operation)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")
+
+    def add_ya_operation(self, client_id: str, list_operations: list[DataOperation]) -> None:
+        """
+            Добавление в базу данных записи об операциях с товарами.
+
+            Args:
+                client_id (str): ID кабинета.
+                list_operations (list[DataOperation]): Список данных об операциях.
+        """
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for operation in list_operations:
+                new_operation = YaMain(client_id=operation.client_id,
                                        accrual_date=operation.accrual_date,
                                        type_of_transaction=operation.type_of_transaction,
                                        vendor_code=operation.vendor_code,
@@ -195,12 +230,23 @@ class AzureDbConnection:
         if existing_client:
             for card in list_card_product:
                 card_product = self.session.query(WBCardProduct).filter_by(sku=card.sku).first()
-                new_card = WBCardProduct(sku=card.sku,
-                                         vendor_code=card.vendor_code,
-                                         client_id=client_id,
-                                         category=card.category,
-                                         brand=card.brand,
-                                         link=card.link)
+                if card_product is None:
+                    api_user = WBApi(api_key=existing_client.api_key)
+                    product = asyncio.run(api_user.get_list_goods_filter(filter_nm_id=int(card.sku)))
+                    price = product.data.listGoods[0].sizes[0].price
+                    discount_price = product.data.listGoods[0].sizes[0].discountedPrice
+                    new_card = WBCardProduct(sku=card.sku,
+                                             vendor_code=card.vendor_code,
+                                             client_id=client_id,
+                                             category=card.category,
+                                             brand=card.brand,
+                                             link=card.link,
+                                             price=price,
+                                             discount_price=discount_price)
+                    self.session.merge(new_card)
+                else:
+                    price = card_product.price
+                    discount_price = card_product.discount_price
                 new_statistic_card_product = WBStatisticCardProduct(sku=card.sku,
                                                                     date=card.date,
                                                                     open_card_count=card.open_card_count,
@@ -208,10 +254,9 @@ class AzureDbConnection:
                                                                     orders_count=card.orders_count,
                                                                     add_to_cart_percent=card.add_to_cart_percent,
                                                                     cart_to_order_percent=card.cart_to_order_percent,
-                                                                    price=card_product.price,
-                                                                    discount_price=card_product.discount_price)
+                                                                    price=price,
+                                                                    discount_price=discount_price)
 
-                self.session.merge(new_card)
                 self.session.add(new_statistic_card_product)
             try:
                 self.session.commit()

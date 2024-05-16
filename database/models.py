@@ -17,6 +17,7 @@ class Client(Base):
 
     operations_oz = relationship("OzMain", back_populates="client")
     operations_wb = relationship("WBMain", back_populates="client")
+    operations_ya = relationship("YaMain", back_populates="client")
     card_product_wb = relationship("WBCardProduct", back_populates="client")
     adverts_wb = relationship("WBAdverts", back_populates="client")
 
@@ -55,6 +56,24 @@ class WBMain(Base):
     quantities = Column(Integer, nullable=False)
 
     client = relationship("Client", back_populates="operations_wb")
+
+
+class YaMain(Base):
+    """Модель таблицы ya_main_table."""
+    __tablename__ = 'ya_main_table'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    accrual_date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    type_of_transaction = Column(String, nullable=False)
+    vendor_code = Column(Unicode, nullable=False)
+    posting_number = Column(String, nullable=False)
+    delivery_schema = Column(String, nullable=False)
+    sku = Column(String, nullable=False)
+    sale = Column(Numeric(precision=12, scale=2), nullable=False)
+    quantities = Column(Integer, nullable=False)
+
+    client = relationship("Client", back_populates="operations_ya")
 
 
 class WBCardProduct(Base):

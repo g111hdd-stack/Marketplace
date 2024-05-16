@@ -1,6 +1,5 @@
+from .core import YandexAsyncEngine
 from typing import Type
-
-from .core import WBAsyncEngine
 from .response import BaseResponse
 
 
@@ -12,15 +11,15 @@ async def params_to_dict(params: list or dict) -> list or dict:
     return parameters
 
 
-class WBAsyncApi:
+class YandexAsyncApi:
 
-    def __init__(self, engine: WBAsyncEngine, url: str, response_type: Type[BaseResponse]):
+    def __init__(self, engine: YandexAsyncEngine, url: str, response_type: Type[BaseResponse]):
         self._engine = engine
         self._url = url
         self._response_type = response_type
 
     async def get(self, request):
-        parameters = await params_to_dict(request)
+        parameters = request.dict(by_alias=True)
         response = await self._engine.get(self._url, parameters)
         data = await self._parse_response(response)
         return data
@@ -35,14 +34,13 @@ class WBAsyncApi:
         return data
 
     async def _parse_response(self, response: dict or list):
-        if response is None:
-            return None
-        if isinstance(response, list):
-            data = await self._parse_response_object({"result": response})
-            return data
-        else:
-            data = await self._parse_response_object(response)
-            return data
+        if response.get("error"):
+            raise Exception(response.get("errorText"))
+
+        data = await self._parse_response_object(response)
+        return data
 
     async def _parse_response_object(self, response: dict):
+        if response.get("error"):
+            raise Exception(response.get("errorText"))
         return self._response_type.parse_obj(response)

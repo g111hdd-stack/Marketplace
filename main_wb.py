@@ -93,9 +93,9 @@ async def main_func_wb(retries: int = 6) -> None:
         db_conn = AzureDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
+        date = datetime.now(tz=timezone.utc) - timedelta(days=1)
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            date = datetime.now(tz=timezone.utc) - timedelta(days=1)
             await add_wb_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')

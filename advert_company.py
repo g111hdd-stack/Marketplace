@@ -225,10 +225,9 @@ async def main_advert(retries: int = 6) -> None:
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
         date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        date_yesterday = date - timedelta(days=1)
 
         for client in clients:
-            date_yesterday = date - timedelta(days=1)
-
             logger.info(f"Сбор рекламных компаний {client.name_company}")
             await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
 
