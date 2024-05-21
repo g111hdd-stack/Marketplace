@@ -83,3 +83,15 @@ class DataWBProductCard:
     vendor_code: str
     price: float
     discount_price: float
+
+
+@dataclass
+class DataOzProductCard:
+    sku: str
+    client_id: str
+    vendor_code: str
+    brand: str
+    category: str
+    link: str
+    price: float
+    discount_price: float

@@ -1,4 +1,9 @@
 from .finance_transaction_list_response import *
 from .posting_fbs_get_response import *
-from . posting_fbo_get_response import *
-
+from .posting_fbo_get_response import *
+from .product_list_response import *
+from .product_info_list_response import *
+from .products_info_attributes_response import *
+from .client_campaign_response import *
+from .client_statistics_json_response import *
+from .client_statistics_daily_json_response import *

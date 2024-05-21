@@ -58,7 +58,8 @@ async def add_adverts(db_conn: AzureDbConnection,
                     change_time = format_date(date_format=advert.changeTime)
                     start_time = format_date(date_format=advert.startTime)
                     end_time = format_date(date_format=advert.endTime)
-                    if change_time >= date:
+                    #if change_time >= date:
+                    if end_time >= datetime(year=2024, month=3, day=1).date():
                         adverts_list.append(DataWBAdvert(id_advert=advert.advertId,
                                                          id_type=advert.type,
                                                          type_field=type_dict.get(advert.type, ''),
@@ -219,7 +220,7 @@ async def get_statistic_product_card(client_id: str,
     return list_card_product
 
 
-async def main_advert(retries: int = 6) -> None:
+async def main_wb_advert(retries: int = 6) -> None:
     try:
         db_conn = AzureDbConnection()
         db_conn.start_db()
@@ -228,9 +229,14 @@ async def main_advert(retries: int = 6) -> None:
         date_yesterday = date - timedelta(days=1)
 
         for client in clients:
-            logger.info(f"Сбор рекламных компаний {client.name_company}")
-            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+            logger.info(f"Сбор карточек товаров {client.name_company}")
+            card_products_list = await get_product_card(db_conn=db_conn,
+                                                        client_id=client.client_id,
+                                                        api_key=client.api_key)
+            db_conn.add_wb_cards_products(client_id=client.client_id, list_card_product=card_products_list)
 
+            logger.info(f"Сбор рекламных компаний {client.name_company}")
+            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date_yesterday)
             logger.info(f"Статистика карточек товара {client.name_company} за {date_yesterday.date().isoformat()}")
             list_card_product = await get_statistic_product_card(client_id=client.client_id,
                                                                  api_key=client.api_key,
@@ -242,23 +248,16 @@ async def main_advert(retries: int = 6) -> None:
                                         client_id=client.client_id,
                                         api_key=client.api_key,
                                         date=date_yesterday)
-        for client in clients:
-            logger.info(f"Сбор карточек товаров {client.name_company}")
-            card_products_list = await get_product_card(db_conn=db_conn,
-                                                        client_id=client.client_id,
-                                                        api_key=client.api_key)
-            db_conn.add_wb_cards_products(client_id=client.client_id, list_card_product=card_products_list)
-
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
-            await main_advert(retries=retries - 1)
+            await main_wb_advert(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
 
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main_advert())
+    loop.run_until_complete(main_wb_advert())
     loop.stop()

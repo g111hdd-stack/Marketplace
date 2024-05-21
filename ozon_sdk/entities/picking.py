@@ -4,10 +4,7 @@ from .base import BaseEntity
 
 
 class Picking(BaseEntity):
-    """
-        Информация о доставке. \n
-        Всегда возвращает null.
-    """
+    """Информация о доставке."""
     amount: float
     moment: datetime
     tag: str

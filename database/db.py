@@ -26,6 +26,7 @@ DB_HOST = "localhost"
 DB_NAME = "azure"
 DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
+
 class AzureDbConnection:
 
     def __init__(self, conn_settings: ConnectionSettings = conn_setting, echo: bool = False) -> None:
@@ -247,6 +248,15 @@ class AzureDbConnection:
                 else:
                     price = card_product.price
                     discount_price = card_product.discount_price
+                    if card_product.link is None:
+                        new_card = WBCardProduct(sku=card.sku,
+                                                 vendor_code=card.vendor_code,
+                                                 client_id=client_id,
+                                                 category=card.category,
+                                                 brand=card.brand,
+                                                 link=card.link)
+                        self.session.merge(new_card)
+
                 new_statistic_card_product = WBStatisticCardProduct(sku=card.sku,
                                                                     date=card.date,
                                                                     open_card_count=card.open_card_count,
@@ -313,3 +323,22 @@ class AzureDbConnection:
             new_date += datetime.timedelta(days=1)
             self.session.add(DateList(date=new_date))
         self.session.commit()
+
+
+
+    def get_wb_adverts_id2(self, client_id: str, date: datetime.date) -> list[WBAdverts]:
+        """
+            Получает список рекламных компаний, отфильтрованных по кабинету и дате активности.
+
+            Args:
+                client_id (str): ID кабинета.
+                date (date): Дата активности.
+
+            Returns:
+                List[WBAdverts]: Список рекламных компаний, удовлетворяющих условию фильтрации.
+        """
+        with self.session.begin_nested():
+            result = self.session.execute(select(WBAdverts).filter(and_(WBAdverts.client_id == client_id,
+                                                                        WBAdverts.create_time <= date,
+                                                                        WBAdverts.end_time >= date))).fetchall()
+        return [advert[0].id_advert for advert in result]

@@ -1,12 +1,13 @@
-from typing import Type
+from typing import Type, Union
 
-from .core import OzonAsyncEngine
+from .core import OzonAsyncEngine, OzonPerformanceAsyncEngine
 from .response import BaseResponse
 
 
 class OzonAsyncApi:
 
-    def __init__(self, engine: OzonAsyncEngine, url: str, response_type: Type[BaseResponse]):
+    def __init__(self, engine: Union[OzonAsyncEngine, OzonPerformanceAsyncEngine], url: str,
+                 response_type: Type[BaseResponse]):
         self._engine = engine
         self._url = url
         self._response_type = response_type
@@ -18,7 +19,6 @@ class OzonAsyncApi:
         return data
 
     async def post(self, request):
-        print(request)
         parameters = request.dict(by_alias=True)
         response = await self._engine.post(self._url, parameters)
         data = await self._parse_response(response)

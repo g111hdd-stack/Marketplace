@@ -71,19 +71,34 @@ async def get_operations(client_id: str, api_key: str, updated_at_from: str, upd
     if answer:
         for order in answer.result.orders:
             posting_number = str(order.id_field)  # Номер отправления
+            print(posting_number)
             accrual_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата доставки
-            type_of_transaction = order.status
+            for pay in order.payments:
+                if pay.source == 'MARKETPLACE':
+                    payment_date = datetime.strptime(pay.date, date_format).date()
+                    print(accrual_date == payment_date)
+            for item in order.items:
+                vendor_code = item.shopSku
+                quantities = item.count
+                delivery_schema = item.warehouse.name
+                sku = str(item.marketSku)
+                sale = round(sum([price.total for price in item.prices]), 2)
+                if order.status == 'DELIVERED':
+                    type_of_transaction = 'delivered'
+                else:
+                    type_of_transaction = 'cancelled'
+                    sale = -sale
+                    quantities = -quantities
 
-            list_operation.append(DataOperation(client_id=client_id,
-                                                accrual_date=accrual_date,
-                                                type_of_transaction=type_of_transaction,
-                                                vendor_code=vendor_code,
-                                                delivery_schema=delivery_schema,
-                                                posting_number=posting_number,
-                                                sku=sku,
-                                                sale=sale,
-                                                quantities=quantities))
-            print(order)
+                list_operation.append(DataOperation(client_id=client_id,
+                                                    accrual_date=accrual_date,
+                                                    type_of_transaction=type_of_transaction,
+                                                    vendor_code=vendor_code,
+                                                    delivery_schema=delivery_schema,
+                                                    posting_number=posting_number,
+                                                    sku=sku,
+                                                    sale=sale,
+                                                    quantities=quantities))
 
     return list_operation
 
@@ -106,7 +121,7 @@ async def add_yandex_main_entry(db_conn: AzureDbConnection, client_id: str, api_
                                       updated_at_from=start.isoformat(),
                                       updated_at_to=end.isoformat())
     logger.info(f"Количество записей: {len(operations)}")
-    db_conn.add_ya_operation(client_id=client_id, list_operations=operations)
+    #db_conn.add_ya_operation(client_id=client_id, list_operations=operations)
 
 
 async def main_func_yandex(retries: int = 6) -> None:
@@ -119,13 +134,12 @@ async def main_func_yandex(retries: int = 6) -> None:
         db_conn = AzureDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace='Yandex')
-        date = datetime(year=2024, month=3, day=1, tzinfo=timezone(timedelta(hours=3)))
-        print(date)
-        #while date.date() != datetime.now().date():
-        for client in clients:
-            logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            await add_yandex_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
-        date += timedelta(days=1)
+        date = datetime(year=2024, month=5, day=17, tzinfo=timezone(timedelta(hours=3)))
+        while date.date() == datetime.now().date():
+            for client in clients:
+                logger.info(f"Добавление в базу данных компании '{client.name_company}'")
+                await add_yandex_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+            date += timedelta(days=1)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
