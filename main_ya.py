@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from classes import DataOperation
 from ya_sdk.ya_api import YandexApi
-from database import AzureDbConnection
+from database import YaDbConnection
 
 nest_asyncio.apply()
 
@@ -103,12 +103,12 @@ async def get_operations(client_id: str, api_key: str, updated_at_from: str, upd
     return list_operation
 
 
-async def add_yandex_main_entry(db_conn: AzureDbConnection, client_id: str, api_key: str, date: datetime) -> None:
+async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, api_key: str, date: datetime) -> None:
     """
         Добавление записей в таблицу `ya_main_table` за указанную дату
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (YaDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             date (datetime): Дата, для которой добавляются записи.
@@ -131,7 +131,7 @@ async def main_func_yandex(retries: int = 6) -> None:
         Получает список клиентов из базы данных, затем для каждого клиента добавляет записи за вчерашний день в таблицу `ya_main_table`.
     """
     try:
-        db_conn = AzureDbConnection()
+        db_conn = YaDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace='Yandex')
         date = datetime(year=2024, month=5, day=17, tzinfo=timezone(timedelta(hours=3)))

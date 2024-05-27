@@ -14,7 +14,8 @@ class OzonAPIFactory:
         PostingFBOGetResponse: '/v2/posting/fbo/get',
         ProductListResponse: '/v2/product/list',
         ProductInfoListResponse: '/v2/product/info/list',
-        ProductsInfoAttributesResponse: '/v3/products/info/attributes'
+        ProductsInfoAttributesResponse: '/v3/products/info/attributes',
+        AnalyticsDataResponse: '/v1/analytics/data'
     }
 
     def __init__(self, engine: OzonAsyncEngine):
@@ -33,7 +34,9 @@ class OzonPerformanceAPIFactory:
     api_list: dict[Type[BaseResponse], str] = {
         ClientCampaignResponse: '/api/client/campaign',
         ClientStatisticsDailyJSONResponse: '/api/client/statistics/daily/json',
-        ClientStatisticsJSONResponse: '/api/client/statistics/json'
+        ClientStatisticsJSONResponse: '/api/client/statistics/json',
+        ClientStatisticsUUIDResponse: '/api/client/statistics',
+        ClientStatisticsReportResponse: '/api/client/statistics/report'
     }
 
     def __init__(self, engine: OzonPerformanceAsyncEngine):

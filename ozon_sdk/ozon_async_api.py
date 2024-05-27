@@ -12,9 +12,12 @@ class OzonAsyncApi:
         self._url = url
         self._response_type = response_type
 
-    async def get(self, request):
+    async def get(self, request, path: str = None):
         parameters = request.dict(by_alias=True)
-        response = await self._engine.get(self._url, parameters)
+        url = self._url
+        if path is not None:
+            url += f'/{path}'
+        response = await self._engine.get(url, parameters)
         data = await self._parse_response(response)
         return data
 
@@ -25,10 +28,13 @@ class OzonAsyncApi:
         return data
 
     async def _parse_response(self, response: dict or list):
-        if response.get("error"):
-            raise Exception(response.get("errorText"))
-
-        data = await self._parse_response_object(response)
+        if all(key.isdigit() for key in response.keys()):
+            new_response = {'result': []}
+            for k, v in response.items():
+                new_response['result'].append({'id': k, 'statistic': v})
+            data = await self._parse_response_object(new_response)
+        else:
+            data = await self._parse_response_object(response)
         return data
 
     async def _parse_response_object(self, response: dict):

@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from classes import DataOperation
 from ozon_sdk.ozon_api import OzonApi
-from database import AzureDbConnection
+from database import OzDbConnection
 
 
 nest_asyncio.apply()
@@ -111,12 +111,12 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
     return list_operation
 
 
-async def add_oz_main_entry(db_conn: AzureDbConnection, client_id: str, api_key: str, date: datetime) -> None:
+async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: str, date: datetime) -> None:
     """
         Добавление записей в таблицу `oz_main_table` за указанную дату
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (OzDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             date (datetime): Дата, для которой добавляются записи.
@@ -139,7 +139,7 @@ async def main_func_oz(retries: int = 6) -> None:
         Получает список клиентов из базы данных, затем для каждого клиента добавляет записи за вчерашний день в таблицу `oz_main_table`.
     """
     try:
-        db_conn = AzureDbConnection()
+        db_conn = OzDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="Ozon")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)

@@ -5,4 +5,5 @@ from ..entities import ClientStatisticsDailyJSON
 
 
 class ClientStatisticsDailyJSONResponse(BaseResponse):
+    """Дневная статистика по кампаниям."""
     rows: Optional[list[ClientStatisticsDailyJSON]] = []

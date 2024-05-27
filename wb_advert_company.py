@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from classes import DataWBAdvert, DataWBProductCard, DataWBStatisticAdvert, DataWBStatisticCardProduct
 from wb_sdk.wb_api import WBApi
-from database import AzureDbConnection
+from database import WBDbConnection
 
 nest_asyncio.apply()
 
@@ -15,17 +15,15 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def add_adverts(db_conn: AzureDbConnection,
-                      client_id: str, api_key: str,
-                      date: datetime = datetime.now()) -> None:
+async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> None:
     """
         Обновление записей в таблице `wb_adverts_table` за указанную дату.
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            date (date, optional): Дата, за которую обновилсь данные кампании.. Default to сегодняшняя дата.
+            date (date): Дата, за которую обновилсь данные кампании.
     """
 
     def format_date(date_format: str) -> datetime.date:
@@ -58,13 +56,10 @@ async def add_adverts(db_conn: AzureDbConnection,
                     change_time = format_date(date_format=advert.changeTime)
                     start_time = format_date(date_format=advert.startTime)
                     end_time = format_date(date_format=advert.endTime)
-                    #if change_time >= date:
-                    if end_time >= datetime(year=2024, month=3, day=1).date():
+                    if change_time >= date:
                         adverts_list.append(DataWBAdvert(id_advert=advert.advertId,
                                                          id_type=advert.type,
-                                                         type_field=type_dict.get(advert.type, ''),
                                                          id_status=advert.status,
-                                                         status=status_dict.get(advert.status, ''),
                                                          name_advert=advert.name,
                                                          create_time=create_time,
                                                          change_time=change_time,
@@ -75,15 +70,19 @@ async def add_adverts(db_conn: AzureDbConnection,
     db_conn.add_wb_adverts(client_id=client_id, adverts_list=adverts_list)
 
 
-async def get_product_card(db_conn: AzureDbConnection, client_id: str, api_key: str, offset: int = 0) -> list[DataWBProductCard]:
+async def get_product_card(db_conn: WBDbConnection, client_id: str, api_key: str, offset: int = 0) \
+        -> list[DataWBProductCard]:
     """
         Получение карточек товара.
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             offset (int, optional): Страница товаров.. Default to 0.
+
+        Returns:
+            List[DataWBProductCard]: Список карточек товаров.
     """
     api_user = WBApi(api_key=api_key)
     product_list = []
@@ -106,20 +105,23 @@ async def get_product_card(db_conn: AzureDbConnection, client_id: str, api_key: 
                                                        offset=offset + 1000)
                 product_list.extend(extend_answer)
 
-    logger.info(f"Обновление информации о картачках товаров")
+    logger.info(f"Обновление информации о карточках товаров")
     return product_list
 
 
-async def add_statistic_adverts(db_conn: AzureDbConnection, client_id: str, api_key: str, date: datetime) -> \
+async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> \
         list[DataWBStatisticAdvert]:
     """
         Добавление записей в таблицу `wb_statistic_advert` за указанную дату
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             date (datetime): Дата, для которой добавляются записи.
+
+        Returns:
+                List[DataWBStatisticAdvert]: Список статистики рекламных компаний, удовлетворяющих условию фильтрации.
     """
     company_ids = db_conn.get_wb_adverts_id(client_id=client_id, date=date.date())
 
@@ -148,13 +150,11 @@ async def add_statistic_adverts(db_conn: AzureDbConnection, client_id: str, api_
                                                                                       clicks=position.clicks,
                                                                                       ctr=round(position.ctr / 100, 2),
                                                                                       cpc=position.cpc,
-                                                                                      sum_field=position.sum,
+                                                                                      sum_cost=position.sum,
                                                                                       atbs=position.atbs,
-                                                                                      orders=position.orders,
-                                                                                      cr=round(position.cr / 100, 2),
+                                                                                      orders_count=position.orders,
                                                                                       shks=position.shks,
                                                                                       sum_price=position.sum_price,
-                                                                                      name=position.name,
                                                                                       nm_id=str(position.nmId),
                                                                                       advert_id=advert.advertId,
                                                                                       app_type=app_type.get(app.appType, '')))
@@ -176,6 +176,9 @@ async def get_statistic_product_card(client_id: str,
             api_key (str): API KEY кабинета.
             date_from (datetime): Дата, за которую собираются данные.
             page (int, optional): Номер страницы запроса.. Default to 1.
+
+        Returns:
+                List[DataWBStatisticCardProduct]: Список статистики карточек товара, удовлетворяющих условию фильтрации.
     """
     api_user = WBApi(api_key=api_key)
     list_card_product = []
@@ -222,7 +225,7 @@ async def get_statistic_product_card(client_id: str,
 
 async def main_wb_advert(retries: int = 6) -> None:
     try:
-        db_conn = AzureDbConnection()
+        db_conn = WBDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
         date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -237,6 +240,7 @@ async def main_wb_advert(retries: int = 6) -> None:
 
             logger.info(f"Сбор рекламных компаний {client.name_company}")
             await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date_yesterday)
+
             logger.info(f"Статистика карточек товара {client.name_company} за {date_yesterday.date().isoformat()}")
             list_card_product = await get_statistic_product_card(client_id=client.client_id,
                                                                  api_key=client.api_key,

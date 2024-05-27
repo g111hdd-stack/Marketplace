@@ -4,6 +4,9 @@ from .posting_fbo_get_response import *
 from .product_list_response import *
 from .product_info_list_response import *
 from .products_info_attributes_response import *
+from .analytics_data_response import *
 from .client_campaign_response import *
 from .client_statistics_json_response import *
 from .client_statistics_daily_json_response import *
+from .client_statistics_uuid_response import *
+from .client_statistics_report_response import *

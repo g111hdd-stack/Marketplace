@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from classes import DataOperation
 from wb_sdk.wb_api import WBApi
-from database import AzureDbConnection
+from database import WBDbConnection
 
 nest_asyncio.apply()
 
@@ -68,12 +68,12 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[D
     return list_operation
 
 
-async def add_wb_main_entry(db_conn: AzureDbConnection, client_id: str, api_key: str, date: datetime) -> None:
+async def add_wb_main_entry(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> None:
     """
         Добавление записей в таблицу `wb_main_table` за указанную дату
 
         Args:
-            db_conn (AzureDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             date (datetime): Дата, для которой добавляются записи.
@@ -90,7 +90,7 @@ async def add_wb_main_entry(db_conn: AzureDbConnection, client_id: str, api_key:
 
 async def main_func_wb(retries: int = 6) -> None:
     try:
-        db_conn = AzureDbConnection()
+        db_conn = WBDbConnection()
         db_conn.start_db()
         clients = db_conn.get_client(marketplace="WB")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)

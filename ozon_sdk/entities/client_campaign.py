@@ -13,7 +13,7 @@ class ExtCampaignCampaignAutopilotProperties(BaseEntity):
 
 class ClientCampaign(BaseEntity):
     """Информация по РК."""
-    id_field: str = Field(default=None, serialization_alias='id')
+    id_field: str = Field(default=None, alias='id')
     paymentType: str = None
     title: str = None
     state: str = None

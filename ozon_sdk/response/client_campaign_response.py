@@ -7,4 +7,4 @@ from ..entities import ClientCampaign
 
 class ClientCampaignResponse(BaseResponse):
     """Список кампаний."""
-    list_field: Optional[list[ClientCampaign]] = Field(default=[], serialization_alias='list')
+    list_field: Optional[list[ClientCampaign]] = Field(default=[], alias='list')

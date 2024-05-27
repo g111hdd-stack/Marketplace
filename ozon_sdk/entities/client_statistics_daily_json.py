@@ -4,6 +4,7 @@ from .base import BaseEntity
 
 
 class ClientStatisticsDailyJSON(BaseEntity):
+    """Дневная статистика по кампаниям."""
     id_field: str = Field(default=None, alias='id')
     title: str = None
     date: str = None
