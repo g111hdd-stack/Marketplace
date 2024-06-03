@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, date
 from sqlalchemy.exc import OperationalError
 
-from classes import DataOzProductCard, DataOzStatisticCardProduct, DataOzAdvert, DataOzStatisticAdvert
+from data_classes import DataOzProductCard, DataOzStatisticCardProduct, DataOzAdvert, DataOzStatisticAdvert
 from ozon_sdk.ozon_api import OzonApi, OzonPerformanceAPI
 from database import OzDbConnection
 
@@ -262,9 +262,9 @@ async def main_oz_advert(retries: int = 6) -> None:
     try:
         db_conn = OzDbConnection()
         db_conn.start_db()
-        clients = db_conn.get_client(marketplace="Ozon")
+        clients = db_conn.get_clients(marketplace="Ozon")
 
-        date_yesterday = (datetime.now() - timedelta(days=2)).date()
+        date_yesterday = (datetime.now() - timedelta(days=1)).date()
 
         for client in clients:
             performance = db_conn.get_oz_performance(client_id=client.client_id)

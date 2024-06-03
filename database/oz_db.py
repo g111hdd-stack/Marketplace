@@ -4,7 +4,8 @@ from sqlalchemy import and_, or_
 from sqlalchemy.sql import select
 
 from .db import DbConnection
-from classes import DataOperation, DataOzProductCard, DataOzAdvert, DataOzStatisticCardProduct, DataOzStatisticAdvert
+from data_classes import DataOperation, DataOzProductCard, DataOzAdvert, DataOzStatisticCardProduct, \
+    DataOzStatisticAdvert
 from .models import Client, OzMain, OzCardProduct, OzAdverts, OzPerformance, OzStatisticCardProduct, OzStatisticAdvert
 
 logger = logging.getLogger(__name__)

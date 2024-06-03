@@ -1,12 +1,13 @@
 import asyncio
 import logging
-from datetime import datetime
-from sqlalchemy import and_, or_
+from datetime import datetime, date
+from sqlalchemy import and_, or_, func
 from sqlalchemy.sql import select
 
 from .db import DbConnection
-from classes import DataOperation, DataWBStatisticCardProduct, DataWBStatisticAdvert, DataWBProductCard, DataWBAdvert
-from .models import Client, WBMain, WBAdverts, WBStatisticCardProduct, WBCardProduct, WBStatisticAdvert
+from data_classes import DataOperation, DataWBStatisticCardProduct, DataWBStatisticAdvert, DataWBProductCard, \
+    DataWBAdvert, DataWBReport
+from .models import Client, WBMain, WBAdverts, WBStatisticCardProduct, WBCardProduct, WBStatisticAdvert, WBReport
 from wb_sdk.wb_api import WBApi
 
 logger = logging.getLogger(__name__)
@@ -187,13 +188,13 @@ class WBDbConnection(DbConnection):
                 self.session.rollback()
                 logger.error(f"Ошибка добавления: {e}")
 
-    def get_wb_adverts_id(self, client_id: str, date: datetime.date) -> list[WBAdverts]:
+    def get_wb_adverts_id(self, client_id: str, from_date: datetime.date) -> list[WBAdverts]:
         """
             Получает список рекламных компаний, отфильтрованных по кабинету и дате активности.
 
             Args:
                 client_id (str): ID кабинета.
-                date (date): Дата активности.
+                from_date (date): Дата активности.
 
             Returns:
                 List[WBAdverts]: Список рекламных компаний, удовлетворяющих условию фильтрации.
@@ -201,5 +202,146 @@ class WBDbConnection(DbConnection):
         with self.session.begin_nested():
             result = self.session.execute(select(WBAdverts).filter(and_(WBAdverts.client_id == client_id,
                                                                         or_(WBAdverts.id_status == 9,
-                                                                            WBAdverts.change_time >= date)))).fetchall()
+                                                                            WBAdverts.change_time >= from_date))
+                                                                   )).fetchall()
         return [advert[0].id_advert for advert in result]
+
+    def add_wb_report_entry(self, client_id: str, list_report: list[DataWBReport]) -> None:
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for row in list_report:
+                new_row = WBReport(client_id=client_id,
+                                   realizationreport_id=row.realizationreport_id,
+                                   gi_id=row.gi_id,
+                                   subject_name=row.subject_name,
+                                   sku=row.sku,
+                                   brand=row.brand,
+                                   vendor_code=row.vendor_code,
+                                   size=row.size,
+                                   barcode=row.barcode,
+                                   doc_type_name=row.doc_type_name,
+                                   quantity=row.quantity,
+                                   retail_price=row.retail_price,
+                                   retail_amount=row.retail_amount,
+                                   sale_percent=row.sale_percent,
+                                   commission_percent=row.commission_percent,
+                                   office_name=row.office_name,
+                                   supplier_oper_name=row.supplier_oper_name,
+                                   order_date=row.order_date,
+                                   sale_date=row.sale_date,
+                                   operation_date=row.operation_date,
+                                   shk_id=row.shk_id,
+                                   retail_price_withdisc_rub=row.retail_price_withdisc_rub,
+                                   delivery_amount=row.delivery_amount,
+                                   return_amount=row.return_amount,
+                                   delivery_rub=row.delivery_rub,
+                                   gi_box_type_name=row.gi_box_type_name,
+                                   product_discount_for_report=row.product_discount_for_report,
+                                   supplier_promo=row.supplier_promo,
+                                   order_id=row.order_id,
+                                   ppvz_spp_prc=row.ppvz_spp_prc,
+                                   ppvz_kvw_prc_base=row.ppvz_kvw_prc_base,
+                                   ppvz_kvw_prc=row.ppvz_kvw_prc,
+                                   sup_rating_prc_up=row.sup_rating_prc_up,
+                                   is_kgvp_v2=row.is_kgvp_v2,
+                                   ppvz_sales_commission=row.ppvz_sales_commission,
+                                   ppvz_for_pay=row.ppvz_for_pay,
+                                   ppvz_reward=row.ppvz_reward,
+                                   acquiring_fee=row.acquiring_fee,
+                                   acquiring_bank=row.acquiring_bank,
+                                   ppvz_vw=row.ppvz_vw,
+                                   ppvz_vw_nds=row.ppvz_vw_nds,
+                                   ppvz_office_id=row.ppvz_office_id,
+                                   ppvz_office_name=row.ppvz_office_name,
+                                   ppvz_supplier_id=row.ppvz_supplier_id,
+                                   ppvz_supplier_name=row.ppvz_supplier_name,
+                                   ppvz_inn=row.ppvz_inn,
+                                   declaration_number=row.declaration_number,
+                                   bonus_type_name=row.bonus_type_name,
+                                   sticker_id=row.sticker_id,
+                                   site_country=row.site_country,
+                                   penalty=row.penalty,
+                                   additional_payment=row.additional_payment,
+                                   rebill_logistic_cost=row.rebill_logistic_cost,
+                                   rebill_logistic_org=row.rebill_logistic_org,
+                                   kiz=row.kiz,
+                                   storage_fee=row.storage_fee,
+                                   deduction=row.deduction,
+                                   acceptance=row.acceptance,
+                                   posting_number=row.posting_number)
+                self.session.add(new_row)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")
+
+    def add_wb_operation_for_report(self):
+        date_from = datetime(year=2024, month=3, day=1).date()
+        report = self.session.query(WBReport).outerjoin(WBMain,
+                                                        (WBReport.client_id == WBMain.client_id) &
+                                                        (WBReport.vendor_code == WBMain.vendor_code) &
+                                                        (WBReport.posting_number == WBMain.posting_number) &
+                                                        (WBReport.sku == WBMain.sku)
+                                                        ).filter(WBMain.id.is_(None),
+                                                                 WBReport.doc_type_name.in_(['Продажа', 'Возврат']),
+                                                                 WBReport.retail_price != 0,
+                                                                 WBReport.sale_date >= date_from).all()
+        type_of_transaction = {'Продажа': 'delivered',
+                               'Возврат': 'cancelled'}
+        logger.info(f"Добавление в таблицу wb_main_table {len(report)} строк")
+        for row in report:
+            sale = row.retail_price
+            quantities = row.quantity
+            if type_of_transaction[row.doc_type_name] == 'cancelled':
+                sale = -sale
+                quantities = -quantities
+            new_row = WBMain(accrual_date=row.sale_date,
+                             client_id=row.client_id,
+                             type_of_transaction=type_of_transaction[row.doc_type_name],
+                             vendor_code=row.vendor_code,
+                             posting_number=row.posting_number,
+                             delivery_schema='report',
+                             sku=row.sku,
+                             sale=sale,
+                             quantities=quantities)
+            self.session.add(new_row)
+        try:
+            self.session.commit()
+            logger.info(f"Успешное добавление в базу")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")
+
+    def add_wb_operation_for_not_report(self, client_id: str, date_to: date):
+        type_of_transaction = {'Продажа': 'delivered',
+                               'Возврат': 'cancelled'}
+
+        for key, value in type_of_transaction.items():
+            report = self.session.query(WBMain).outerjoin(WBReport,
+                                                          (WBReport.client_id == WBMain.client_id) &
+                                                          (WBReport.vendor_code == WBMain.vendor_code) &
+                                                          (WBReport.posting_number == WBMain.posting_number) &
+                                                          (WBReport.sku == WBMain.sku) &
+                                                          (WBReport.doc_type_name == key)
+                                                          ).filter(WBReport.id.is_(None),
+                                                                   WBMain.client_id == client_id,
+                                                                   WBMain.type_of_transaction == value,
+                                                                   WBMain.accrual_date <= date_to).all()
+            logger.info(f"Обновление отсутствующих строк в отчете по {value} wb_main_table {len(report)} строк")
+
+            for rep in report:
+                row = self.session.query(WBMain).filter(WBMain.id == rep.id).first()
+                row.delivery_schema = 'not_report'
+        try:
+            self.session.commit()
+            logger.info(f"Успешное обновление")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")
+
+    def get_last_sale_date_wb_report(self, client_id: str) -> date:
+        latest_sale_date = self.session.query(func.max(WBReport.sale_date)).\
+            filter(WBReport.client_id == client_id).scalar()
+        return latest_sale_date

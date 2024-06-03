@@ -1,11 +1,12 @@
 import logging
+from typing import Type
 
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine, desc
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
-from classes import *
+from data_classes import *
 from database.models import *
 from config import *
 
@@ -17,6 +18,12 @@ conn_setting = ConnectionSettings(server=SERVER,
                                   username=USER,
                                   password=PASSWORD,
                                   timeout=LOGIN_TIMEOUT)
+
+DB_USER = "postgres"
+DB_PASS = "216_Bogvina"
+DB_HOST = "localhost"
+DB_NAME = "azure"
+DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
 
 class DbConnection:
@@ -55,7 +62,7 @@ class DbConnection:
             self.session.add(DateList(date=new_date))
         self.session.commit()
 
-    def get_client(self, marketplace: str) -> list[Client]:
+    def get_clients(self, marketplace: str) -> list[Client]:
         """
             Получает список клиентов, отфильтрованный по заданному рынку.
 
@@ -68,3 +75,8 @@ class DbConnection:
         with self.session.begin_nested():
             result = self.session.execute(select(Client).filter(Client.marketplace == marketplace)).fetchall()
         return [client[0] for client in result]
+
+    def get_client(self, client_id: str) -> Type[Client]:
+        client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if client:
+            return client

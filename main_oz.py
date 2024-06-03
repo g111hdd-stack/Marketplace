@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import OperationalError
 
-from classes import DataOperation
+from data_classes import DataOperation
 from ozon_sdk.ozon_api import OzonApi
 from database import OzDbConnection
 
@@ -141,7 +141,7 @@ async def main_func_oz(retries: int = 6) -> None:
     try:
         db_conn = OzDbConnection()
         db_conn.start_db()
-        clients = db_conn.get_client(marketplace="Ozon")
+        clients = db_conn.get_clients(marketplace="Ozon")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")

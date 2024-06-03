@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import OperationalError
 
-from classes import DataOperation
+from data_classes import DataOperation, DataYaCampaigns
 from ya_sdk.ya_api import YandexApi
 from database import YaDbConnection
 
@@ -15,10 +15,25 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def get_orders(api_key: str, updated_at_from: str, updated_at_to: str, page: int = 1) -> list[int]:
+async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
+    list_campaigns = []
+    api_user = YandexApi(api_key=api_key)
+    answer = await api_user.get_campaigns()
+    if answer:
+        for campaign in answer.campaigns:
+            list_campaigns.append(DataYaCampaigns(client_id=str(campaign.business.field_id),
+                                                  campaign_id=str(campaign.field_id),
+                                                  name=campaign.domain,
+                                                  placement_type=campaign.placementType))
+    return list_campaigns
+
+
+async def get_orders(api_key: str, campaign_id: str, updated_at_from: str, updated_at_to: str, page: int = 1) \
+        -> list[int]:
     list_orders = []
     api_user = YandexApi(api_key=api_key)
-    answer_orders = await api_user.get_campaigns_orders(updated_at_from=updated_at_from,
+    answer_orders = await api_user.get_campaigns_orders(campaign_id=campaign_id,
+                                                        updated_at_from=updated_at_from,
                                                         updated_at_to=updated_at_to,
                                                         status=['DELIVERED'],
                                                         page=page)
@@ -27,7 +42,8 @@ async def get_orders(api_key: str, updated_at_from: str, updated_at_to: str, pag
             list_orders.append(order.id_field)
 
     if answer_orders.pager.pagesCount > page:
-        extend_orders = await get_orders(api_key=api_key,
+        extend_orders = await get_orders(campaign_id=campaign_id,
+                                         api_key=api_key,
                                          updated_at_from=updated_at_from,
                                          updated_at_to=updated_at_to,
                                          page=page + 1)
@@ -36,13 +52,14 @@ async def get_orders(api_key: str, updated_at_from: str, updated_at_to: str, pag
     return list_orders
 
 
-async def get_operations(client_id: str, api_key: str, updated_at_from: str, updated_at_to: str, page: int = 1) \
+async def get_operations(client_id: str, campaign_id:str, api_key: str, updated_at_from: str, updated_at_to: str) \
         -> list[DataOperation]:
     """
         Получает список операций для указанного клиента за определенный период времени.
 
         Args:
             client_id (str): ID кабинета.
+            campaign_id (str): ID магазина.
             api_key (str): API KEY кабинета.
             updated_at_from (str): Начальная дата периода (в формате строки)
                 Формат: YYYY-MM-DDTHH:mm:ss.sssZ.
@@ -50,78 +67,99 @@ async def get_operations(client_id: str, api_key: str, updated_at_from: str, upd
             updated_at_to (str): Конечная дата периода (в формате строки).
                 Формат: YYYY-MM-DDTHH:mm:ss.sssZ.
                 Пример: 2019-11-25T10:43:06.51Z.
-            page (int, optional): Номер страницы результатов запроса.. Default to 1.
 
         Returns:
             list[DataOperation]: Список операций.
     """
     list_operation = []
-    request_date = datetime.strptime(updated_at_from.split('T')[0], '%Y-%m-%d').date()
     date_format = '%Y-%m-%d'
 
     # Инициализация API-клиента Yandex
     api_user = YandexApi(api_key=api_key)
 
     # Получение списка заказов
-    list_orders = await get_orders(api_key=api_key,
+    list_orders = await get_orders(campaign_id=campaign_id,
+                                   api_key=api_key,
                                    updated_at_from=updated_at_from,
                                    updated_at_to=updated_at_to)
-
-    answer = await api_user.get_campaigns_stats_orders(orders=list_orders, limit=200)
-    if answer:
-        for order in answer.result.orders:
-            posting_number = str(order.id_field)  # Номер отправления
-            print(posting_number)
-            accrual_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата доставки
-            for pay in order.payments:
-                if pay.source == 'MARKETPLACE':
-                    payment_date = datetime.strptime(pay.date, date_format).date()
-                    print(accrual_date == payment_date)
-            for item in order.items:
-                vendor_code = item.shopSku
-                quantities = item.count
-                delivery_schema = item.warehouse.name
-                sku = str(item.marketSku)
-                sale = round(sum([price.total for price in item.prices]), 2)
-                if order.status == 'DELIVERED':
-                    type_of_transaction = 'delivered'
-                else:
-                    type_of_transaction = 'cancelled'
-                    sale = -sale
-                    quantities = -quantities
-
-                list_operation.append(DataOperation(client_id=client_id,
-                                                    accrual_date=accrual_date,
-                                                    type_of_transaction=type_of_transaction,
-                                                    vendor_code=vendor_code,
-                                                    delivery_schema=delivery_schema,
-                                                    posting_number=posting_number,
-                                                    sku=sku,
-                                                    sale=sale,
-                                                    quantities=quantities))
+    if not list_orders:
+        return list_operation
+    page_token = None
+    while True:
+        answer = await api_user.get_campaigns_stats_orders(campaign_id=campaign_id,
+                                                           orders=list_orders,
+                                                           limit=200,
+                                                           page_token=page_token)
+        if answer.result:
+            for order in answer.result.orders:
+                posting_number = str(order.id_field)  # Номер отправления
+                accrual_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата доставки
+                for item in order.items:
+                    vendor_code = item.shopSku
+                    quantities = item.count
+                    sku = str(item.marketSku)
+                    sale = round(sum([price.total for price in item.prices]) / quantities, 2)
+                    if item.details:
+                        quantities_returned = 0
+                        for detail in item.details:
+                            if detail.itemStatus == 'REJECTED':
+                                quantities -= detail.itemCount
+                            elif detail.itemStatus == 'RETURNED':
+                                quantities_returned -= detail.itemCount
+                        if quantities_returned < 0:
+                            list_operation.append(DataOperation(client_id=client_id,
+                                                                accrual_date=accrual_date,
+                                                                type_of_transaction='cancelled',
+                                                                vendor_code=vendor_code,
+                                                                delivery_schema=campaign_id,
+                                                                posting_number=posting_number,
+                                                                sku=sku,
+                                                                sale=-sale,
+                                                                quantities=quantities_returned))
+                    if quantities > 0:
+                        list_operation.append(DataOperation(client_id=client_id,
+                                                            accrual_date=accrual_date,
+                                                            type_of_transaction='delivered',
+                                                            vendor_code=vendor_code,
+                                                            delivery_schema=campaign_id,
+                                                            posting_number=posting_number,
+                                                            sku=sku,
+                                                            sale=sale,
+                                                            quantities=quantities))
+            if answer.result.paging.nextPageToken:
+                page_token = answer.result.paging.nextPageToken
+            else:
+                break
+        else:
+            break
 
     return list_operation
 
 
-async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, api_key: str, date: datetime) -> None:
+async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaign_id: str, api_key: str,
+                                from_date: datetime) -> None:
     """
         Добавление записей в таблицу `ya_main_table` за указанную дату
 
         Args:
             db_conn (YaDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
+            campaign_id (str): ID магазина.
             api_key (str): API KEY кабинета.
-            date (datetime): Дата, для которой добавляются записи.
+            from_date (datetime): Дата, для которой добавляются записи.
     """
-    start = date.replace(hour=0, minute=0, second=0, microsecond=0)
+    start = from_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1) - timedelta(microseconds=1)
+
     logger.info(f"За период с <{start}> до <{end}>")
     operations = await get_operations(client_id=client_id,
+                                      campaign_id=campaign_id,
                                       api_key=api_key,
                                       updated_at_from=start.isoformat(),
                                       updated_at_to=end.isoformat())
+
     logger.info(f"Количество записей: {len(operations)}")
-    #db_conn.add_ya_operation(client_id=client_id, list_operations=operations)
+    db_conn.add_ya_operation(client_id=client_id, list_operations=operations)
 
 
 async def main_func_yandex(retries: int = 6) -> None:
@@ -133,20 +171,30 @@ async def main_func_yandex(retries: int = 6) -> None:
     try:
         db_conn = YaDbConnection()
         db_conn.start_db()
-        clients = db_conn.get_client(marketplace='Yandex')
-        date = datetime(year=2024, month=5, day=17, tzinfo=timezone(timedelta(hours=3)))
-        while date.date() == datetime.now().date():
-            for client in clients:
-                logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-                await add_yandex_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
-            date += timedelta(days=1)
+        clients = db_conn.get_clients(marketplace='Yandex')
+        api_key_set = {client.api_key for client in clients}
+        for api_key in api_key_set:
+            list_campaigns = await get_campaign_ids(api_key=api_key)
+            db_conn.add_ya_campaigns(list_campaigns=list_campaigns)
+
+            from_date = datetime.now(tz=timezone(timedelta(hours=3))) - timedelta(days=1)
+
+            for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
+                client = db_conn.get_client(client_id=campaign.client_id)
+                logger.info(f"Добавление в базу данных компании '{client.name_company}' магазина '{campaign.name}'")
+                await add_yandex_main_entry(db_conn=db_conn,
+                                            client_id=client.client_id,
+                                            campaign_id=campaign.campaign_id,
+                                            api_key=client.api_key,
+                                            from_date=from_date)
+
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
             await main_func_yandex(retries=retries - 1)
-    #except Exception as e:
-    #    logger.error(f'{e}')
+    except Exception as e:
+        logger.error(f'{e}')
 
 
 if __name__ == "__main__":

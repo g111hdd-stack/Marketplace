@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import OperationalError
 
-from classes import DataOperation
+from data_classes import DataOperation
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 
@@ -92,7 +92,7 @@ async def main_func_wb(retries: int = 6) -> None:
     try:
         db_conn = WBDbConnection()
         db_conn.start_db()
-        clients = db_conn.get_client(marketplace="WB")
+        clients = db_conn.get_clients(marketplace="WB")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")

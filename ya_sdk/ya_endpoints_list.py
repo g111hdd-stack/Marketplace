@@ -7,8 +7,10 @@ from .core import YandexAsyncEngine
 class YandexAPIFactory:
 
     api_list: dict[Type[BaseResponse], str] = {
-        CampaignsOrdersResponse: 'campaigns/{campaignId}/orders'.format(campaignId='72480789'),
-        CampaignsStatsOrdersResponse: 'campaigns/{campaignId}/stats/orders'.format(campaignId='72480789')
+        CampaignsResponse: 'campaigns',
+        CampaignsOrdersResponse: 'campaigns/{campaignId}/orders',
+        CampaignsStatsOrdersResponse: 'campaigns/{campaignId}/stats/orders'
+
     }
 
     def __init__(self, engine: YandexAsyncEngine):

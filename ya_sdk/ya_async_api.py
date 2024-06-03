@@ -10,18 +10,24 @@ class YandexAsyncApi:
         self._url = url
         self._response_type = response_type
 
-    async def get(self, request):
+    async def get(self, request, format_dict: dict = None):
         parameters = request.dict(by_alias=True)
-        response = await self._engine.get(self._url, parameters)
+        url = self._url
+        if format_dict:
+            url = url.format(**format_dict)
+        response = await self._engine.get(url, parameters)
         data = await self._parse_response(response)
         return data
 
-    async def post(self, body=None, query=None):
+    async def post(self, body=None, query=None, format_dict: dict = None):
         if body:
             body = await self.params_to_dict(body)
         if query:
             query = await self.params_to_dict(query)
-        response = await self._engine.post(self._url, json=body, params=query)
+        url = self._url
+        if format_dict:
+            url = url.format(**format_dict)
+        response = await self._engine.post(url, json=body, params=query)
         data = await self._parse_response(response)
         return data
 

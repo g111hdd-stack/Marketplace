@@ -13,7 +13,8 @@ class WBAPIFactory:
         PromotionAdvertsResponse: 'https://advert-api.wb.ru/adv/v1/promotion/adverts',
         FullstatsResponse: 'https://advert-api.wb.ru/adv/v2/fullstats',
         NMReportDetailResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail',
-        ListGoodsFilterResponse: 'https://discounts-prices-api.wb.ru/api/v2/list/goods/filter'
+        ListGoodsFilterResponse: 'https://discounts-prices-api.wb.ru/api/v2/list/goods/filter',
+        SupplierReportDetailByPeriodResponse: 'https://statistics-api.wildberries.ru/api/v5/supplier/reportDetailByPeriod'
     }
 
     def __init__(self, engine: WBAsyncEngine):

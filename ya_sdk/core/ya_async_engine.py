@@ -43,8 +43,8 @@ class YandexAsyncEngine:
             while retry != 0:
                 params = await transform_params(params)
                 async with session.get(url, params=params) as response:
-                    logger.info(f"Получен ответ от {url} ({response.status})")
                     if response.status != 200:
+                        logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                         await asyncio.sleep(60)
                         retry -= 1
@@ -60,9 +60,8 @@ class YandexAsyncEngine:
                 if params is not None:
                     params = await transform_params(params)
                 async with session.post(url, json=json, params=params) as response:
-                    logger.info(f"Получен ответ от {url} ({response.status})")
                     if response.status != 200:
-                        print(response.text)
+                        logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                         await asyncio.sleep(60)
                         retry -= 1

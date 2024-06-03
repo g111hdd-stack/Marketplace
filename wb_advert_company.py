@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy.exc import OperationalError
 
-from classes import DataWBAdvert, DataWBProductCard, DataWBStatisticAdvert, DataWBStatisticCardProduct
+from data_classes import DataWBAdvert, DataWBProductCard, DataWBStatisticAdvert, DataWBStatisticCardProduct
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 
@@ -123,7 +123,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
         Returns:
                 List[DataWBStatisticAdvert]: Список статистики рекламных компаний, удовлетворяющих условию фильтрации.
     """
-    company_ids = db_conn.get_wb_adverts_id(client_id=client_id, date=date.date())
+    company_ids = db_conn.get_wb_adverts_id(client_id=client_id, from_date=date.date())
 
     if not company_ids:
         logger.info(f"Количество записей: 0")
@@ -227,7 +227,7 @@ async def main_wb_advert(retries: int = 6) -> None:
     try:
         db_conn = WBDbConnection()
         db_conn.start_db()
-        clients = db_conn.get_client(marketplace="WB")
+        clients = db_conn.get_clients(marketplace="WB")
         date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         date_yesterday = date - timedelta(days=1)
 

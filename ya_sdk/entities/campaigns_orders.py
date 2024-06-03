@@ -4,15 +4,6 @@ from pydantic import Field
 from .base import BaseEntity
 
 
-class FlippingPagerDTO(BaseEntity):
-    """Модель для пагинации."""
-    total: int = None
-    from_field: int = Field(default=None, alias='from')
-    tocurrentPage: int = None
-    pagesCount: int = None
-    pageSize: int = None
-
-
 class OrderItemPromoDTO(BaseEntity):
     """Информация о вознаграждениях партнеру за скидки на товар по промокодам, купонам и акциям."""
     type_field: str = Field(default=None, alias='type')

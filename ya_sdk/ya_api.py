@@ -1,3 +1,5 @@
+from typing import Union
+
 from .requests import *
 from .response import *
 from .core import YandexAsyncEngine
@@ -10,10 +12,17 @@ class YandexApi:
         self._engine = YandexAsyncEngine(api_key=api_key)
         self._api_factory = YandexAPIFactory(self._engine)
 
+        self._campaigns_api = self._api_factory.get_api(CampaignsResponse)
         self._campaigns_orders_api = self._api_factory.get_api(CampaignsOrdersResponse)
         self._campaigns_stats_orders_api = self._api_factory.get_api(CampaignsStatsOrdersResponse)
 
+    async def get_campaigns(self, page: int = 1, page_size: int = None) -> CampaignsResponse:
+        request = CampaignsRequest(page=page, pageSize=page_size)
+        answer: CampaignsResponse = await self._campaigns_api.get(request)
+        return answer
+
     async def get_campaigns_orders(self,
+                                   campaign_id: Union[str, int],
                                    from_date: str = None,
                                    to_date: str = None,
                                    order_ids: list[int] = None,
@@ -48,11 +57,13 @@ class YandexApi:
                                          buyerType=buyer_type,
                                          page=page,
                                          pageSize=page_size)
-        answer: CampaignsOrdersResponse = await self._campaigns_orders_api.get(request)
+        answer: CampaignsOrdersResponse = await self._campaigns_orders_api.get(request,
+                                                                               format_dict={'campaignId': campaign_id})
 
         return answer
 
     async def get_campaigns_stats_orders(self,
+                                         campaign_id: Union[str, int],
                                          page_token: str = None,
                                          limit: int = 20,
                                          date_from: str = None,
@@ -70,6 +81,8 @@ class YandexApi:
                                                orders=orders,
                                                statuses=statuses,
                                                hasCis=has_cis)
-        answer: CampaignsStatsOrdersResponse = await self._campaigns_stats_orders_api.post(body=body, query=query)
+        answer: CampaignsStatsOrdersResponse = await self._campaigns_stats_orders_api.post(body=body,
+                                                                                           query=query,
+                                                                                           format_dict={'campaignId': campaign_id})
 
         return answer
