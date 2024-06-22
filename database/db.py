@@ -21,14 +21,14 @@ conn_setting = ConnectionSettings(server=SERVER,
 
 DB_USER = "postgres"
 DB_PASS = "216_Bogvina"
-DB_HOST = "localhost"
-DB_NAME = "azure"
+DB_HOST = "38.180.101.127:5432"
+DB_NAME = "arris"
 DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
 
 class DbConnection:
 
-    def __init__(self, conn_settings: ConnectionSettings = conn_setting, echo: bool = False) -> None:
+    def __init__(self, conn_settings: ConnectionSettings = conn_setting, echo: bool = False, postgres: bool = False) -> None:
         conn_params = quote_plus(
             'Driver=%s;' % conn_settings.driver +
             'Server=tcp:%s.database.windows.net,1433;' % conn_settings.server +
@@ -40,8 +40,10 @@ class DbConnection:
             'Connection Timeout=%s;' % conn_settings.timeout)
 
         conn_string = f'mssql+pyodbc:///?odbc_connect={conn_params}'
-
-        self.engine = create_engine(url=conn_string, echo=echo, pool_pre_ping=True)
+        if postgres:
+            self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
+        else:
+            self.engine = create_engine(url=conn_string, echo=echo, pool_pre_ping=True)
         self.session = Session(self.engine)
 
     def start_db(self) -> None:

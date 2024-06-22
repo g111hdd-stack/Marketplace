@@ -31,7 +31,8 @@ class OzDbConnection(DbConnection):
                                        delivery_schema=operation.delivery_schema,
                                        sku=operation.sku,
                                        sale=operation.sale,
-                                       quantities=operation.quantities)
+                                       quantities=operation.quantities,
+                                       commission=operation.commission)
                 self.session.add(new_operation)
             try:
                 self.session.commit()

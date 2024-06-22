@@ -18,6 +18,7 @@ class OzMain(Base):
     sku = Column(String, nullable=False)
     sale = Column(Numeric(precision=12, scale=2), nullable=False)
     quantities = Column(Integer, nullable=False)
+    commission = Column(Numeric(precision=12, scale=2), nullable=False)
 
     client = relationship("Client", back_populates="operations_oz")
 

@@ -84,9 +84,16 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                 vendor_code = product.offer_id  # Артикул продукта
                 sale = round(float(product.price), 2)  # Стоимость продажи товара
                 quantities = product.quantity  # Количество
+
+                commission = 0
+                for financial_data_product in answer_fb.result.financial_data.products:
+                    if financial_data_product.product_id == product.sku:
+                        commission = round(float(financial_data_product.commission_amount), 2)
+
                 if type_of_transaction == "cancelled":
                     sale = -sale
                     quantities = -quantities
+                    commission = -commission
 
                 # Добавление операции в список
                 list_operation.append(DataOperation(client_id=client_id,
@@ -97,7 +104,8 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                                     posting_number=posting_number,
                                                     sku=sku,
                                                     sale=sale,
-                                                    quantities=quantities))
+                                                    quantities=quantities,
+                                                    commission=commission))
 
         # Рекурсивный вызов функции для получения дополнительных страниц результатов
         if answer_transaction.result.page_count > page:

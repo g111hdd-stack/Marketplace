@@ -1,1 +1,1 @@
-from .ozon_base_response import *
+from .ya_base_response import *

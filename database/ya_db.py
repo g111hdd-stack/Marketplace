@@ -1,8 +1,4 @@
-import asyncio
 import logging
-from datetime import datetime
-from sqlalchemy import and_, or_
-from sqlalchemy.sql import select
 
 from .db import DbConnection
 from data_classes import DataOperation, DataYaCampaigns

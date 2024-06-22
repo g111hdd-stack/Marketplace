@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -23,3 +24,4 @@ class DataOperation:
     sku: str
     sale: float
     quantities: int
+    commission: Optional[float] = None
