@@ -33,7 +33,8 @@ class WBDbConnection(DbConnection):
                                        delivery_schema=operation.delivery_schema,
                                        sku=operation.sku,
                                        sale=operation.sale,
-                                       quantities=operation.quantities)
+                                       quantities=operation.quantities,
+                                       commission=operation.commission)
                 self.session.add(new_operation)
             try:
                 self.session.commit()
@@ -147,8 +148,12 @@ class WBDbConnection(DbConnection):
                 if card_product is None:
                     api_user = WBApi(api_key=existing_client.api_key)
                     product = asyncio.run(api_user.get_list_goods_filter(filter_nm_id=int(card.sku)))
-                    price = product.data.listGoods[0].sizes[0].price
-                    discount_price = product.data.listGoods[0].sizes[0].discountedPrice
+                    if product.data.listGoods:
+                        price = product.data.listGoods[0].sizes[0].price
+                        discount_price = product.data.listGoods[0].sizes[0].discountedPrice
+                    else:
+                        price = None
+                        discount_price = None
                     new_card = WBCardProduct(sku=card.sku,
                                              vendor_code=card.vendor_code,
                                              client_id=client_id,
@@ -178,7 +183,8 @@ class WBDbConnection(DbConnection):
                                                                     add_to_cart_percent=card.add_to_cart_percent,
                                                                     cart_to_order_percent=card.cart_to_order_percent,
                                                                     price=price,
-                                                                    discount_price=discount_price)
+                                                                    discount_price=discount_price,
+                                                                    buyouts_last_30days_percent=card.buyouts_last_30days_percent)
 
                 self.session.add(new_statistic_card_product)
             try:
@@ -276,70 +282,6 @@ class WBDbConnection(DbConnection):
             except Exception as e:
                 self.session.rollback()
                 logger.error(f"Ошибка добавления: {e}")
-
-    def add_wb_operation_for_report(self):
-        date_from = datetime(year=2024, month=3, day=1).date()
-        report = self.session.query(WBReport).outerjoin(WBMain,
-                                                        (WBReport.client_id == WBMain.client_id) &
-                                                        (WBReport.vendor_code == WBMain.vendor_code) &
-                                                        (WBReport.posting_number == WBMain.posting_number) &
-                                                        (WBReport.sku == WBMain.sku)
-                                                        ).filter(WBMain.id.is_(None),
-                                                                 WBReport.doc_type_name.in_(['Продажа', 'Возврат']),
-                                                                 WBReport.retail_price != 0,
-                                                                 WBReport.sale_date >= date_from).all()
-        type_of_transaction = {'Продажа': 'delivered',
-                               'Возврат': 'cancelled'}
-        logger.info(f"Добавление в таблицу wb_main_table {len(report)} строк")
-        for row in report:
-            sale = row.retail_price
-            quantities = row.quantity
-            if type_of_transaction[row.doc_type_name] == 'cancelled':
-                sale = -sale
-                quantities = -quantities
-            new_row = WBMain(accrual_date=row.sale_date,
-                             client_id=row.client_id,
-                             type_of_transaction=type_of_transaction[row.doc_type_name],
-                             vendor_code=row.vendor_code,
-                             posting_number=row.posting_number,
-                             delivery_schema='report',
-                             sku=row.sku,
-                             sale=sale,
-                             quantities=quantities)
-            self.session.add(new_row)
-        try:
-            self.session.commit()
-            logger.info(f"Успешное добавление в базу")
-        except Exception as e:
-            self.session.rollback()
-            logger.error(f"Ошибка добавления: {e}")
-
-    def add_wb_operation_for_not_report(self, client_id: str, date_to: date):
-        type_of_transaction = {'Продажа': 'delivered',
-                               'Возврат': 'cancelled'}
-
-        for key, value in type_of_transaction.items():
-            report = self.session.query(WBMain).outerjoin(WBReport,
-                                                          (WBReport.client_id == WBMain.client_id) &
-                                                          (WBReport.vendor_code == WBMain.vendor_code) &
-                                                          (WBReport.posting_number == WBMain.posting_number) &
-                                                          (WBReport.sku == WBMain.sku) &
-                                                          (WBReport.doc_type_name == key)
-                                                          ).filter(WBReport.id.is_(None),
-                                                                   WBMain.client_id == client_id,
-                                                                   WBMain.type_of_transaction == value,
-                                                                   WBMain.accrual_date <= date_to).all()
-            logger.info(f"Обновление отсутствующих строк в отчете по {value} wb_main_table {len(report)} строк")
-
-            for rep in report:
-                row = self.session.query(WBMain).filter(WBMain.id == rep.id).first()
-                row.delivery_schema = 'not_report'
-        try:
-            self.session.commit()
-            logger.info(f"Успешное обновление")
-        except Exception as e:
-            self.session.rollback()
-            logger.error(f"Ошибка добавления: {e}")
 
     def get_last_sale_date_wb_report(self, client_id: str) -> date:
         latest_sale_date = self.session.query(func.max(WBReport.sale_date)).\

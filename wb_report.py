@@ -87,18 +87,12 @@ async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date
     logger.info(f"Количество записей: {len(list_report)}")
     db_conn.add_wb_report_entry(client_id=client_id, list_report=list_report)
 
-    if len(list_report) > 0:
-        return True
-    return False
-
 
 async def main_wb_report(retries: int = 6) -> None:
     try:
         db_conn = WBDbConnection()
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="WB")
-
-        now_date = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 
         for client in clients:
             last_date = db_conn.get_last_sale_date_wb_report(client_id=client.client_id)
@@ -109,22 +103,12 @@ async def main_wb_report(retries: int = 6) -> None:
             days_to_last_monday = 7 - (current_weekday + 1) % 7
             date_to = date_from + timedelta(days=days_to_last_monday + 1) - timedelta(microseconds=1)
 
-            if date_to.date() < now_date.date():
-                logger.info(f"Получение отчёта для {client.name_company} за период от {date_from.date().isoformat()} до {date_to.date().isoformat()}")
-                check = await get_report(db_conn=db_conn,
-                                         client_id=client.client_id,
-                                         api_key=client.api_key,
-                                         date_from=date_from,
-                                         date_to=date_to)
-            else:
-                check = False
-
-            if check:
-                last_date_report = db_conn.get_last_sale_date_wb_report(client_id=client.client_id)
-                db_conn.add_wb_operation_for_not_report(client_id=client.client_id, date_to=last_date_report)
-
-        db_conn.add_wb_operation_for_report()
-
+            logger.info(f"Получение отчёта для {client.name_company} за период от {date_from.date().isoformat()} до {date_to.date().isoformat()}")
+            await get_report(db_conn=db_conn,
+                             client_id=client.client_id,
+                             api_key=client.api_key,
+                             date_from=date_from,
+                             date_to=date_to)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
