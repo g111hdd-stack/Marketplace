@@ -1,1 +1,1 @@
-from .ozon_base_request import *
+from .wb_base_request import *

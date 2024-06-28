@@ -1,1 +1,1 @@
-from .ozon_base_entity import *
+from .wb_base_entity import *

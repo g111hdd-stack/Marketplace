@@ -167,6 +167,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
 async def get_statistic_product_card(client_id: str,
                                      api_key: str,
                                      date_from: datetime,
+                                     buyouts_percent: dict,
                                      page: int = 1) -> list[DataWBStatisticCardProduct]:
     """
         Получение списка статистики карточек товара за указанную дату.
@@ -175,6 +176,7 @@ async def get_statistic_product_card(client_id: str,
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
             date_from (datetime): Дата, за которую собираются данные.
+            buyouts_percent (dict): Словарь sku с процентом выкупа за последнии 30 дней.
             page (int, optional): Номер страницы запроса.. Default to 1.
 
         Returns:
@@ -211,16 +213,53 @@ async def get_statistic_product_card(client_id: str,
                                                                     add_to_cart_count=add_to_cart_count,
                                                                     orders_count=orders_count,
                                                                     add_to_cart_percent=add_to_cart_percent,
-                                                                    cart_to_order_percent=cart_to_order_percent))
+                                                                    cart_to_order_percent=cart_to_order_percent,
+                                                                    buyouts_last_30days_percent=buyouts_percent.get(card.nmID, None)))
             if answer.data.isNextPage:
                 extend_card_product = await get_statistic_product_card(client_id=client_id,
                                                                        api_key=api_key,
                                                                        date_from=date_from,
+                                                                       buyouts_percent=buyouts_percent,
                                                                        page=page + 1)
                 list_card_product.extend(extend_card_product)
 
     logger.info(f"Количество записей: {len(list_card_product)}")
     return list_card_product
+
+
+async def get_buyouts_percent(client_id: str, api_key: str, date_from: datetime, page: int = 1) -> dict:
+    """
+        Получение словаря sku с процентом выкупа за последнии 30 дней.
+
+        Args:
+            client_id (str): ID кабинета.
+            api_key (str): API KEY кабинета.
+            date_from (datetime): Дата, за которую собираются данные.
+            page (int, optional): Номер страницы запроса.. Default to 1.
+
+        Returns:
+                dict: Словарь sku с процентом выкупа за последнии 30 дней.
+    """
+    api_user = WBApi(api_key=api_key)
+    buyouts_percent = dict()
+    date_from = date_from.replace(hour=0, minute=0, second=0, microsecond=0)
+    date_from_30days = date_from - timedelta(days=29)
+    date_to = (date_from + timedelta(days=1)) - timedelta(microseconds=1)
+
+    answer_last_30days = await api_user.get_nm_report_detail(date_from=date_from_30days.isoformat(sep=" "),
+                                                             date_to=date_to.isoformat(sep=" "),
+                                                             page=page)
+    if answer_last_30days:
+        if answer_last_30days.data:
+            for card in answer_last_30days.data.cards:
+                buyouts_percent[card.nmID] = round(card.statistics.selectedPeriod.conversions.buyoutsPercent / 100, 2)
+            if answer_last_30days.data.isNextPage:
+                update_dict = await get_buyouts_percent(client_id=client_id,
+                                                        api_key=api_key,
+                                                        date_from=date_from,
+                                                        page=page + 1)
+                buyouts_percent.update(update_dict)
+    return buyouts_percent
 
 
 async def main_wb_advert(retries: int = 6) -> None:
@@ -242,9 +281,13 @@ async def main_wb_advert(retries: int = 6) -> None:
             await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date_yesterday)
 
             logger.info(f"Статистика карточек товара {client.name_company} за {date_yesterday.date().isoformat()}")
+            buyouts_percent = await get_buyouts_percent(client_id=client.client_id,
+                                                        api_key=client.api_key,
+                                                        date_from=date_yesterday)
             list_card_product = await get_statistic_product_card(client_id=client.client_id,
                                                                  api_key=client.api_key,
-                                                                 date_from=date_yesterday)
+                                                                 date_from=date_yesterday,
+                                                                 buyouts_percent=buyouts_percent)
             db_conn.add_wb_cards_products_statistics(client_id=client.client_id, list_card_product=list_card_product)
 
             logger.info(f"Статистика рекламы {client.name_company} за {date_yesterday.date().isoformat()}")

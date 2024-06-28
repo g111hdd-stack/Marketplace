@@ -1,1 +1,1 @@
-from .ozon_base_response import *
+from .wb_base_response import *

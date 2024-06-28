@@ -48,6 +48,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[D
         vendor_code = operation.supplierArticle  # Артикул продукта
         sku = str(operation.nmId)  # Артикул продукта внутри системы WB
         sale = round(float(operation.priceWithDisc), 2)  # Стоимость продажи товара
+        commission = round(float(sale - operation.forPay), 2)
         if sale > 0:
             type_of_transaction = "delivered"
             quantities = 1
@@ -64,7 +65,8 @@ async def get_operations(client_id: str, api_key: str, from_date: str) -> list[D
                                             posting_number=posting_number,
                                             sku=sku,
                                             sale=sale,
-                                            quantities=quantities))
+                                            quantities=quantities,
+                                            commission=commission))
     return list_operation
 
 
