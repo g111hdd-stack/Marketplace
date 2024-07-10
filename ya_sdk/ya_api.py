@@ -15,6 +15,8 @@ class YandexApi:
         self._campaigns_api = self._api_factory.get_api(CampaignsResponse)
         self._campaigns_orders_api = self._api_factory.get_api(CampaignsOrdersResponse)
         self._campaigns_stats_orders_api = self._api_factory.get_api(CampaignsStatsOrdersResponse)
+        self._reports_info_api = self._api_factory.get_api(ReportsInfoResponse)
+        self._reports_united_marketplace_services_generate_api = self._api_factory.get_api(ReportsUnitedMarketplaceServicesGenerateResponse)
 
     async def get_campaigns(self, page: int = 1, page_size: int = None) -> CampaignsResponse:
         request = CampaignsRequest(page=page, pageSize=page_size)
@@ -84,5 +86,48 @@ class YandexApi:
         answer: CampaignsStatsOrdersResponse = await self._campaigns_stats_orders_api.post(body=body,
                                                                                            query=query,
                                                                                            format_dict={'campaignId': campaign_id})
+
+        return answer
+
+    async def get_reports_united_marketplace_services_generate(self,
+                                                               business_id: int,
+                                                               campaign_ids: list[int],
+                                                               date_time_from: str = None,
+                                                               date_time_to: str = None,
+                                                               date_from: str = None,
+                                                               date_to: str = None,
+                                                               year_from: int = None,
+                                                               month_from: int = None,
+                                                               year_to: int = None,
+                                                               month_to: int = None,
+                                                               placement_programs: list[str] = None,
+                                                               inns: list[str] = None,
+                                                               format_field: str = 'FILE',
+                                                               language: str = 'RU')\
+            -> ReportsUnitedMarketplaceServicesGenerateResponse:
+        if placement_programs is None:
+            placement_programs = ["FBS", "FBY", "DBS"]
+        query = ReportsUnitedMarketplaceServicesGenerateQueryRequest(format_field=format_field, language=language)
+        body = ReportsUnitedMarketplaceServicesGenerateBodyRequest(businessId=business_id,
+                                                                   dateTimeFrom=date_time_from,
+                                                                   dateTimeTo=date_time_to,
+                                                                   dateFrom=date_from,
+                                                                   dateTo=date_to,
+                                                                   yearFrom=year_from,
+                                                                   monthFrom=month_from,
+                                                                   yearTo=year_to,
+                                                                   monthTo=month_to,
+                                                                   placementPrograms=placement_programs,
+                                                                   inns=inns,
+                                                                   campaignIds=campaign_ids)
+        answer: ReportsUnitedMarketplaceServicesGenerateResponse = \
+            await self._reports_united_marketplace_services_generate_api.post(body=body,
+                                                                              query=query)
+
+        return answer
+
+    async def get_reports_info(self, report_id: str) -> ReportsInfoResponse:
+        request = ReportsInfoRequest()
+        answer: ReportsInfoResponse = await self._reports_info_api.get(request, format_dict={'reportId': report_id})
 
         return answer

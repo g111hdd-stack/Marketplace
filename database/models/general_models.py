@@ -27,6 +27,7 @@ class Client(Base):
     ya_campaigns = relationship("YaCampaigns", back_populates="client")
     report_wb = relationship("WBReport", back_populates="client")
     orders_sb = relationship("SbOrders", back_populates="client")
+    report_ya = relationship("YaReport", back_populates="client")
 
 
 class DateList(Base):

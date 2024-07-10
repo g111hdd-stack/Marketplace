@@ -32,3 +32,20 @@ class YaCampaigns(Base):
     placement_type = Column(Unicode, nullable=False)
 
     client = relationship("Client", back_populates="ya_campaigns")
+
+
+class YaReport(Base):
+    """Модель таблицы ya_report."""
+    __tablename__ = 'ya_report'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=True)
+    campaign_id = Column(String(length=255), nullable=True)
+    posting_number = Column(String(length=255), nullable=True)
+    application_number = Column(String(length=255), nullable=True)
+    vendor_code = Column(Unicode, nullable=True)
+    service = Column(Unicode, nullable=True)
+    accrual_date = Column(Date, nullable=True)
+    cost = Column(Numeric(precision=12, scale=2), nullable=False)
+
+    client = relationship("Client", back_populates="report_ya")

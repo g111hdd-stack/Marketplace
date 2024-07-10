@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date_from: datetime,
-                     date_to: datetime) -> bool:
+                     date_to: datetime):
     list_report = []
     api_user = WBApi(api_key=api_key)
     answer = await api_user.get_supplier_report_detail_by_period(date_from=date_from.isoformat(),

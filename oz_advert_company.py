@@ -1,9 +1,11 @@
 import asyncio
+
 import nest_asyncio
 import logging
 
 from datetime import datetime, timedelta, date
 from sqlalchemy.exc import OperationalError
+from typing import List
 
 from data_classes import DataOzProductCard, DataOzStatisticCardProduct, DataOzAdvert, DataOzStatisticAdvert
 from ozon_sdk.ozon_api import OzonApi, OzonPerformanceAPI
@@ -208,7 +210,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             db_conn (OzDbConnection): Объект соединения с базой данных Azure.
             client_id (str): ID кабинета.
             performance_id (str): ID рекламного кабинета.
-            client_secret (str): SECRET KEY рекламного кабинета кабинета.
+            client_secret (str): SECRET KEY рекламного кабинета.
             from_date (date): Дата, за которую собираются данные.
     """
     list_statistics_advert = []
@@ -217,7 +219,8 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
         return
     list_sku = db_conn.get_oz_sku_card_product(client_id=client_id)
     api_user = OzonPerformanceAPI(client_id=performance_id, client_secret=client_secret)
-    for ids in [company_ids[i:i + 10] for i in range(0, len(company_ids), 10)]:
+
+    async def fetch_statistics(ids: List[str]):
         answer = await api_user.get_client_statistics_json(campaigns=ids,
                                                            date_from=from_date.isoformat(),
                                                            date_to=from_date.isoformat(),
@@ -230,29 +233,33 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             answer_uuid = await api_user.get_client_statistics_uuid(uuid=uuid)
             link = answer_uuid.link
 
-        answer_report = await api_user.get_client_statistics_report(uuid=uuid)
-        if answer_report:
-            if answer_report.result:
-                for advert in answer_report.result:
-                    advert_id = advert.field_id
-                    for row in advert.statistic.report.rows:
-                        sku = row.sku
-                        if sku not in list_sku:
-                            continue
-                        field_date = datetime.strptime(row.date, '%d.%m.%Y').date()
-                        cpc = round(float(row.avgBid.replace(',', '.')), 2)
-                        sum_cost = round(float(row.moneySpent.replace(',', '.')), 2)
-                        sum_price = round(float(row.ordersMoney.replace(',', '.')), 2)
-                        list_statistics_advert.append(DataOzStatisticAdvert(client_id=client_id,
-                                                                            date=field_date,
-                                                                            advert_id=int(advert_id),
-                                                                            sku=sku,
-                                                                            views=int(row.views),
-                                                                            clicks=int(row.clicks),
-                                                                            cpc=cpc,
-                                                                            sum_cost=sum_cost,
-                                                                            orders_count=int(row.orders),
-                                                                            sum_price=sum_price))
+        return await api_user.get_client_statistics_report(uuid=uuid)
+
+    tasks = [fetch_statistics(ids) for ids in [company_ids[i:i + 10] for i in range(0, len(company_ids), 10)]]
+    reports = await asyncio.gather(*tasks)
+
+    for answer_report in reports:
+        if answer_report and answer_report.result:
+            for advert in answer_report.result:
+                advert_id = advert.field_id
+                for row in advert.statistic.report.rows:
+                    sku = row.sku
+                    if sku not in list_sku:
+                        continue
+                    field_date = datetime.strptime(row.date, '%d.%m.%Y').date()
+                    cpc = round(float(row.avgBid.replace(',', '.')), 2)
+                    sum_cost = round(float(row.moneySpent.replace(',', '.')), 2)
+                    sum_price = round(float(row.ordersMoney.replace(',', '.')), 2)
+                    list_statistics_advert.append(DataOzStatisticAdvert(client_id=client_id,
+                                                                        date=field_date,
+                                                                        advert_id=int(advert_id),
+                                                                        sku=sku,
+                                                                        views=int(row.views),
+                                                                        clicks=int(row.clicks),
+                                                                        cpc=cpc,
+                                                                        sum_cost=sum_cost,
+                                                                        orders_count=int(row.orders),
+                                                                        sum_price=sum_price))
 
     logger.info(f"Количество записей: {len(list_statistics_advert)}")
     db_conn.add_oz_adverts_statistics(client_id=client_id, list_statistics_advert=list_statistics_advert)

@@ -9,8 +9,9 @@ class YandexAPIFactory:
     api_list: dict[Type[BaseResponse], str] = {
         CampaignsResponse: 'campaigns',
         CampaignsOrdersResponse: 'campaigns/{campaignId}/orders',
-        CampaignsStatsOrdersResponse: 'campaigns/{campaignId}/stats/orders'
-
+        CampaignsStatsOrdersResponse: 'campaigns/{campaignId}/stats/orders',
+        ReportsUnitedMarketplaceServicesGenerateResponse: 'reports/united-marketplace-services/generate',
+        ReportsInfoResponse: 'reports/info/{reportId}'
     }
 
     def __init__(self, engine: YandexAsyncEngine):

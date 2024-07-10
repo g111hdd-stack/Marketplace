@@ -1,8 +1,8 @@
 import logging
 
 from .db import DbConnection
-from data_classes import DataOperation, DataYaCampaigns
-from .models import Client, YaMain, YaCampaigns
+from data_classes import DataOperation, DataYaCampaigns, DataYaReport
+from .models import Client, YaMain, YaCampaigns, YaReport
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,33 @@ class YaDbConnection(DbConnection):
                                            sale=operation.sale,
                                            quantities=operation.quantities)
                     self.session.add(new_operation)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")
+
+    def add_ya_report(self, client_id: str, list_reports: list[DataYaReport]) -> None:
+        """
+            Добавление в базу данных записи об операциях с товарами.
+
+            Args:
+                client_id (str): ID кабинета.
+                list_reports (list[DataYaReport]): Список данных об операциях.
+        """
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for operation in list_reports:
+                new_operation = YaReport(client_id=operation.client_id,
+                                         campaign_id=operation.campaign_id,
+                                         posting_number=operation.posting_number,
+                                         application_number=operation.application_number,
+                                         vendor_code=operation.vendor_code,
+                                         service=operation.service,
+                                         accrual_date=operation.accrual_date,
+                                         cost=operation.cost)
+                self.session.add(new_operation)
             try:
                 self.session.commit()
                 logger.info(f"Успешное добавление в базу")
