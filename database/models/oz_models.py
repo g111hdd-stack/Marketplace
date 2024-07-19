@@ -19,6 +19,8 @@ class OzMain(Base):
     sale = Column(Numeric(precision=12, scale=2), nullable=False)
     quantities = Column(Integer, nullable=False)
     commission = Column(Numeric(precision=12, scale=2), nullable=False)
+    cost_last_mile = Column(Numeric(precision=12, scale=2), nullable=False)
+    cost_logistic = Column(Numeric(precision=12, scale=2), nullable=False)
 
     client = relationship("Client", back_populates="operations_oz")
 
@@ -128,3 +130,12 @@ class OzStatisticAdvert(Base):
 
     card_product = relationship("OzCardProduct", back_populates="statistic_advert")
 
+
+class OzAdvertDailyBudget(Base):
+    """Модель таблицы oz_advert_daily_budget."""
+    __tablename__ = 'oz_advert_daily_budget'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    advert_id = Column(String, nullable=False)
+    daily_budget = Column(Numeric(precision=12, scale=2), nullable=False)

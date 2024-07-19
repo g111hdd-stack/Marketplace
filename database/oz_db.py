@@ -6,7 +6,8 @@ from sqlalchemy.sql import select
 from .db import DbConnection
 from data_classes import DataOperation, DataOzProductCard, DataOzAdvert, DataOzStatisticCardProduct, \
     DataOzStatisticAdvert
-from .models import Client, OzMain, OzCardProduct, OzAdverts, OzPerformance, OzStatisticCardProduct, OzStatisticAdvert
+from .models import Client, OzMain, OzCardProduct, OzAdverts, OzPerformance, OzStatisticCardProduct, \
+    OzStatisticAdvert, OzAdvertDailyBudget
 
 logger = logging.getLogger(__name__)
 
@@ -23,17 +24,28 @@ class OzDbConnection(DbConnection):
         existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
         if existing_client:
             for operation in list_operations:
-                new_operation = OzMain(client_id=operation.client_id,
-                                       accrual_date=operation.accrual_date,
-                                       type_of_transaction=operation.type_of_transaction,
-                                       vendor_code=operation.vendor_code,
-                                       posting_number=operation.posting_number,
-                                       delivery_schema=operation.delivery_schema,
-                                       sku=operation.sku,
-                                       sale=operation.sale,
-                                       quantities=operation.quantities,
-                                       commission=operation.commission)
-                self.session.add(new_operation)
+                row = self.session.query(OzMain).filter_by(client_id=operation.client_id,
+                                                           posting_number=operation.posting_number,
+                                                           sku=operation.sku,
+                                                           type_of_transaction=operation.type_of_transaction,
+                                                           accrual_date=operation.accrual_date).first()
+                if row:
+                    row.cost_last_mile = operation.cost_last_mile
+                    row.cost_logistic = operation.cost_logistic
+                else:
+                    new_operation = OzMain(client_id=operation.client_id,
+                                           accrual_date=operation.accrual_date,
+                                           type_of_transaction=operation.type_of_transaction,
+                                           vendor_code=operation.vendor_code,
+                                           posting_number=operation.posting_number,
+                                           delivery_schema=operation.delivery_schema,
+                                           sku=operation.sku,
+                                           sale=operation.sale,
+                                           quantities=operation.quantities,
+                                           commission=operation.commission,
+                                           cost_last_mile=operation.cost_last_mile,
+                                           cost_logistic=operation.cost_logistic)
+                    self.session.add(new_operation)
             try:
                 self.session.commit()
                 logger.info(f"Успешное добавление в базу")
@@ -202,3 +214,40 @@ class OzDbConnection(DbConnection):
         with self.session.begin_nested():
             result = self.session.execute(select(OzCardProduct).filter(OzCardProduct.client_id == client_id)).fetchall()
         return [card_product[0].sku for card_product in result]
+
+    def add_oz_advert_daily_budget(self, date: datetime.date, adverts_daily_budget: dict):
+        for advert_id, daily_budget in adverts_daily_budget.items():
+            existing_client = self.session.query(OzAdvertDailyBudget).filter_by(date=date, advert_id=advert_id).first()
+            if existing_client:
+                continue
+            new_daily_budget = OzAdvertDailyBudget(date=date,
+                                                   advert_id=advert_id,
+                                                   daily_budget=daily_budget)
+            self.session.add(new_daily_budget)
+        try:
+            self.session.commit()
+            logger.info(f"Успешное добавление в базу")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")
+
+    def get_oz_posting_number(self, client_id: str) -> list[tuple]:
+        with self.session.begin_nested():
+            result = self.session.execute(select(OzMain).filter(and_(OzMain.client_id == client_id,
+                                                                     OzMain.type_of_transaction == 'delivered',
+                                                                     OzMain.delivery_schema != 'RFBS',
+                                                                     OzMain.cost_logistic == None))).fetchall()
+        return list({(entry[0].posting_number, entry[0].delivery_schema, entry[0].type_of_transaction) for entry in result})
+
+    def update_cancelled(self, client_id: str, posting_number: str, sku: str, cost: float):
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            row = self.session.query(OzMain).filter(
+                OzMain.client_id == client_id,
+                OzMain.type_of_transaction == "cancelled",
+                OzMain.posting_number == posting_number,
+                OzMain.sku == sku,
+                OzMain.cost_logistic == None).first()
+            if row:
+                row.cost_logistic = cost
+                self.session.commit()

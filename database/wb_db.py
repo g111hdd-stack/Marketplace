@@ -194,7 +194,7 @@ class WBDbConnection(DbConnection):
                 self.session.rollback()
                 logger.error(f"Ошибка добавления: {e}")
 
-    def get_wb_adverts_id(self, client_id: str, from_date: datetime.date) -> list[WBAdverts]:
+    def get_wb_adverts_id(self, client_id: str, from_date: datetime.date) -> list[int]:
         """
             Получает список рекламных компаний, отфильтрованных по кабинету и дате активности.
 

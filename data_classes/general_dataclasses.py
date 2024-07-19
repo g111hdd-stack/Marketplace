@@ -25,3 +25,5 @@ class DataOperation:
     sale: float
     quantities: int
     commission: Optional[float] = None
+    cost_last_mile: Optional[float] = None
+    cost_logistic: Optional[float] = None

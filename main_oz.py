@@ -36,7 +36,9 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
     """
     list_operation = []
     operation_type = {"OperationAgentDeliveredToCustomer": "delivered",
-                      "ClientReturnAgentOperation": "cancelled"}
+                      "ClientReturnAgentOperation": "cancelled",
+                      "OperationItemReturn": "return",
+                      "OperationReturnGoodsFBSofRMS": "return"}
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
@@ -50,6 +52,28 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
     # Обработка полученных результатов
     if answer_transaction.result:
         for operation in answer_transaction.result.operations:
+
+            if operation_type.get(operation.operation_type) == "return":
+                db_conn = OzDbConnection()
+                cost = None
+                for service in operation.services:
+                    if service.name == "MarketplaceServiceItemReturnFlowLogistic":
+                        cost = round(float(service.price), 2)
+                if cost is not None:
+                    db_conn.update_cancelled(client_id=client_id,
+                                             posting_number=operation.posting.posting_number,
+                                             sku=str(operation.items[0].sku),
+                                             cost=cost)
+                continue
+
+            accruals_for_sale = operation.accruals_for_sale
+            if accruals_for_sale == 0:
+                continue
+            logistic_for_sale = None
+            for services in operation.services:
+                if services.name in ['MarketplaceServiceItemDirectFlowLogisticVDC',
+                                     'MarketplaceServiceItemDirectFlowLogistic']:
+                    logistic_for_sale = services.price
 
             # Извлечение информации о доставке и отправлении
             delivery_schema = operation.posting.delivery_schema  # Склад
@@ -85,15 +109,24 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                 sale = round(float(product.price), 2)  # Стоимость продажи товара
                 quantities = product.quantity  # Количество
 
+                if logistic_for_sale is not None:
+                    cost_logistic = round(float(((sale * quantities) / accruals_for_sale) * logistic_for_sale), 2)
+                else:
+                    cost_logistic = None
+
                 commission = 0
+                cost_last_mile = None
                 for financial_data_product in answer_fb.result.financial_data.products:
                     if financial_data_product.product_id == product.sku:
                         commission = round(float(financial_data_product.commission_amount), 2)
+                        cost_last_mile = round(float(financial_data_product.item_services.marketplace_service_item_deliv_to_customer))
 
                 if type_of_transaction == "cancelled":
                     sale = -sale
                     quantities = -quantities
                     commission = -commission
+                    cost_last_mile = None
+                    cost_logistic = None
 
                 # Добавление операции в список
                 list_operation.append(DataOperation(client_id=client_id,
@@ -105,7 +138,9 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                                     sku=sku,
                                                     sale=sale,
                                                     quantities=quantities,
-                                                    commission=commission))
+                                                    commission=commission,
+                                                    cost_last_mile=cost_last_mile,
+                                                    cost_logistic=cost_logistic))
 
         # Рекурсивный вызов функции для получения дополнительных страниц результатов
         if answer_transaction.result.page_count > page:
@@ -151,9 +186,11 @@ async def main_func_oz(retries: int = 6) -> None:
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="Ozon")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)
+        tasks = []
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            await add_oz_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+            tasks.append(add_oz_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date))
+        await asyncio.gather(*tasks)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
