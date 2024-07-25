@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import OperationalError
 
-from data_classes import DataOperation
+from data_classes import DataOperation, DataOzReport
 from ozon_sdk.ozon_api import OzonApi
 from database import OzDbConnection
 
@@ -16,7 +16,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def get_operations(client_id: str, api_key: str, from_date: str, to_date: str, page: int = 1) -> list[DataOperation]:
+async def get_operations(client_id: str, api_key: str, from_date: str, to_date: str, page: int = 1) \
+        -> tuple[list[DataOperation], list[DataOzReport]]:
     """
         Получает список операций для указанного клиента за определенный период времени.
 
@@ -35,10 +36,12 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
             list[DataOperation]: Список операций.
     """
     list_operation = []
+    list_report = []
     operation_type = {"OperationAgentDeliveredToCustomer": "delivered",
                       "ClientReturnAgentOperation": "cancelled",
                       "OperationItemReturn": "return",
-                      "OperationReturnGoodsFBSofRMS": "return"}
+                      "OperationReturnGoodsFBSofRMS": "return",
+                      "MarketplaceRedistributionOfAcquiringOperation": "acquiring"}
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
@@ -64,6 +67,16 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                              posting_number=operation.posting.posting_number,
                                              sku=str(operation.items[0].sku),
                                              cost=cost)
+                continue
+            elif operation_type.get(operation.operation_type) == "acquiring":
+                cost = -round(float(operation.amount/len(operation.items)), 2)
+                for item in operation.items:
+                    list_report.append(DataOzReport(client_id=client_id,
+                                                    posting_number=operation.posting.posting_number,
+                                                    sku=str(item.sku),
+                                                    service=operation.operation_type_name,
+                                                    operation_date=operation.operation_date.date(),
+                                                    cost=cost))
                 continue
 
             accruals_for_sale = operation.accruals_for_sale
@@ -144,14 +157,15 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
 
         # Рекурсивный вызов функции для получения дополнительных страниц результатов
         if answer_transaction.result.page_count > page:
-            extend_operation = await get_operations(client_id=client_id,
-                                                    api_key=api_key,
-                                                    from_date=from_date,
-                                                    to_date=to_date,
-                                                    page=page + 1)
+            extend_operation, extend_report = await get_operations(client_id=client_id,
+                                                                   api_key=api_key,
+                                                                   from_date=from_date,
+                                                                   to_date=to_date,
+                                                                   page=page + 1)
             list_operation.extend(extend_operation)
+            list_report.extend(extend_report)
 
-    return list_operation
+    return list_operation, list_report
 
 
 async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: str, date: datetime) -> None:
@@ -167,12 +181,14 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
     start = date.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1) - timedelta(microseconds=1)
     logger.info(f"За период с <{start}> до <{end}>")
-    operations = await get_operations(client_id=client_id,
-                                      api_key=api_key,
-                                      from_date=start.isoformat(),
-                                      to_date=end.isoformat())
-    logger.info(f"Количество записей: {len(operations)}")
+    operations, reports = await get_operations(client_id=client_id,
+                                               api_key=api_key,
+                                               from_date=start.isoformat(),
+                                               to_date=end.isoformat())
+    logger.info(f"Количество записей операций: {len(operations)}")
     db_conn.add_oz_operation(client_id=client_id, list_operations=operations)
+    logger.info(f"Количество записей репорт: {len(reports)}")
+    db_conn.add_oz_entry_report(client_id=client_id, list_report=reports)
 
 
 async def main_func_oz(retries: int = 6) -> None:
@@ -186,11 +202,9 @@ async def main_func_oz(retries: int = 6) -> None:
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="Ozon")
         date = datetime.now(tz=timezone.utc) - timedelta(days=1)
-        tasks = []
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            tasks.append(add_oz_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date))
-        await asyncio.gather(*tasks)
+            await add_oz_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

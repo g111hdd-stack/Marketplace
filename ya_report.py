@@ -42,6 +42,7 @@ def download_file(url, file_name) -> str or None:
         logger.error(f'Неожиданная ошибка: {e}')
         return None
 
+
 def convert_id(number):
     if number is not None:
         number = str(number).split('.')[0]
@@ -79,6 +80,7 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, from_d
             logger.info(f"Запрос отправлен: {report_id}")
 
     if report_id is not None:
+        retry = 3
         while True:
             await asyncio.sleep(10)
             answer_report_info = await api_user.get_reports_info(report_id=report_id)
@@ -92,14 +94,18 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, from_d
                             logger.info(f"{substatus.get(answer_report_info.result.subStatus, None)}")
                         break
                     elif answer_report_info.result.status == 'FAILED':
-                        logger.error(f"Ошибка формирования отчёта")
+                        logger.error(f"Ошибка формирования отчёта: FAILED")
                         break
                 else:
-                    logger.error(f"Ошибка формирования отчёта")
-                    break
+                    retry -= 1
+                    if not retry:
+                        logger.error(f"Ошибка формирования отчёта: пустой result")
+                        break
             else:
-                logger.error(f"Ошибка формирования отчёта")
-                break
+                retry -= 1
+                if not retry:
+                    logger.error(f"Ошибка формирования отчёта: пустой answer_report_info")
+                    break
     else:
         logger.error(f"Не получилось отправить запрос")
 
@@ -135,7 +141,9 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                    'Буст продаж, оплата за продажи',
                    'Буст продаж, оплата за показы',
                    'Программа лояльности и отзывы',
-                   'Полки']
+                   'Полки',
+                   'Перевод платежа',
+                   'Приём платежа']
     campaign_id = path_file.split('\\')[-1].split('_')[0]
 
     try:
@@ -175,6 +183,7 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                             cost = row_data.get('Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽', None) \
                                    or row_data.get('Стоимость услуги, ₽', None) or row_data.get('Стоимость услуги', None) \
                                    or row_data.get('Постоплата, ₽', None)
+                            service = row_data.get('Услуга', None) or sheet
 
                             if accrual_date is not None:
                                 accrual_date = datetime.strptime(accrual_date, '%Y-%m-%d %H:%M:%S').date()
@@ -186,7 +195,7 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                                                  posting_number=posting_number,
                                                  application_number=application_number,
                                                  vendor_code=row_data.get('Ваш SKU', None),
-                                                 service=row_data.get('Услуга', None),
+                                                 service=service,
                                                  accrual_date=accrual_date,
                                                  cost=cost)
                             result_data.append(entry)
@@ -230,7 +239,7 @@ async def main_yandex_report(retries: int = 6) -> None:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
-            await main_yandex_report(retries=retries)
+            await main_yandex_report(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
 

@@ -5,9 +5,9 @@ from sqlalchemy.sql import select
 
 from .db import DbConnection
 from data_classes import DataOperation, DataOzProductCard, DataOzAdvert, DataOzStatisticCardProduct, \
-    DataOzStatisticAdvert
+    DataOzStatisticAdvert, DataOzReport
 from .models import Client, OzMain, OzCardProduct, OzAdverts, OzPerformance, OzStatisticCardProduct, \
-    OzStatisticAdvert, OzAdvertDailyBudget
+    OzStatisticAdvert, OzAdvertDailyBudget, OzReport
 
 logger = logging.getLogger(__name__)
 
@@ -251,3 +251,23 @@ class OzDbConnection(DbConnection):
             if row:
                 row.cost_logistic = cost
                 self.session.commit()
+
+    def add_oz_entry_report(self, client_id: str, list_report: list[DataOzReport]):
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for row in list_report:
+                product = self.session.query(OzCardProduct).filter_by(sku=row.sku).first()
+                if product:
+                    new_row = OzReport(client_id=client_id,
+                                       posting_number=row.posting_number,
+                                       vendor_code=product.vendor_code,
+                                       service=row.service,
+                                       operation_date=row.operation_date,
+                                       cost=row.cost)
+                    self.session.add(new_row)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")

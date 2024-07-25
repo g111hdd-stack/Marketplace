@@ -240,7 +240,6 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
         if answer_report:
             if answer_report.result:
                 for advert in answer_report.result:
-                    print(advert)
                     advert_id = advert.field_id
                     for row in advert.statistic.report.rows:
                         sku = row.sku

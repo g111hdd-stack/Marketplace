@@ -52,3 +52,13 @@ class DataOzStatisticAdvert:
     sum_cost: float
     orders_count: int
     sum_price: float
+
+
+@dataclass
+class DataOzReport:
+    client_id: Optional[str] = None
+    posting_number: Optional[str] = None
+    sku: Optional[str] = None
+    service: Optional[str] = None
+    operation_date: Optional[datetime.date] = None
+    cost: Optional[float] = None
