@@ -5,9 +5,9 @@ from sqlalchemy.sql import select
 
 from .db import DbConnection
 from data_classes import DataOperation, DataOzProductCard, DataOzAdvert, DataOzStatisticCardProduct, \
-    DataOzStatisticAdvert, DataOzReport
+    DataOzStatisticAdvert, DataOzReport, DataOzStorage, DataOzService
 from .models import Client, OzMain, OzCardProduct, OzAdverts, OzPerformance, OzStatisticCardProduct, \
-    OzStatisticAdvert, OzAdvertDailyBudget, OzReport
+    OzStatisticAdvert, OzAdvertDailyBudget, OzReport, OzStorage, OzServices, OzTypeAdvert
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,11 @@ class OzDbConnection(DbConnection):
         """
         existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
         if existing_client:
+            advert_types = self.session.query(OzTypeAdvert.field_type).all()
+            advert_types = [field_type for field_type in advert_types]
             for advert in adverts_list:
+                if advert.field_type not in advert_types:
+                    self.session.add(OzTypeAdvert(field_type=advert.field_type, type=advert.field_type))
                 new_advert = OzAdverts(id_advert=advert.id_advert,
                                        client_id=client_id,
                                        field_type=advert.field_type,
@@ -271,3 +275,45 @@ class OzDbConnection(DbConnection):
             except Exception as e:
                 self.session.rollback()
                 logger.error(f"Ошибка добавления: {e}")
+
+    def add_storage_entry(self, list_storage: list[DataOzStorage]):
+        for row in list_storage:
+            product = self.session.query(OzCardProduct).filter_by(sku=row.sku).first()
+            if product:
+                new_row = OzStorage(client_id=product.client_id,
+                                    date=row.date,
+                                    vendor_code=product.vendor_code,
+                                    sku=row.sku,
+                                    cost=row.cost)
+                self.session.add(new_row)
+        try:
+            self.session.commit()
+            logger.info(f"Успешное добавление в базу")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")
+
+    def add_oz_services_entry(self, client_id: str, list_services: list[DataOzService]):
+        product_data = self.session.query(OzCardProduct.sku,
+                                          OzCardProduct.vendor_code).filter_by(client_id=client_id).all()
+        sku_vendor_dict = {sku: vendor_code for sku, vendor_code in product_data}
+        for row in list_services:
+            vendor_code = sku_vendor_dict.get(row.sku, None)
+            if not vendor_code:
+                vendor_code = row.vendor_code
+            new_row = OzServices(client_id=row.client_id,
+                                 date=row.date,
+                                 operation_type=row.operation_type,
+                                 operation_type_name=row.operation_type_name,
+                                 vendor_code=vendor_code,
+                                 sku=row.sku,
+                                 posting_number=row.posting_number,
+                                 service=row.service,
+                                 cost=row.cost)
+            self.session.add(new_row)
+        try:
+            self.session.commit()
+            logger.info(f"Успешное добавление в базу")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")

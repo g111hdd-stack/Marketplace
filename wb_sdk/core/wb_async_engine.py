@@ -24,7 +24,7 @@ class WBAsyncEngine:
             while retry != 0:
                 new_params = {k: v for k, v in params.items() if v is not None}
                 async with session.get(url, params=new_params) as response:
-                    if response.status not in [200, 204]:
+                    if response.status not in [200, 201, 204]:
                         logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                         await asyncio.sleep(60)

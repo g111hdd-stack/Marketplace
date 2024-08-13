@@ -27,3 +27,11 @@ class DataOperation:
     commission: Optional[float] = None
     cost_last_mile: Optional[float] = None
     cost_logistic: Optional[float] = None
+
+
+@dataclass
+class DataCostPrice:
+    month_date: Optional[int] = None
+    year_date: Optional[int] = None
+    vendor_code: Optional[str] = None
+    cost: Optional[float] = None

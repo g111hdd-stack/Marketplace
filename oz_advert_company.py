@@ -4,6 +4,7 @@ import logging
 
 from datetime import datetime, timedelta, date
 from sqlalchemy.exc import OperationalError
+from pyodbc import Error
 
 from data_classes import DataOzProductCard, DataOzStatisticCardProduct, DataOzAdvert, DataOzStatisticAdvert
 from ozon_sdk.ozon_api import OzonApi, OzonPerformanceAPI
@@ -263,32 +264,49 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
     logger.info(f"Количество записей: {len(list_statistics_advert)}")
     db_conn.add_oz_adverts_statistics(client_id=client_id, list_statistics_advert=list_statistics_advert)
 
+readiness_check = {}
+check_func = {'cards': True, 'adverts': True, 'stat_cards': True, 'stat_adverts': False}
+
 
 async def statistic(db_conn: OzDbConnection, client: Client, date_yesterday: datetime.date):
+    print(readiness_check[client.name_company])
     performance = db_conn.get_oz_performance(client_id=client.client_id)
-    await add_card_products(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
 
-    logger.info(f"{client.name_company} Сбор карточек товаров {client.name_company}")
-    await add_adverts(db_conn=db_conn, client_id=client.client_id,
-                      performance_id=performance.performance_id,
-                      client_secret=performance.client_secret,
-                      from_date=date_yesterday)
+    if not readiness_check[client.name_company]['cards']:
+        await add_card_products(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+        readiness_check[client.name_company]['cards'] = True
+        logger.info(f"{client.name_company} Сбор карточек товаров {client.name_company}")
 
-    logger.info(f"{client.name_company} Сбор рекламных компаний")
-    list_statistics_card_products = await get_statistics_card_products(db_conn=db_conn,
-                                                                       client_id=client.client_id,
-                                                                       api_key=client.api_key,
-                                                                       date_from=date_yesterday)
-    db_conn.add_oz_cards_products_statistics(client_id=client.client_id,
-                                             list_card_product=list_statistics_card_products)
-    logger.info(f"{client.name_company} Статистика карточек товара за {date_yesterday.isoformat()}")
+    if not readiness_check[client.name_company]['adverts']:
+        await add_adverts(db_conn=db_conn,
+                          client_id=client.client_id,
+                          performance_id=performance.performance_id,
+                          client_secret=performance.client_secret,
+                          from_date=date_yesterday)
+        readiness_check[client.name_company]['adverts'] = True
+        logger.info(f"{client.name_company} Сбор рекламных компаний")
 
-    await add_statistic_adverts(db_conn=db_conn,
-                                client_id=client.client_id,
-                                performance_id=performance.performance_id,
-                                client_secret=performance.client_secret,
-                                from_date=date_yesterday)
-    logger.info(f"{client.name_company} Статистика рекламы за {date_yesterday.isoformat()}")
+    if not readiness_check[client.name_company]['stat_cards']:
+        list_statistics_card_products = await get_statistics_card_products(db_conn=db_conn,
+                                                                           client_id=client.client_id,
+                                                                           api_key=client.api_key,
+                                                                           date_from=date_yesterday)
+        db_conn.add_oz_cards_products_statistics(client_id=client.client_id,
+                                                 list_card_product=list_statistics_card_products)
+        readiness_check[client.name_company]['stat_cards'] = True
+        logger.info(f"{client.name_company} Статистика карточек товара за {date_yesterday.isoformat()}")
+
+    if not readiness_check[client.name_company]['stat_adverts']:
+        await add_statistic_adverts(db_conn=db_conn,
+                                    client_id=client.client_id,
+                                    performance_id=performance.performance_id,
+                                    client_secret=performance.client_secret,
+                                    from_date=date_yesterday)
+        readiness_check[client.name_company]['stat_adverts'] = True
+        logger.info(f"{client.name_company} Статистика рекламы за {date_yesterday.isoformat()}")
+
+    if all(readiness_check[client.name_company].values()):
+        readiness_check.pop(client.name_company)
 
 
 async def main_oz_advert(retries: int = 6) -> None:
@@ -296,23 +314,31 @@ async def main_oz_advert(retries: int = 6) -> None:
         db_conn = OzDbConnection()
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="Ozon")
+        if not readiness_check:
+            for client in clients:
+                if client.name_company in ['Vayor']:
+                    continue
+                readiness_check[client.name_company] = check_func.copy()
 
         date_yesterday = (datetime.now() - timedelta(days=1)).date()
         tasks = []
 
         for client in clients:
-            if client.name_company in ['Vayor']:
+            if client.name_company not in readiness_check.keys():
                 continue
             tasks.append(statistic(db_conn=db_conn, client=client, date_yesterday=date_yesterday))
         await asyncio.gather(*tasks)
 
-    except OperationalError:
+    except (OperationalError, Error):
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
             await main_oz_advert(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
+        if retries > 0:
+            await asyncio.sleep(10)
+            await main_oz_advert(retries=retries - 1)
 
 
 if __name__ == "__main__":

@@ -154,3 +154,45 @@ class OzReport(Base):
     cost = Column(Numeric(precision=12, scale=2), nullable=False)
 
     client = relationship("Client", back_populates="report_oz")
+
+
+class OzStorage(Base):
+    """Модель таблицы oz_storage."""
+    __tablename__ = 'oz_storage'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    date = Column(Date, nullable=False)
+    vendor_code = Column(Unicode, nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    cost = Column(Numeric(precision=12, scale=2), default=None, nullable=False)
+
+    client = relationship("Client", back_populates="storage_oz")
+
+
+class OzServices(Base):
+    """Модель таблицы oz_services."""
+    __tablename__ = 'oz_services2'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    date = Column(Date, nullable=False)
+    operation_type = Column(Unicode, nullable=False)
+    operation_type_name = Column(Unicode, nullable=True)
+    vendor_code = Column(Unicode, nullable=True)
+    sku = Column(String(length=255), nullable=True)
+    posting_number = Column(String(length=255), nullable=True)
+    service = Column(Unicode, nullable=True)
+    cost = Column(Numeric(precision=12, scale=2), default=None, nullable=False)
+
+    client = relationship("Client", back_populates="services_oz")
+
+
+class OzTypeServices(Base):
+    """Модель таблицы oz_type_services."""
+    __tablename__ = 'oz_type_services'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    operation_type = Column(Unicode, nullable=False)
+    service = Column(Unicode, nullable=True)
+    type_name = Column(Unicode, nullable=True)

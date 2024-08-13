@@ -6,8 +6,9 @@ from sqlalchemy.sql import select
 
 from .db import DbConnection
 from data_classes import DataOperation, DataWBStatisticCardProduct, DataWBStatisticAdvert, DataWBProductCard, \
-    DataWBAdvert, DataWBReport
-from .models import Client, WBMain, WBAdverts, WBStatisticCardProduct, WBCardProduct, WBStatisticAdvert, WBReport
+    DataWBAdvert, DataWBReport, DataWBStorage
+from .models import Client, WBMain, WBAdverts, WBStatisticCardProduct, WBCardProduct, WBStatisticAdvert, WBReport, \
+    WBStorage
 from wb_sdk.wb_api import WBApi
 
 logger = logging.getLogger(__name__)
@@ -287,3 +288,21 @@ class WBDbConnection(DbConnection):
         latest_sale_date = self.session.query(func.max(WBReport.sale_date)).\
             filter(WBReport.client_id == client_id).scalar()
         return latest_sale_date
+
+    def add_wb_storage_entry(self, client_id: str, list_storage: list[DataWBStorage]) -> None:
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for row in list_storage:
+                new_row = WBStorage(client_id=client_id,
+                                    date=row.date,
+                                    vendor_code=row.vendor_code,
+                                    sku=row.sku,
+                                    calc_type=row.calc_type,
+                                    cost=row.cost)
+                self.session.add(new_row)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")

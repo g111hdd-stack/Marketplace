@@ -62,3 +62,23 @@ class DataOzReport:
     service: Optional[str] = None
     operation_date: Optional[datetime.date] = None
     cost: Optional[float] = None
+
+
+@dataclass
+class DataOzStorage:
+    date: Optional[datetime.date] = None
+    sku: Optional[str] = None
+    cost: Optional[float] = None
+
+
+@dataclass
+class DataOzService:
+    client_id: str
+    date: datetime.date
+    operation_type: str
+    cost: float
+    operation_type_name: Optional[str] = None
+    sku: Optional[str] = None
+    posting_number: Optional[str] = None
+    service: Optional[str] = None
+    vendor_code: Optional[str] = None

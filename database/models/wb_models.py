@@ -187,3 +187,18 @@ class WBReport(Base):
     posting_number = Column(String, default=None, nullable=True)
 
     client = relationship("Client", back_populates="report_wb")
+
+
+class WBStorage(Base):
+    """Модель таблицы wb_storage."""
+    __tablename__ = 'wb_storage'
+
+    id_advert = Column(Integer, primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    date = Column(Date, nullable=False)
+    vendor_code = Column(Unicode, nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    calc_type = Column(Unicode, nullable=False)
+    cost = Column(Numeric(precision=12, scale=2), default=None, nullable=False)
+
+    client = relationship("Client", back_populates="storage_wb")

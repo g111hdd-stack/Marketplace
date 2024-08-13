@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, MetaData, Unicode
+from sqlalchemy import Column, String, Date, MetaData, Unicode, Integer, Identity, Numeric
 from sqlalchemy.orm import relationship, declarative_base
 
 metadata = MetaData()
@@ -29,6 +29,9 @@ class Client(Base):
     orders_sb = relationship("SbOrders", back_populates="client")
     report_ya = relationship("YaReport", back_populates="client")
     report_oz = relationship("OzReport", back_populates="client")
+    storage_wb = relationship("WBStorage", back_populates="client")
+    storage_oz = relationship("OzStorage", back_populates="client")
+    services_oz = relationship("OzServices", back_populates="client")
 
 
 class DateList(Base):
@@ -38,3 +41,12 @@ class DateList(Base):
     date = Column(Date, primary_key=True)
 
 
+class CostPrice(Base):
+    """Модель таблицы cost_price."""
+    __tablename__ = 'cost_price'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    month_date = Column(Integer, nullable=True)
+    year_date = Column(Integer, nullable=True)
+    vendor_code = Column(Unicode, nullable=True)
+    cost = Column(Numeric(precision=12, scale=2), nullable=True)

@@ -56,6 +56,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
     if answer_transaction.result:
         for operation in answer_transaction.result.operations:
 
+            # Обработка расходов на обратную логистику
             if operation_type.get(operation.operation_type) == "return":
                 db_conn = OzDbConnection()
                 cost = None
@@ -68,6 +69,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                              sku=str(operation.items[0].sku),
                                              cost=cost)
                 continue
+            # Обработка расходов по эквайрингу
             elif operation_type.get(operation.operation_type) == "acquiring":
                 cost = -round(float(operation.amount/len(operation.items)), 2)
                 for item in operation.items:
@@ -78,7 +80,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                                     operation_date=operation.operation_date.date(),
                                                     cost=cost))
                 continue
-
+            # Обработка расходов на логистику
             accruals_for_sale = operation.accruals_for_sale
             if accruals_for_sale == 0:
                 continue
@@ -136,8 +138,8 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
 
                 if type_of_transaction == "cancelled":
                     sale = -sale
-                    quantities = -quantities
-                    commission = -commission
+                    quantities = -len([item for item in operation.items if item.sku == product.sku])
+                    commission = round(float((commission / product.quantity) * quantities), 2)
                     cost_last_mile = None
                     cost_logistic = None
 

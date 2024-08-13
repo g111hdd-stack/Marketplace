@@ -11,9 +11,12 @@ class WBAsyncApi:
         self._url = url
         self._response_type = response_type
 
-    async def get(self, request):
+    async def get(self, request, format_dict: dict = None):
         parameters = await self.params_to_dict(request)
-        response = await self._engine.get(self._url, parameters)
+        url = self._url
+        if format_dict:
+            url = url.format(**format_dict)
+        response = await self._engine.get(url, parameters)
         data = await self._parse_response(response)
         return data
 

@@ -82,3 +82,18 @@ class DbConnection:
         client = self.session.query(Client).filter_by(client_id=client_id).first()
         if client:
             return client
+
+    def add_cost_price(self, list_cost_price: list[DataCostPrice]):
+        self.session.query(CostPrice).delete()
+        for row in list_cost_price:
+            new_row = CostPrice(month_date=row.month_date,
+                                year_date=row.year_date,
+                                vendor_code=row.vendor_code,
+                                cost=row.cost)
+            self.session.add(new_row)
+        try:
+            self.session.commit()
+            logger.info(f"Успешное добавление в базу")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Ошибка добавления: {e}")

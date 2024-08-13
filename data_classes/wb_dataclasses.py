@@ -119,3 +119,13 @@ class DataWBReport:
     deduction: float = None
     acceptance: float = None
     posting_number: str = None
+
+
+@dataclass
+class DataWBStorage:
+    client_id: str
+    date: datetime.datetime
+    vendor_code: str
+    sku: str
+    calc_type: str
+    cost: float

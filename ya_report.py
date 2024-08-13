@@ -129,7 +129,8 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                'Стоимость услуги': None,
                'Постоплата, ₽': None,
                'Номер заявки на Маркете': None,
-               'Номер кампании': None}
+               'Номер кампании': None,
+               'Стоимость платного хранения, ₽': None}
     name_sheets = ['Размещение товаров на витрине',
                    'Обработка заказов в СЦ или ПВЗ',
                    'Обработка заказов на складе',
@@ -143,7 +144,8 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                    'Программа лояльности и отзывы',
                    'Полки',
                    'Перевод платежа',
-                   'Приём платежа']
+                   'Приём платежа',
+                   'Хранение невыкупов и возвратов']
     campaign_id = path_file.split('\\')[-1].split('_')[0]
 
     try:
@@ -151,6 +153,9 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
         logger.info(f'Файл {path_file} прочитан успешно.')
 
         sheet_names = excel_file.sheet_names
+        for s in sheet_names:
+            if 'Платное хранение' in s:
+                name_sheets.append(s)
         result_data = []
 
         for sheet in name_sheets:
@@ -173,17 +178,27 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                             for header in headers:
                                 if header in df.columns:
                                     row_data[header] = row[header]
+                                else:
+                                    if header == 'Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽':
+                                        for column in df.columns:
+                                            if 'Стоимость услуги (' in column:
+                                                row_data[header] = row[column]
 
                             client_id = convert_id(row_data.get('ID бизнес-аккаунта', None))
                             posting_number = convert_id(row_data.get('Номер заказа', None))
                             application_number = convert_id(row_data.get('Номер заявки на утилизацию', None)) \
                                                  or convert_id(row_data.get('Номер заявки на Маркете', None)) \
-                                                 or convert_id(row_data.get('Номер кампании', None))
-                            accrual_date = row_data.get('Дата оказания услуги', None) or row_data.get('Дата и время оказания услуги', None)
+                                                 or convert_id(row_data.get('Номер кампании', None)) \
+                                                 or convert_id(row_data.get('Номер возврата', None))
+                            accrual_date = row_data.get('Дата оказания услуги', None) or row_data.get(
+                                'Дата и время оказания услуги', None)
                             cost = row_data.get('Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽', None) \
-                                   or row_data.get('Стоимость услуги, ₽', None) or row_data.get('Стоимость услуги', None) \
-                                   or row_data.get('Постоплата, ₽', None)
-                            service = row_data.get('Услуга', None) or sheet
+                                   or row_data.get('Стоимость услуги, ₽', None) \
+                                   or row_data.get('Стоимость услуги', None) \
+                                   or row_data.get('Постоплата, ₽', None) \
+                                   or row_data.get('Стоимость платного хранения, ₽', None)
+                            name_service = 'Платное хранение' if 'Платное хранение' in sheet else sheet
+                            service = row_data.get('Услуга', None) or name_service
 
                             if accrual_date is not None:
                                 accrual_date = datetime.strptime(accrual_date, '%Y-%m-%d %H:%M:%S').date()

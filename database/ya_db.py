@@ -69,17 +69,15 @@ class YaDbConnection(DbConnection):
         existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
         if existing_client:
             for operation in list_reports:
-                row = self.session.query(YaReport).filter_by(campaign_id=operation.campaign_id).first()
-                if row:
-                    new_operation = YaReport(client_id=row.client_id,
-                                             campaign_id=operation.campaign_id,
-                                             posting_number=operation.posting_number,
-                                             application_number=operation.application_number,
-                                             vendor_code=operation.vendor_code,
-                                             service=operation.service,
-                                             accrual_date=operation.accrual_date,
-                                             cost=operation.cost)
-                    self.session.add(new_operation)
+                new_operation = YaReport(client_id=client_id,
+                                         campaign_id=operation.campaign_id,
+                                         posting_number=operation.posting_number,
+                                         application_number=operation.application_number,
+                                         vendor_code=operation.vendor_code,
+                                         service=operation.service,
+                                         accrual_date=operation.accrual_date,
+                                         cost=operation.cost)
+                self.session.add(new_operation)
             try:
                 self.session.commit()
                 logger.info(f"Успешное добавление в базу")

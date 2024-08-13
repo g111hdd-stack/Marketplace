@@ -16,6 +16,9 @@ class WBApi:
         self._nm_report_detail_api = self._api_factory.get_api(NMReportDetailResponse)
         self._list_goods_filter_api = self._api_factory.get_api(ListGoodsFilterResponse)
         self._supplier_report_detail_by_period_api = self._api_factory.get_api(SupplierReportDetailByPeriodResponse)
+        self._paid_storage_api = self._api_factory.get_api(PaidStorageResponse)
+        self._paid_storage_status_api = self._api_factory.get_api(PaidStorageStatusResponse)
+        self._paid_storage_download_api = self._api_factory.get_api(PaidStorageDownloadResponse)
 
     async def get_supplier_sales_response(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
@@ -175,5 +178,26 @@ class WBApi:
                                                       dateTo=date_to,
                                                       rrdid=rrdid)
         answer: SupplierReportDetailByPeriodResponse = await self._supplier_report_detail_by_period_api.get(request)
+
+        return answer
+
+    async def get_paid_storage(self, date_from: str, date_to: str) -> PaidStorageResponse:
+        request = PaidStorageRequest(dateFrom=date_from,
+                                     dateTo=date_to)
+        answer: PaidStorageResponse = await self._paid_storage_api.get(request)
+
+        return answer
+
+    async def get_paid_storage_status(self, task_id: str) -> PaidStorageStatusResponse:
+        request = PaidStorageStatusRequest()
+        answer: PaidStorageStatusResponse = await self._paid_storage_status_api.get(request,
+                                                                                    format_dict={'task_id': task_id})
+
+        return answer
+
+    async def get_paid_storage_download(self, task_id: str) -> PaidStorageDownloadResponse:
+        request = PaidStorageDownloadRequest()
+        answer: PaidStorageDownloadResponse = await self._paid_storage_download_api.get(request,
+                                                                                        format_dict={'task_id': task_id})
 
         return answer
