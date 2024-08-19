@@ -55,6 +55,7 @@ class WBStatisticCardProduct(Base):
     cart_to_order_percent = Column(Numeric(precision=12, scale=2), nullable=False)
     price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
     discount_price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
+    buyouts_count = Column(Integer, default=None, nullable=True)
     buyouts_last_30days_percent = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
 
     card_product = relationship("WBCardProduct", back_populates="statistic_card_product")

@@ -62,7 +62,10 @@ class DbConnection:
         while new_date < datetime.date.today():
             new_date += datetime.timedelta(days=1)
             self.session.add(DateList(date=new_date))
-        self.session.commit()
+        try:
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
 
     def get_clients(self, marketplace: str) -> list[Client]:
         """

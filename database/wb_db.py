@@ -185,6 +185,7 @@ class WBDbConnection(DbConnection):
                                                                     cart_to_order_percent=card.cart_to_order_percent,
                                                                     price=price,
                                                                     discount_price=discount_price,
+                                                                    buyouts_count=card.buyouts_count,
                                                                     buyouts_last_30days_percent=card.buyouts_last_30days_percent)
 
                 self.session.add(new_statistic_card_product)

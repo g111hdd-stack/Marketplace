@@ -35,6 +35,7 @@ class DataWBStatisticCardProduct:
     orders_count: int
     add_to_cart_percent: float
     cart_to_order_percent: float
+    buyouts_count: int
     buyouts_last_30days_percent: Optional[float] = None
 
 

@@ -199,6 +199,7 @@ async def get_statistic_product_card(client_id: str,
                 orders_count = int(stat.ordersCount)
                 add_to_cart_percent = round(stat.conversions.addToCartPercent / 100, 2)
                 cart_to_order_percent = round(stat.conversions.cartToOrderPercent / 100, 2)
+                buyouts_count = int(stat.buyoutsCount)
 
                 if not open_card_count and not add_to_cart_count and not orders_count and stocks:
                     continue
@@ -214,6 +215,7 @@ async def get_statistic_product_card(client_id: str,
                                                                     orders_count=orders_count,
                                                                     add_to_cart_percent=add_to_cart_percent,
                                                                     cart_to_order_percent=cart_to_order_percent,
+                                                                    buyouts_count=buyouts_count,
                                                                     buyouts_last_30days_percent=buyouts_percent.get(card.nmID, None)))
             if answer.data.isNextPage:
                 extend_card_product = await get_statistic_product_card(client_id=client_id,

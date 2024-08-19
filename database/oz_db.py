@@ -78,10 +78,11 @@ class OzDbConnection(DbConnection):
         existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
         if existing_client:
             advert_types = self.session.query(OzTypeAdvert.field_type).all()
-            advert_types = [field_type for field_type in advert_types]
+            advert_types = [advert_type.field_type for advert_type in advert_types]
             for advert in adverts_list:
                 if advert.field_type not in advert_types:
                     self.session.add(OzTypeAdvert(field_type=advert.field_type, type=advert.field_type))
+                    advert_types.append(advert.field_type)
                 new_advert = OzAdverts(id_advert=advert.id_advert,
                                        client_id=client_id,
                                        field_type=advert.field_type,
