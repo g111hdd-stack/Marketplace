@@ -3,16 +3,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass(frozen=True)
-class ConnectionSettings:
-    server: str
-    database: str
-    username: str
-    password: str
-    driver: str
-    timeout: int
-
-
 @dataclass
 class DataOperation:
     client_id: str

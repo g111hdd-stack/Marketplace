@@ -92,7 +92,7 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
 
 async def main_oz_advert(retries: int = 6) -> None:
     try:
-        db_conn = OzDbConnection(postgres=True)
+        db_conn = OzDbConnection()
         clients = db_conn.get_clients(marketplace="Ozon")
 
         for client in clients:

@@ -172,7 +172,7 @@ class OzStorage(Base):
 
 class OzServices(Base):
     """Модель таблицы oz_services."""
-    __tablename__ = 'oz_services2'
+    __tablename__ = 'oz_services'
 
     id = Column(Integer, Identity(), primary_key=True)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)

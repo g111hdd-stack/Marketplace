@@ -34,13 +34,6 @@ class Client(Base):
     services_oz = relationship("OzServices", back_populates="client")
 
 
-class DateList(Base):
-    """Модель таблицы date."""
-    __tablename__ = 'date'
-
-    date = Column(Date, primary_key=True)
-
-
 class CostPrice(Base):
     """Модель таблицы cost_price."""
     __tablename__ = 'cost_price'
