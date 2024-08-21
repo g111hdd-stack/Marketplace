@@ -98,7 +98,7 @@ class OzAdverts(Base):
     """Модель таблицы oz_adverts_table."""
     __tablename__ = 'oz_adverts_table'
 
-    id_advert = Column(Integer, primary_key=True)
+    id_advert = Column(String(length=255), primary_key=True)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
     field_type = Column(String(length=255), ForeignKey('oz_type_advert.field_type'), nullable=False)
     field_status = Column(String(length=255), ForeignKey('oz_status_advert.field_status'), nullable=False)

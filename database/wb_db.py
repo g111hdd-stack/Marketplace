@@ -5,10 +5,10 @@ from sqlalchemy import and_, or_, func
 from sqlalchemy.sql import select
 
 from .db import DbConnection
-from data_classes import DataOperation, DataWBStatisticCardProduct, DataWBStatisticAdvert, DataWBProductCard, \
-    DataWBAdvert, DataWBReport, DataWBStorage
+from data_classes import DataOperation, DataOrder, DataWBStatisticCardProduct, DataWBStatisticAdvert, \
+    DataWBProductCard, DataWBAdvert, DataWBReport, DataWBStorage
 from .models import Client, WBMain, WBAdverts, WBStatisticCardProduct, WBCardProduct, WBStatisticAdvert, WBReport, \
-    WBStorage
+    WBStorage, WBOrders
 from wb_sdk.wb_api import WBApi
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,33 @@ class WBDbConnection(DbConnection):
                 self.session.rollback()
                 logger.error(f"Ошибка добавления: {e}")
 
+    def add_wb_orders(self, client_id: str, list_orders: list[DataOrder]) -> None:
+        """
+            Добавление в базу данных записи о заказах.
+
+            Args:
+                client_id (str): ID кабинета.
+                list_orders (list[DataOrder]): Список данных о заказах.
+        """
+        existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
+        if existing_client:
+            for order in list_orders:
+                new_order = WBOrders(client_id=order.client_id,
+                                     order_date=order.order_date,
+                                     sku=order.sku,
+                                     vendor_code=order.vendor_code,
+                                     posting_number=order.posting_number,
+                                     category=order.category,
+                                     subject=order.subject,
+                                     price=order.price)
+                self.session.add(new_order)
+            try:
+                self.session.commit()
+                logger.info(f"Успешное добавление в базу")
+            except Exception as e:
+                self.session.rollback()
+                logger.error(f"Ошибка добавления: {e}")
+
     def add_wb_adverts(self, client_id: str, adverts_list: list[DataWBAdvert]) -> None:
         """
             Обновление информации о рекламных компаниях.
@@ -55,7 +82,6 @@ class WBDbConnection(DbConnection):
         existing_client = self.session.query(Client).filter_by(client_id=client_id).first()
         if existing_client:
             for advert in adverts_list:
-
                 new_advert = WBAdverts(id_advert=advert.id_advert,
                                        client_id=client_id,
                                        id_type=advert.id_type,

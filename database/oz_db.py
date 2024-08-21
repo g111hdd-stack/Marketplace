@@ -278,12 +278,26 @@ class OzDbConnection(DbConnection):
                 logger.error(f"Ошибка добавления: {e}")
 
     def add_storage_entry(self, list_storage: list[DataOzStorage]):
-        for row in list_storage:
-            product = self.session.query(OzCardProduct).filter_by(sku=row.sku).first()
+        client_id = None
+        i = 0
+        while not client_id:
+            product = self.session.query(OzCardProduct.client_id).filter_by(sku=list_storage[i].sku).first()
             if product:
-                new_row = OzStorage(client_id=product.client_id,
+                client_id = product[0]
+            else:
+                i += 1
+        product_data = self.session.query(OzCardProduct.sku,
+                                          OzCardProduct.vendor_code,
+                                          OzCardProduct.client_id).filter_by(client_id=client_id).all()
+        sku_vendor_dict = {sku: vendor_code for sku, vendor_code, client_id in product_data}
+        for row in list_storage:
+            vendor_code = sku_vendor_dict.get(row.sku, '---UNKNOWN_VENDOR')
+            if not row.cost:
+                continue
+            if vendor_code and client_id:
+                new_row = OzStorage(client_id=client_id,
                                     date=row.date,
-                                    vendor_code=product.vendor_code,
+                                    vendor_code=vendor_code,
                                     sku=row.sku,
                                     cost=row.cost)
                 self.session.add(new_row)

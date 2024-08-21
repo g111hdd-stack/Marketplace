@@ -47,10 +47,11 @@ def process_file(path_file):
                 accrual_date = row_data.get('Дата', None)
                 sku = row_data.get('SKU', None)
                 cost = row_data.get('Начисленная стоимость размещения', None)
-
+                if sku:
+                    sku = str(sku)
                 if accrual_date is not None:
                     accrual_date = datetime.strptime(str(accrual_date), '%Y-%m-%d %H:%M:%S').date()
-                if cost:
+                if cost is not None:
                     cost = round(float(cost), 2)
                     result_data.append(DataOzStorage(date=accrual_date,
                                                      sku=sku,

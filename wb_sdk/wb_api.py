@@ -11,6 +11,7 @@ class WBApi:
         self._api_factory = WBAPIFactory(self._engine)
 
         self._supplier_sales_api = self._api_factory.get_api(SupplierSalesResponse)
+        self._supplier_orders_api = self._api_factory.get_api(SupplierOrdersResponse)
         self._promotion_adverts_api = self._api_factory.get_api(PromotionAdvertsResponse)
         self._fullstats_api = self._api_factory.get_api(FullstatsResponse)
         self._nm_report_detail_api = self._api_factory.get_api(NMReportDetailResponse)
@@ -44,6 +45,33 @@ class WBApi:
         """
         request = SupplierSalesRequest(dateFrom=date_from, flag=flag)
         answer: SupplierSalesResponse = await self._supplier_sales_api.get(request)
+
+        return answer
+
+    async def get_supplier_orders_response(self, date_from: str, flag: int = 0) -> SupplierOrdersResponse:
+        """
+            Заказы. \n
+            Дата в формате RFC3339. Можно передать дату или дату со временем. Время можно указывать с точностью до секунд или миллисекунд. \n
+                Время передаётся в часовом поясе Мск (UTC+3). \n
+                Примеры:
+                    2019-06-20 \n
+                    2019-06-20T23:59:59 \n
+                    2019-06-20T00:00:00.12345 \n
+                    2017-03-25T00:00:00
+
+            Args:
+                date_from (str): Начальная дата отчета.
+                flag (int, option): Если параметр flag=0 (или не указан в строке запроса),
+                    при вызове API возвращаются данные, у которых значение поля lastChangeDate
+                    (дата время обновления информации в сервисе) больше или равно переданному значению параметра dateFrom.
+                    При этом количество возвращенных строк данных варьируется в интервале от 0 до примерно 100 000.
+                    Если параметр flag=1, то будет выгружена информация обо всех заказах или продажах с датой,
+                    равной переданному параметру dateFrom (в данном случае время в дате значения не имеет).
+                    При этом количество возвращенных строк данных будет равно количеству всех заказов или продаж,
+                    сделанных в указанную дату, переданную в параметре dateFrom. Default to 0.
+        """
+        request = SupplierOrdersRequest(dateFrom=date_from, flag=flag)
+        answer: SupplierOrdersResponse = await self._supplier_orders_api.get(request)
 
         return answer
 

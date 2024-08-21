@@ -23,6 +23,21 @@ class WBMain(Base):
     client = relationship("Client", back_populates="operations_wb")
 
 
+class WBOrders(Base):
+    """Модель таблицы wb_orders."""
+    __tablename__ = 'wb_orders'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    order_date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String, nullable=False)
+    vendor_code = Column(Unicode, nullable=False)
+    category = Column(Unicode, nullable=True)
+    subject = Column(Unicode, nullable=True)
+    posting_number = Column(String, nullable=False)
+    price = Column(Numeric(precision=12, scale=2), nullable=False)
+
+
 class WBCardProduct(Base):
     """Модель таблицы wb_card_product."""
     __tablename__ = 'wb_card_product'
@@ -194,7 +209,7 @@ class WBStorage(Base):
     """Модель таблицы wb_storage."""
     __tablename__ = 'wb_storage'
 
-    id_advert = Column(Integer, primary_key=True)
+    id = Column(Integer, Identity(), primary_key=True)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
     date = Column(Date, nullable=False)
     vendor_code = Column(Unicode, nullable=False)

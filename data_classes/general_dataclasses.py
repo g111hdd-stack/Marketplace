@@ -30,6 +30,18 @@ class DataOperation:
 
 
 @dataclass
+class DataOrder:
+    client_id: str
+    order_date: datetime.date
+    sku: str
+    vendor_code: str
+    posting_number: str
+    price: float
+    category: Optional[str] = None
+    subject: Optional[str] = None
+
+
+@dataclass
 class DataCostPrice:
     month_date: Optional[int] = None
     year_date: Optional[int] = None

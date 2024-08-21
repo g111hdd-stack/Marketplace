@@ -43,7 +43,9 @@ class DbConnection:
         if postgres:
             self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
         else:
-            self.engine = create_engine(url=conn_string, echo=echo, pool_pre_ping=True)
+            self.engine = create_engine(url=f"postgresql+psycopg2://postgres:arris_216@38.180.101.7:5432/arris",
+                                        echo=echo,
+                                        pool_pre_ping=True)
         self.session = Session(self.engine)
 
     def start_db(self) -> None:

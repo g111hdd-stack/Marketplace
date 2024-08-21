@@ -17,7 +17,8 @@ class WBAPIFactory:
         SupplierReportDetailByPeriodResponse: 'https://statistics-api.wildberries.ru/api/v5/supplier/reportDetailByPeriod',
         PaidStorageResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage',
         PaidStorageStatusResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/status',
-        PaidStorageDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/download'
+        PaidStorageDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/download',
+        SupplierOrdersResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/orders'
     }
 
     def __init__(self, engine: WBAsyncEngine):
