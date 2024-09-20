@@ -18,7 +18,14 @@ class WBAPIFactory:
         PaidStorageResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage',
         PaidStorageStatusResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/status',
         PaidStorageDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/download',
-        SupplierOrdersResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/orders'
+        SupplierOrdersResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/orders',
+        AnalyticsAcceptanceReportResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/analytics/acceptance-report',
+        AnalyticsAntifraudDetailsResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/analytics/antifraud-details',
+        NmReportDownloadsResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/downloads',
+        NmReportDownloadsFileResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/downloads/file/{downloadId}',
+        WarehouseRemainsResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains',
+        WarehouseRemainsTasksStatusResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/status',
+        WarehouseRemainsTasksDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/download'
     }
 
     def __init__(self, engine: WBAsyncEngine):

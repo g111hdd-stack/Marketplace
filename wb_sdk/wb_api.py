@@ -20,11 +20,19 @@ class WBApi:
         self._paid_storage_api = self._api_factory.get_api(PaidStorageResponse)
         self._paid_storage_status_api = self._api_factory.get_api(PaidStorageStatusResponse)
         self._paid_storage_download_api = self._api_factory.get_api(PaidStorageDownloadResponse)
+        self._analytics_acceptance_report_api = self._api_factory.get_api(AnalyticsAcceptanceReportResponse)
+        self._analytics_antifraud_details_api = self._api_factory.get_api(AnalyticsAntifraudDetailsResponse)
+        self._mm_report_downloads_api = self._api_factory.get_api(NmReportDownloadsResponse)
+        self._nm_report_downloads_file_api = self._api_factory.get_api(NmReportDownloadsFileResponse)
+        self._warehouse_remains_api = self._api_factory.get_api(WarehouseRemainsResponse)
+        self._warehouse_remains_tasks_status_api = self._api_factory.get_api(WarehouseRemainsTasksStatusResponse)
+        self._warehouse_remains_tasks_download_api = self._api_factory.get_api(WarehouseRemainsTasksDownloadResponse)
 
-    async def get_supplier_sales_response(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
+    async def get_supplier_sales(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
             Продажи. \n
-            Дата в формате RFC3339. Можно передать дату или дату со временем. Время можно указывать с точностью до секунд или миллисекунд. \n
+            Дата в формате RFC3339. Можно передать дату или дату со временем.
+            Время можно указывать с точностью до секунд или миллисекунд. \n
                 Время передаётся в часовом поясе Мск (UTC+3). \n
                 Примеры:
                     2019-06-20 \n
@@ -36,7 +44,8 @@ class WBApi:
                 date_from (str): Начальная дата отчета.
                 flag (int, option): Если параметр flag=0 (или не указан в строке запроса),
                     при вызове API возвращаются данные, у которых значение поля lastChangeDate
-                    (дата время обновления информации в сервисе) больше или равно переданному значению параметра dateFrom.
+                    (дата время обновления информации в сервисе)
+                    больше или равно переданному значению параметра dateFrom.
                     При этом количество возвращенных строк данных варьируется в интервале от 0 до примерно 100 000.
                     Если параметр flag=1, то будет выгружена информация обо всех заказах или продажах с датой,
                     равной переданному параметру dateFrom (в данном случае время в дате значения не имеет).
@@ -44,14 +53,15 @@ class WBApi:
                     сделанных в указанную дату, переданную в параметре dateFrom. Default to 0.
         """
         request = SupplierSalesRequest(dateFrom=date_from, flag=flag)
-        answer: SupplierSalesResponse = await self._supplier_sales_api.get(request)
+        answer: SupplierSalesResponse = await self._supplier_sales_api.get(query=request)
 
         return answer
 
-    async def get_supplier_orders_response(self, date_from: str, flag: int = 0) -> SupplierOrdersResponse:
+    async def get_supplier_orders(self, date_from: str, flag: int = 0) -> SupplierOrdersResponse:
         """
             Заказы. \n
-            Дата в формате RFC3339. Можно передать дату или дату со временем. Время можно указывать с точностью до секунд или миллисекунд. \n
+            Дата в формате RFC3339. Можно передать дату или дату со временем.
+            Время можно указывать с точностью до секунд или миллисекунд. \n
                 Время передаётся в часовом поясе Мск (UTC+3). \n
                 Примеры:
                     2019-06-20 \n
@@ -63,7 +73,8 @@ class WBApi:
                 date_from (str): Начальная дата отчета.
                 flag (int, option): Если параметр flag=0 (или не указан в строке запроса),
                     при вызове API возвращаются данные, у которых значение поля lastChangeDate
-                    (дата время обновления информации в сервисе) больше или равно переданному значению параметра dateFrom.
+                    (дата время обновления информации в сервисе)
+                    больше или равно переданному значению параметра dateFrom.
                     При этом количество возвращенных строк данных варьируется в интервале от 0 до примерно 100 000.
                     Если параметр flag=1, то будет выгружена информация обо всех заказах или продажах с датой,
                     равной переданному параметру dateFrom (в данном случае время в дате значения не имеет).
@@ -71,7 +82,7 @@ class WBApi:
                     сделанных в указанную дату, переданную в параметре dateFrom. Default to 0.
         """
         request = SupplierOrdersRequest(dateFrom=date_from, flag=flag)
-        answer: SupplierOrdersResponse = await self._supplier_orders_api.get(request)
+        answer: SupplierOrdersResponse = await self._supplier_orders_api.get(query=request)
 
         return answer
 
@@ -138,8 +149,10 @@ class WBApi:
                                    page: int = 1) -> NMReportDetailResponse:
         """
             Получение статистики КТ за выбранный период, по nmID/предметам/брендам/тегам. \n
-            Поля brand_names,object_ids, tag_ids, nm_ids могут быть пустыми, тогда в ответе идут все карточки продавца. \n
-            При выборе нескольких полей в ответ приходят данные по карточкам, у которых есть все выбранные поля. Работает с пагинацией. \n
+            Поля brand_names,object_ids, tag_ids, nm_ids могут быть пустыми,
+            тогда в ответе идут все карточки продавца. \n
+            При выборе нескольких полей в ответ приходят данные по карточкам, у которых есть все выбранные поля.
+            Работает с пагинацией. \n
             Можно получить отчёт максимум за последний год (365 дней). \n
             Также в данных, где предоставляется информация по предыдущему периоду:
                 В previousPeriod данные за такой же период, что и в selectedPeriod.
@@ -187,15 +200,17 @@ class WBApi:
     async def get_list_goods_filter(self, limit: int = 10, offset: int = 0, filter_nm_id: int = None) \
             -> ListGoodsFilterResponse:
         """
-            Возвращает информацию о товаре по его артикулу. Чтобы получить информацию обо всех товарах, оставьте артикул пустым.
+            Возвращает информацию о товаре по его артикулу.
+            Чтобы получить информацию обо всех товарах, оставьте артикул пустым.
 
             Args:
-                limit (int, optional): Сколько элементов вывести на одной странице (пагинация). Максимум 1 000 элементов. Default to 10.
+                limit (int, optional): Сколько элементов вывести на одной странице (пагинация).
+                Максимум 1 000 элементов. Default to 10.
                 offset (int, optional): Сколько элементов пропустить.. Default to 0.
                 filter_nm_id (int, optional): Артикул Wildberries, по которому искать товар.. Default to None.
         """
         request = ListGoodsFilterRequest(limit=limit, offset=offset, filterNmID=filter_nm_id)
-        answer: ListGoodsFilterResponse = await self._list_goods_filter_api.get(request)
+        answer: ListGoodsFilterResponse = await self._list_goods_filter_api.get(query=request)
 
         return answer
 
@@ -205,27 +220,114 @@ class WBApi:
                                                       limit=limit,
                                                       dateTo=date_to,
                                                       rrdid=rrdid)
-        answer: SupplierReportDetailByPeriodResponse = await self._supplier_report_detail_by_period_api.get(request)
+        answer: SupplierReportDetailByPeriodResponse = await self._supplier_report_detail_by_period_api.get(query=request)
 
         return answer
 
     async def get_paid_storage(self, date_from: str, date_to: str) -> PaidStorageResponse:
         request = PaidStorageRequest(dateFrom=date_from,
                                      dateTo=date_to)
-        answer: PaidStorageResponse = await self._paid_storage_api.get(request)
+        answer: PaidStorageResponse = await self._paid_storage_api.get(query=request)
 
         return answer
 
     async def get_paid_storage_status(self, task_id: str) -> PaidStorageStatusResponse:
         request = PaidStorageStatusRequest()
-        answer: PaidStorageStatusResponse = await self._paid_storage_status_api.get(request,
+        answer: PaidStorageStatusResponse = await self._paid_storage_status_api.get(query=request,
                                                                                     format_dict={'task_id': task_id})
 
         return answer
 
     async def get_paid_storage_download(self, task_id: str) -> PaidStorageDownloadResponse:
         request = PaidStorageDownloadRequest()
-        answer: PaidStorageDownloadResponse = await self._paid_storage_download_api.get(request,
-                                                                                        format_dict={'task_id': task_id})
+        answer: PaidStorageDownloadResponse = await self._paid_storage_download_api.get(query=request,
+                                                                                        format_dict={
+                                                                                            'task_id': task_id})
+
+        return answer
+
+    async def get_analytics_acceptance_report(self, date_from: str, date_to: str) -> AnalyticsAcceptanceReportResponse:
+        request = AnalyticsAcceptanceReportRequest(dateFrom=date_from, dateTo=date_to)
+        answer: AnalyticsAcceptanceReportResponse = await self._analytics_acceptance_report_api.get(query=request)
+
+        return answer
+
+    async def get_analytics_antifraud_details(self, date_from: str = None) -> AnalyticsAntifraudDetailsResponse:
+        request = AnalyticsAntifraudDetailsRequest(date=date_from)
+        answer: AnalyticsAntifraudDetailsResponse = await self._analytics_antifraud_details_api.get(query=request)
+
+        return answer
+
+    async def get_mm_report_downloads(self,
+                                      uuid: str,
+                                      start_date: str,
+                                      end_date: str,
+                                      nm_ids: list[int] = None,
+                                      subject_ids: list[int] = None,
+                                      brand_names: list[str] = None,
+                                      tag_ids: list[int] = None,
+                                      timezone: str = 'Europe/Moscow',
+                                      aggregation_level: str = 'day',
+                                      skip_deleted_nm: bool = False) -> NmReportDownloadsResponse:
+        request = NmReportDownloadsRequest(id=uuid,
+                                           params=NmReportDownloadsParamsRequest(nmIDs=nm_ids,
+                                                                                 subjectIDs=subject_ids,
+                                                                                 brandNames=brand_names,
+                                                                                 tagIDs=tag_ids,
+                                                                                 startDate=start_date,
+                                                                                 endDate=end_date,
+                                                                                 timezone=timezone,
+                                                                                 aggregationLevel=aggregation_level,
+                                                                                 skipDeletedNm=skip_deleted_nm))
+        answer: NmReportDownloadsResponse = await self._mm_report_downloads_api.post(body=request)
+
+        return answer
+
+    async def get_nm_report_downloads_file(self, uuid: str) -> NmReportDownloadsFileResponse:
+        request = NmReportDownloadsFileRequest()
+        answer: NmReportDownloadsFileResponse = await self._nm_report_downloads_file_api.get(query=request,
+                                                                                             file=True,
+                                                                                             format_dict={
+                                                                                                 'downloadId': uuid})
+
+        return answer
+
+    async def get_warehouse_remains(self,
+                                    locale: str = "ru",
+                                    group_by_brand: bool = False,
+                                    group_by_subject: bool = False,
+                                    group_by_sa: bool = False,
+                                    group_by_nm: bool = False,
+                                    group_by_barcode: bool = False,
+                                    group_by_size: bool = False,
+                                    filter_pics: int = 0,
+                                    filter_volume: int = 0) -> WarehouseRemainsResponse:
+        request = WarehouseRemainsRequest(locale=locale,
+                                          groupByBrand=str(group_by_brand).lower(),
+                                          groupBySubject=str(group_by_subject).lower(),
+                                          groupBySa=str(group_by_sa).lower(),
+                                          groupByNm=str(group_by_nm).lower(),
+                                          groupByBarcode=str(group_by_barcode).lower(),
+                                          groupBySize=str(group_by_size).lower(),
+                                          filterPics=filter_pics,
+                                          filterVolume=filter_volume)
+
+        answer: WarehouseRemainsResponse = await self._warehouse_remains_api.get(query=request)
+
+        return answer
+
+    async def get_warehouse_remains_tasks_status(self, task_id: str) -> WarehouseRemainsTasksStatusResponse:
+        request = WarehouseRemainsTasksStatusRequest()
+        answer: WarehouseRemainsTasksStatusResponse = await self._warehouse_remains_tasks_status_api.get(query=request,
+                                                                                                         format_dict={
+                                                                                                             'task_id': task_id})
+
+        return answer
+
+    async def get_warehouse_remains_tasks_download(self, task_id: str) -> WarehouseRemainsTasksDownloadResponse:
+        request = WarehouseRemainsTasksDownloadRequest()
+        answer: WarehouseRemainsTasksDownloadResponse = await self._warehouse_remains_tasks_download_api.get(query=request,
+                                                                                                             format_dict={
+                                                                                                                 'task_id': task_id})
 
         return answer

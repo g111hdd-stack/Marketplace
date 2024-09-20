@@ -137,7 +137,7 @@ async def get_operations(client_id: str, campaign_id:str, api_key: str, updated_
 
 
 async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaign_id: str, api_key: str,
-                                from_date: datetime) -> None:
+                                date_now: datetime) -> None:
     """
         Добавление записей в таблицу `ya_main_table` за указанную дату
 
@@ -146,10 +146,10 @@ async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaig
             client_id (str): ID кабинета.
             campaign_id (str): ID магазина.
             api_key (str): API KEY кабинета.
-            from_date (datetime): Дата, для которой добавляются записи.
+            date_now (datetime): Дата, для которой добавляются записи.
     """
-    start = from_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1) - timedelta(microseconds=1)
+    start = date_now - timedelta(days=1)
+    end = date_now - timedelta(microseconds=1)
 
     logger.info(f"За период с <{start}> до <{end}>")
     operations = await get_operations(client_id=client_id,
@@ -159,7 +159,7 @@ async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaig
                                       updated_at_to=end.isoformat())
 
     logger.info(f"Количество записей: {len(operations)}")
-    db_conn.add_ya_operation(client_id=client_id, list_operations=operations)
+    db_conn.add_ya_operation(list_operations=operations)
 
 
 async def main_func_yandex(retries: int = 6) -> None:
@@ -177,7 +177,7 @@ async def main_func_yandex(retries: int = 6) -> None:
             list_campaigns = await get_campaign_ids(api_key=api_key)
             db_conn.add_ya_campaigns(list_campaigns=list_campaigns)
 
-            from_date = datetime.now(tz=timezone(timedelta(hours=3))) - timedelta(days=1)
+            date_now = datetime.now(tz=timezone(timedelta(hours=3))).replace(hour=0, minute=0, second=0, microsecond=0)
 
             for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
                 client = db_conn.get_client(client_id=campaign.client_id)
@@ -186,7 +186,7 @@ async def main_func_yandex(retries: int = 6) -> None:
                                             client_id=client.client_id,
                                             campaign_id=campaign.campaign_id,
                                             api_key=client.api_key,
-                                            from_date=from_date)
+                                            date_now=date_now)
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')

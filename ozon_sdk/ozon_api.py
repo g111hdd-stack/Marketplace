@@ -262,6 +262,8 @@ class OzonPerformanceAPI:
         self._client_statistics_daily_json_api = self._api_factory.get_api(ClientStatisticsDailyJSONResponse)
         self._client_statistics_uuid_api = self._api_factory.get_api(ClientStatisticsUUIDResponse)
         self._client_statistics_report_api = self._api_factory.get_api(ClientStatisticsReportResponse)
+        self._client_campaign_objects_api = self._api_factory.get_api(ClientCampaignObjectsResponse)
+        self._client_campaign_search_promo_products_api = self._api_factory.get_api(ClientCampaignSearchPromoProductsResponse)
 
     async def get_client_campaign(self, campaign_ids: list[str] = None, adv_object_type: str = None,
                                   state: str = None) -> ClientCampaignResponse:
@@ -348,7 +350,8 @@ class OzonPerformanceAPI:
                 uuid (str): UUID отчета.
         """
         request = ClientStatisticsUUIDRequest()
-        answer: ClientStatisticsUUIDResponse = await self._client_statistics_uuid_api.get(request, path=uuid)
+        answer: ClientStatisticsUUIDResponse = await self._client_statistics_uuid_api.get(request,
+                                                                                          format_dict={'UUID': uuid})
         return answer
 
     async def get_client_statistics_report(self, uuid: str) -> ClientStatisticsReportResponse:
@@ -360,4 +363,29 @@ class OzonPerformanceAPI:
         """
         request = ClientStatisticsReportRequest(UUID=uuid)
         answer: ClientStatisticsReportResponse = await self._client_statistics_report_api.get(request)
+        return answer
+
+    async def get_client_campaign_objects(self, campaign_id: str) -> ClientCampaignObjectsResponse:
+        """
+            Получение отчета.
+
+            Args:
+                campaign_id (str): ID РК.
+        """
+        request = ClientCampaignObjectsRequest()
+        answer: ClientCampaignObjectsResponse = await self._client_campaign_objects_api.get(request,
+                                                                                            format_dict={'campaignId': campaign_id})
+        return answer
+
+    async def get_client_campaign_search_promo_products(self,
+                                                        campaign_id: str) -> ClientCampaignSearchPromoProductsResponse:
+        """
+            Получение отчета.
+
+            Args:
+                campaign_id (str): ID РК.
+        """
+        request = ClientCampaignObjectsRequest()
+        answer: ClientCampaignSearchPromoProductsResponse = await self._client_campaign_search_promo_products_api.get(request,
+                                                                                                                      format_dict={'campaignId': campaign_id})
         return answer

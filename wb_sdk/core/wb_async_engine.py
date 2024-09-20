@@ -11,25 +11,29 @@ class WBAsyncEngine:
             'Authorization': api_key
         }
 
-    async def get(self, url: str, params: dict) -> dict:
-        response = await self._perform_get_request(url, params)
+    async def get(self, url: str, json: dict, params: dict, file: bool) -> dict:
+        response = await self._perform_get_request(url, file, json, params)
         return response
 
     async def post(self, url: str, json: dict, params: dict) -> dict:
         response = await self._perform_post_request(url, json, params)
         return response
 
-    async def _perform_get_request(self, url, params, retry: int = 6):
-        async with await self._get_session() as session:
+    async def _perform_get_request(self, url, file: bool, json=None, params=None, retry: int = 6):
+        async with await self._get_session(file) as session:
             while retry != 0:
-                new_params = {k: v for k, v in params.items() if v is not None}
-                async with session.get(url, params=new_params) as response:
+                if params:
+                    params = {k: v for k, v in params.items() if v is not None}
+                async with session.get(url, json=json, params=params) as response:
                     if response.status not in [200, 201, 204]:
                         logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                         await asyncio.sleep(60)
                         retry -= 1
                         continue
+                    if file:
+                        content = await response.read()
+                        return {'file': content}
                     return await response.json(content_type=None)
             raise Exception
 
@@ -37,7 +41,16 @@ class WBAsyncEngine:
         async with await self._get_session() as session:
             while retry != 0:
                 async with session.post(url, json=json, params=params) as response:
+                    if response.content_type != 'application/json':
+                        logger.info(f"Получен ответ от {url} (html)")
+                        logger.error(f"Попытка повторного запроса.")
+                        await asyncio.sleep(60)
+                        continue
                     if response.status not in [200, 204]:
+                        r = await response.json()
+                        if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
+                            logger.info(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
+                            return None
                         logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                         await asyncio.sleep(60)
@@ -46,10 +59,12 @@ class WBAsyncEngine:
                     return await response.json()
             raise Exception
 
-    async def _get_session(self):
+    async def _get_session(self, file: bool = False):
         session = aiohttp.ClientSession()
 
         session.headers["Authorization"] = self.__headers['Authorization']
         session.headers["Accept"] = 'application/json'
+        if file:
+            session.headers["Accept"] = 'text/csv'
 
         return session

@@ -21,7 +21,7 @@ def select_files():
     if file_paths:
         for file_path in file_paths:
             list_cost_price = process_file(file_path)
-            db_conn.add_cost_price(list_cost_price=list_cost_price)
+            db_conn.add_cost_price(list_cost_price=list_cost_price, clear=True)
 
 
 def process_file(path_file):

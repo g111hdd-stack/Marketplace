@@ -10,3 +10,4 @@ from .client_statistics_json_request import *
 from .client_statistics_daily_json_request import *
 from .client_statistics_uuid_request import *
 from .client_statistics_report_request import *
+from .client_campaign_objects_request import *

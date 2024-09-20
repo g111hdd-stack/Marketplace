@@ -1,58 +1,128 @@
+import time
 import logging
+
 from typing import Type
+from functools import wraps
 
-from sqlalchemy import create_engine, desc
-from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from pyodbc import Error as PyodbcError
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.dialects.postgresql import insert
 
+from config import *
 from data_classes import *
 from database.models import *
-from config import *
 
 logger = logging.getLogger(__name__)
 
 
-class DbConnection:
+def retry_on_exception(retries=3, delay=10):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            attempt = 0
+            while attempt < retries:
+                try:
+                    result = func(self, *args, **kwargs)
+                    return result
+                except (OperationalError, PyodbcError) as e:
+                    attempt += 1
+                    logger.debug(f"Error occurred: {e}. Retrying {attempt}/{retries} after {delay} seconds...")
+                    time.sleep(delay)
+                    if hasattr(self, 'session'):
+                        self.session.rollback()
+                except Exception as e:
+                    logger.error(f"An unexpected error occurred: {e}. Rolling back...")
+                    if hasattr(self, 'session'):
+                        self.session.rollback()
+                    raise e
+            raise RuntimeError("Max retries exceeded. Operation failed.")
+        return wrapper
+    return decorator
 
+
+class DbConnection:
     def __init__(self, echo: bool = False) -> None:
         self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
         self.session = Session(self.engine)
 
+    @retry_on_exception()
     def start_db(self) -> None:
         """Создание таблиц."""
-        with self.session.begin_nested():
-            metadata.create_all(self.session.bind)
+        metadata.create_all(self.session.bind, checkfirst=True)
 
-    def get_clients(self, marketplace: str) -> list[Client]:
+    @retry_on_exception()
+    def get_client(self, client_id: str) -> Type[Client]:
         """
-            Получает список клиентов, отфильтрованный по заданному рынку.
+            Возвращает данные кабинета, отфильтрованный по ID кабинета.
+
+            Args:
+                client_id (str): ID кабинета для фильтрации.
+
+            Returns:
+                Type[Client]: данные кабинета, удовлетворяющих условию фильтрации.
+        """
+        client = self.session.query(Client).filter_by(client_id=client_id).first()
+        return client
+
+    @retry_on_exception()
+    def get_clients(self, marketplace: str = None) -> list[Type[Client]]:
+        """
+            Возвращает список данных кабинета, отфильтрованный по заданному рынку.
 
             Args:
                 marketplace (str): Рынок для фильтрации.
 
             Returns:
-                List[Client]: Список клиентов, удовлетворяющих условию фильтрации.
+                List[Type[Client]]: Список данных кабинета, удовлетворяющих условию фильтрации.
         """
-        with self.session.begin_nested():
-            result = self.session.execute(select(Client).filter(Client.marketplace == marketplace)).fetchall()
-        return [client[0] for client in result]
+        if marketplace:
+            result = self.session.query(Client).filter_by(marketplace=marketplace).all()
+        else:
+            result = self.session.query(Client).all()
+        return result
 
-    def get_client(self, client_id: str) -> Type[Client]:
-        client = self.session.query(Client).filter_by(client_id=client_id).first()
-        if client:
-            return client
+    @retry_on_exception()
+    def add_cost_price(self, list_cost_price: list[DataCostPrice], clear: bool = False) -> None:
+        """
+            Добавляет себестоймость товаров в БД.
 
-    def add_cost_price(self, list_cost_price: list[DataCostPrice]):
-        self.session.query(CostPrice).delete()
+            Args:
+                list_cost_price (list[DataCostPrice]): список данных по себестоймости.
+                clear (bool, optional): если True очистит таблицу перед добавлением.
+        """
+        if clear:
+            self.session.query(CostPrice).delete()
         for row in list_cost_price:
-            new_row = CostPrice(month_date=row.month_date,
-                                year_date=row.year_date,
-                                vendor_code=row.vendor_code,
-                                cost=row.cost)
-            self.session.add(new_row)
-        try:
-            self.session.commit()
-            logger.info(f"Успешное добавление в базу")
-        except Exception as e:
-            self.session.rollback()
-            logger.error(f"Ошибка добавления: {e}")
+            stmt = insert(CostPrice).values(
+                month_date=row.month_date,
+                year_date=row.year_date,
+                vendor_code=row.vendor_code,
+                cost=row.cost
+            ).on_conflict_do_update(
+                index_elements=['month_date', 'year_date', 'vendor_code'],
+                set_={'cost': row.cost}
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_self_purchase(self, list_self_purchase: list[DataSelfPurchase], clear: bool = False) -> None:
+        if clear:
+            self.session.query(SelfPurchase).delete()
+        for row in list_self_purchase:
+            stmt = insert(SelfPurchase).values(
+                client_id=row.client_id,
+                order_date=row.order_date,
+                accrual_date=row.accrual_date,
+                vendor_code=row.vendor_code,
+                quantities=row.quantities,
+                price=row.price
+            ).on_conflict_do_nothing(
+                index_elements=['client_id', 'order_date', 'accrual_date', 'vendor_code', 'price']
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")

@@ -6,7 +6,7 @@ from .base import BaseEntity
 
 class AnalyticsDataDimensions(BaseEntity):
     """Группировка данных в отчёте."""
-    id_field: int = Field(None, alias='id')
+    id_field: str = Field(None, alias='id')
     name: str = None
 
 

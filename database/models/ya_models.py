@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, Unicode
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint
 
 from .general_models import Base
 
@@ -11,15 +10,18 @@ class YaMain(Base):
     id = Column(Integer, Identity(), primary_key=True)
     accrual_date = Column(Date, nullable=False)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
-    type_of_transaction = Column(String, nullable=False)
-    vendor_code = Column(Unicode, nullable=False)
-    posting_number = Column(String, nullable=False)
-    delivery_schema = Column(String, nullable=False)
-    sku = Column(String, nullable=False)
+    type_of_transaction = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    posting_number = Column(String(length=255), nullable=False)
+    delivery_schema = Column(String(length=255), nullable=False)
+    sku = Column(String(length=255), nullable=False)
     sale = Column(Numeric(precision=12, scale=2), nullable=False)
     quantities = Column(Integer, nullable=False)
 
-    client = relationship("Client", back_populates="operations_ya")
+    __table_args__ = (
+        UniqueConstraint('accrual_date', 'client_id', 'type_of_transaction', 'posting_number', 'sku',
+                         name='wb_statistic_card_product_unique'),
+    )
 
 
 class YaCampaigns(Base):
@@ -28,10 +30,8 @@ class YaCampaigns(Base):
 
     campaign_id = Column(String(length=255), primary_key=True)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
-    name = Column(Unicode, nullable=False)
-    placement_type = Column(Unicode, nullable=False)
-
-    client = relationship("Client", back_populates="ya_campaigns")
+    name = Column(String(length=255), nullable=False)
+    placement_type = Column(String(length=255), nullable=False)
 
 
 class YaReport(Base):
@@ -39,13 +39,26 @@ class YaReport(Base):
     __tablename__ = 'ya_report'
 
     id = Column(Integer, Identity(), primary_key=True)
-    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=True)
-    campaign_id = Column(String(length=255), nullable=True)
-    posting_number = Column(String(length=255), nullable=True)
-    application_number = Column(String(length=255), nullable=True)
-    vendor_code = Column(Unicode, nullable=True)
-    service = Column(Unicode, nullable=True)
-    accrual_date = Column(Date, nullable=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    campaign_id = Column(String(length=255), ForeignKey('ya_campaigns.campaign_id'), nullable=False)
+    date = Column(Date, nullable=False)
+    posting_number = Column(String(length=255), default='', nullable=False)
+    vendor_code = Column(String(length=255), default='', nullable=False)
+    operation_type = Column(String(length=255), nullable=False)
+    service = Column(String(length=255), default='', nullable=False)
     cost = Column(Numeric(precision=12, scale=2), nullable=False)
 
-    client = relationship("Client", back_populates="report_ya")
+    __table_args__ = (
+        UniqueConstraint('client_id', 'campaign_id', 'date', 'posting_number', 'vendor_code', 'operation_type', 'service',
+                         name='wb_statistic_card_product_unique'),
+    )
+
+
+class YaTypeReport(Base):
+    """Модель таблицы ya_type_services."""
+    __tablename__ = 'ya_type_services'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    operation_type = Column(String(length=255), nullable=False)
+    service = Column(String(length=255), default='', nullable=False)
+    type_name = Column(String(length=255), default='new', nullable=False)

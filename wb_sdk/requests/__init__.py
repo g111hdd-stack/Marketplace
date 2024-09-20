@@ -8,3 +8,10 @@ from .supplier_report_detail_by_period_request import *
 from .paid_storage_request import *
 from .paid_storage_status_request import *
 from .paid_storage_download_request import *
+from .analytics_acceptance_report_request import *
+from .analytics_antifraud_details_request import *
+from .nm_report_downloads_request import *
+from .nm_report_downloads_file_request import *
+from .warehouse_remains_request import *
+from .warehouse_remains_tasks_status_request import *
+from .warehouse_remains_tasks_download_request import *

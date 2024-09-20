@@ -35,8 +35,10 @@ class OzonPerformanceAPIFactory:
         ClientCampaignResponse: '/api/client/campaign',
         ClientStatisticsDailyJSONResponse: '/api/client/statistics/daily/json',
         ClientStatisticsJSONResponse: '/api/client/statistics/json',
-        ClientStatisticsUUIDResponse: '/api/client/statistics',
-        ClientStatisticsReportResponse: '/api/client/statistics/report'
+        ClientStatisticsUUIDResponse: '/api/client/statistics/{UUID}',
+        ClientStatisticsReportResponse: '/api/client/statistics/report',
+        ClientCampaignObjectsResponse: '/api/client/campaign/{campaignId}/objects',
+        ClientCampaignSearchPromoProductsResponse: '/api/client/campaign/{campaignId}/search_promo/products',
     }
 
     def __init__(self, engine: OzonPerformanceAsyncEngine):

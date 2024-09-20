@@ -1,13 +1,18 @@
+import io
+import csv
+import uuid
 import asyncio
-import nest_asyncio
 import logging
+import zipfile
+
+import nest_asyncio
 
 from datetime import datetime, timedelta
 from sqlalchemy.exc import OperationalError
 
-from data_classes import DataWBAdvert, DataWBProductCard, DataWBStatisticAdvert, DataWBStatisticCardProduct
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
+from data_classes import DataWBAdvert, DataWBCardProduct, DataWBStatisticAdvert, DataWBStatisticCardProduct
 
 nest_asyncio.apply()
 
@@ -15,253 +20,243 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> None:
+async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> None:
     """
-        Обновление записей в таблице `wb_adverts_table` за указанную дату.
+        Обновление записей данных РК.
 
         Args:
-            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            date (date): Дата, за которую обновилсь данные кампании.
     """
-
     def format_date(date_format: str) -> datetime.date:
+        """Функция форматирования даты."""
         time_format = "%Y-%m-%d"
         return datetime.strptime(date_format.split('T')[0], time_format).date()
 
-    date = date.date()
+    # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
+
     adverts_list = []
+
     status_dict = {
         7: 'Кампания завершена',
         9: 'Идут показы',
         11: 'Кампания на паузе',
     }
     type_dict = {
-        4: 'Кампания  в каталоге',
-        5: 'Кампания в карточке товара',
-        6: 'Кампания в поиске',
-        7: 'Кампания в рекомендациях на главной странице',
         8: 'Автоматическая кампания',
-        9: 'Поиск + каталог'
+        9: 'Аукцион'
     }
 
+    # Запрос данных по статусу и типу РК
     for status in status_dict.keys():
         for type_field in type_dict.keys():
+            # Получение списка РК
             answer_advent = await api_user.get_promotion_adverts(status=status, type_field=type_field)
+
+            # Обработка полученных результатов
             if answer_advent:
                 for advert in answer_advent.result:
-                    create_time = format_date(date_format=advert.createTime)
-                    change_time = format_date(date_format=advert.changeTime)
-                    start_time = format_date(date_format=advert.startTime)
-                    end_time = format_date(date_format=advert.endTime)
-                    if change_time >= date:
-                        adverts_list.append(DataWBAdvert(id_advert=advert.advertId,
-                                                         id_type=advert.type,
-                                                         id_status=advert.status,
-                                                         name_advert=advert.name,
-                                                         create_time=create_time,
-                                                         change_time=change_time,
-                                                         start_time=start_time,
-                                                         end_time=end_time))
+                    create_time = format_date(date_format=advert.createTime)  # Дата создания РК
+                    change_time = format_date(date_format=advert.changeTime)  # Дата последнего изменения РК
+                    start_time = format_date(date_format=advert.startTime)  # Дата последнего старта РК
+                    end_time = format_date(date_format=advert.endTime)  # Дата окончания РК
+
+                    adverts_list.append(DataWBAdvert(id_advert=str(advert.advertId),
+                                                     id_type=advert.type,
+                                                     id_status=advert.status,
+                                                     name_advert=advert.name,
+                                                     create_time=create_time,
+                                                     change_time=change_time,
+                                                     start_time=start_time,
+                                                     end_time=end_time))
 
     logger.info(f"Обновление информации о рекламных компаний")
     db_conn.add_wb_adverts(client_id=client_id, adverts_list=adverts_list)
 
 
-async def get_product_card(db_conn: WBDbConnection, client_id: str, api_key: str, offset: int = 0) \
-        -> list[DataWBProductCard]:
+async def get_product_card(db_conn: WBDbConnection, client_id: str, api_key: str) -> None:
     """
-        Получение карточек товара.
+        Обновление информации о КТ.
 
         Args:
-            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            offset (int, optional): Страница товаров.. Default to 0.
-
-        Returns:
-            List[DataWBProductCard]: Список карточек товаров.
     """
-    api_user = WBApi(api_key=api_key)
-    product_list = []
-    answer = await api_user.get_list_goods_filter(limit=1000, offset=offset)
-    if answer:
-        if answer.data:
-            for product in answer.data.listGoods:
+    offset = 0
+    limit = 1000
 
-                price = round(product.sizes[0].price, 2)
-                discount_price = round(product.sizes[0].discountedPrice, 2)
-                product_list.append(DataWBProductCard(sku=str(product.nmID),
-                                                      vendor_code=product.vendorCode,
-                                                      client_id=client_id,
-                                                      price=price,
-                                                      discount_price=discount_price))
-            if len(answer.data.listGoods) >= 1000:
-                extend_answer = await get_product_card(db_conn=db_conn,
+    # Инициализация API-клиента WB
+    api_user = WBApi(api_key=api_key)
+
+    list_card_product = []
+
+    while True:
+        # Получение списка КТ
+        answer = await api_user.get_list_goods_filter(limit=limit, offset=offset)
+
+        # Обработка полученных результатов
+        for product in answer.data.listGoods:
+            price = round(product.sizes[0].price, 2)  # Цена товара
+            discount_price = round(product.sizes[0].discountedPrice, 2)  # Цена товара со скидкой
+            link = f"https://www.wildberries.ru/catalog/{product.nmID}/detail.aspx"  # Ссылка на товар
+            list_card_product.append(DataWBCardProduct(sku=str(product.nmID),
+                                                       vendor_code=product.vendorCode,
                                                        client_id=client_id,
-                                                       api_key=api_key,
-                                                       offset=offset + 1000)
-                product_list.extend(extend_answer)
+                                                       link=link,
+                                                       price=price,
+                                                       discount_price=discount_price))
+
+        # Получение остальных страниц результата
+        if len(answer.data.listGoods) < 1000:
+            break
+
+        offset += limit
 
     logger.info(f"Обновление информации о карточках товаров")
-    return product_list
+    db_conn.add_wb_cards_products(list_card_product=list_card_product)
 
 
-async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> \
-        list[DataWBStatisticAdvert]:
+async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key: str,
+                                from_date: datetime) -> None:
     """
         Добавление записей в таблицу `wb_statistic_advert` за указанную дату
 
         Args:
-            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
+            db_conn (WBDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            date (datetime): Дата, для которой добавляются записи.
+            from_date (datetime): Дата, для которой добавляются записи.
 
         Returns:
                 List[DataWBStatisticAdvert]: Список статистики рекламных компаний, удовлетворяющих условию фильтрации.
     """
-    company_ids = db_conn.get_wb_adverts_id(client_id=client_id, from_date=date.date())
+    end_date = from_date.date()
+    start_date = end_date - timedelta(days=30)
+
+    # Получение ID РК и время создания и окончания
+    adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date)
+    company_ids = [company_id for company_id in adverts]
+
+    date_list = []
+
+    while start_date <= end_date:
+        date_list.append(start_date.isoformat())
+        start_date += timedelta(days=1)
+
+    product_advertising_campaign = []
 
     if not company_ids:
-        logger.info(f"Количество записей: 0")
-        return []
+        logger.info(f"Количество РК: 0")
+        return
 
+    # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
-    product_advertising_campaign = []
+
     app_type = {
         1: 'Сайт',
         32: 'Android',
         64: 'IOS'
     }
 
-    for ids in [company_ids[i:i+100] for i in range(0, len(company_ids), 100)]:
-        answer = await api_user.get_fullstats(company_ids=ids, dates=[date.date().isoformat()])
-        if answer:
-            for advert in answer.result:
-                for day in advert.days:
-                    for app in day.apps:
-                        for position in app.nm:
-                            product_advertising_campaign.append(DataWBStatisticAdvert(client_id=client_id,
-                                                                                      date=day.date_field,
-                                                                                      views=position.views,
-                                                                                      clicks=position.clicks,
-                                                                                      ctr=round(position.ctr / 100, 2),
-                                                                                      cpc=position.cpc,
-                                                                                      sum_cost=position.sum,
-                                                                                      atbs=position.atbs,
-                                                                                      orders_count=position.orders,
-                                                                                      shks=position.shks,
-                                                                                      sum_price=position.sum_price,
-                                                                                      nm_id=str(position.nmId),
-                                                                                      advert_id=advert.advertId,
-                                                                                      app_type=app_type.get(app.appType, '')))
+    # Запрос статистики РК по 100 компаний за цикл
+    for dates in [date_list[i:i + 10] for i in range(0, len(date_list), 10)]:
+        filter_company_ids = []
+        for company_id in company_ids:
+            create = adverts.get(company_id)[0].isoformat()
+            end = adverts.get(company_id)[1].isoformat()
+            if not all(create > d for d in dates):
+                if not all(end < d for d in dates):
+                    filter_company_ids.append(company_id)
+        if not filter_company_ids:
+            continue
+        for ids in [company_ids[i:i+100] for i in range(0, len(company_ids), 100)]:
+            answer = await api_user.get_fullstats(company_ids=ids, dates=dates)
+
+            # Обработка полученных результатов
+            if answer:
+                for advert in answer.result:
+                    for day in advert.days:
+                        for app in day.apps:
+                            for position in app.nm:
+                                product_advertising_campaign.append(
+                                    DataWBStatisticAdvert(client_id=client_id,
+                                                          date=day.date_field,
+                                                          views=position.views,
+                                                          clicks=position.clicks,
+                                                          sum_cost=position.sum,
+                                                          atbs=position.atbs,
+                                                          orders_count=position.orders,
+                                                          shks=position.shks,
+                                                          sum_price=position.sum_price,
+                                                          sku=str(position.nmId),
+                                                          advert_id=str(advert.advertId),
+                                                          app_type=app_type.get(app.appType))
+                                )
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
+    db_conn.add_wb_adverts_statistics(product_advertising_campaign=product_advertising_campaign)
 
-    db_conn.add_wb_adverts_statistics(client_id=client_id, product_advertising_campaign=product_advertising_campaign)
 
-
-async def get_statistic_product_card(client_id: str,
-                                     api_key: str,
-                                     date_from: datetime,
-                                     buyouts_percent: dict,
-                                     page: int = 1) -> list[DataWBStatisticCardProduct]:
+async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, api_key: str,
+                                     from_date: datetime) -> None:
     """
         Получение списка статистики карточек товара за указанную дату.
 
         Args:
+            db_conn (WBDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            date_from (datetime): Дата, за которую собираются данные.
-            buyouts_percent (dict): Словарь sku с процентом выкупа за последнии 30 дней.
-            page (int, optional): Номер страницы запроса.. Default to 1.
-
-        Returns:
-                List[DataWBStatisticCardProduct]: Список статистики карточек товара, удовлетворяющих условию фильтрации.
+            from_date (datetime): Дата, за которую собираются данные.
     """
-    api_user = WBApi(api_key=api_key)
     list_card_product = []
-    date_from = date_from.replace(hour=0, minute=0, second=0, microsecond=0)
-    date_to = (date_from + timedelta(days=1)) - timedelta(microseconds=1)
-    answer = await api_user.get_nm_report_detail(date_from=date_from.isoformat(sep=" "),
-                                                 date_to=date_to.isoformat(sep=" "),
-                                                 page=page)
-    if answer:
-        if answer.data:
-            for card in answer.data.cards:
-                stat = card.statistics.selectedPeriod
-                stocks = (card.stocks.stocksMp + card.stocks.stocksWb) < 10
-                open_card_count = int(stat.openCardCount)
-                add_to_cart_count = int(stat.addToCartCount)
-                orders_count = int(stat.ordersCount)
-                add_to_cart_percent = round(stat.conversions.addToCartPercent / 100, 2)
-                cart_to_order_percent = round(stat.conversions.cartToOrderPercent / 100, 2)
-                buyouts_count = int(stat.buyoutsCount)
 
-                if not open_card_count and not add_to_cart_count and not orders_count and stocks:
-                    continue
-                list_card_product.append(DataWBStatisticCardProduct(sku=str(card.nmID),
-                                                                    vendor_code=card.vendorCode,
-                                                                    client_id=client_id,
-                                                                    category=card.object.name,
-                                                                    brand=card.brandName,
-                                                                    link=f"https://www.wildberries.ru/catalog/{card.nmID}/detail.aspx",
-                                                                    date=date_from.date(),
-                                                                    open_card_count=open_card_count,
-                                                                    add_to_cart_count=add_to_cart_count,
-                                                                    orders_count=orders_count,
-                                                                    add_to_cart_percent=add_to_cart_percent,
-                                                                    cart_to_order_percent=cart_to_order_percent,
-                                                                    buyouts_count=buyouts_count,
-                                                                    buyouts_last_30days_percent=buyouts_percent.get(card.nmID, None)))
-            if answer.data.isNextPage:
-                extend_card_product = await get_statistic_product_card(client_id=client_id,
-                                                                       api_key=api_key,
-                                                                       date_from=date_from,
-                                                                       buyouts_percent=buyouts_percent,
-                                                                       page=page + 1)
-                list_card_product.extend(extend_card_product)
+    end_date = from_date.date()
+    start_date = end_date - timedelta(days=30)
+
+    # Инициализация API-клиента WB
+    api_user = WBApi(api_key=api_key)
+
+    new_uuid = str(uuid.uuid4())
+
+    # Создание отчёта статистики КТ
+    answer_report = await api_user.get_mm_report_downloads(uuid=new_uuid,
+                                                           start_date=start_date.isoformat(),
+                                                           end_date=end_date.isoformat())
+    if not answer_report.error:
+        await asyncio.sleep(5)
+
+        # Получение отчёта статистики КТ
+        answer_download = await api_user.get_nm_report_downloads_file(uuid=new_uuid)
+        zip_file = io.BytesIO(answer_download.file)
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            csv_filename = zip_ref.namelist()[0]
+            with zip_ref.open(csv_filename) as csv_file:
+                csv_reader = csv.DictReader(io.TextIOWrapper(csv_file, encoding='utf-8'))
+                data = [row for row in csv_reader]
+                skus = db_conn.get_wb_sku_vendor_code(client_id=client_id)
+                for row in data:
+                    sku = row.get('nmID', 0)
+                    vendor_code = skus.get(sku)
+                    if not vendor_code:
+                        continue
+                    list_card_product.append(DataWBStatisticCardProduct(
+                        sku=sku,
+                        vendor_code=skus.get(sku),
+                        client_id=client_id,
+                        date=datetime.strptime(row.get('dt'), '%Y-%m-%d').date(),
+                        open_card_count=int(row.get('openCardCount', 0)),
+                        add_to_cart_count=int(row.get('addToCartCount', 0)),
+                        orders_count=int(row.get('ordersCount', 0)),
+                        buyouts_count=int(row.get('buyoutsCount', 0)),
+                        cancel_count=int(row.get('cancelCount', 0)),
+                        orders_sum=round(float(row.get('ordersSumRub', 0)), 2)
+                    ))
 
     logger.info(f"Количество записей: {len(list_card_product)}")
-    return list_card_product
-
-
-async def get_buyouts_percent(client_id: str, api_key: str, date_from: datetime, page: int = 1) -> dict:
-    """
-        Получение словаря sku с процентом выкупа за последнии 30 дней.
-
-        Args:
-            client_id (str): ID кабинета.
-            api_key (str): API KEY кабинета.
-            date_from (datetime): Дата, за которую собираются данные.
-            page (int, optional): Номер страницы запроса.. Default to 1.
-
-        Returns:
-                dict: Словарь sku с процентом выкупа за последнии 30 дней.
-    """
-    api_user = WBApi(api_key=api_key)
-    buyouts_percent = dict()
-    date_from = date_from.replace(hour=0, minute=0, second=0, microsecond=0)
-    date_from_30days = date_from - timedelta(days=29)
-    date_to = (date_from + timedelta(days=1)) - timedelta(microseconds=1)
-
-    answer_last_30days = await api_user.get_nm_report_detail(date_from=date_from_30days.isoformat(sep=" "),
-                                                             date_to=date_to.isoformat(sep=" "),
-                                                             page=page)
-    if answer_last_30days:
-        if answer_last_30days.data:
-            for card in answer_last_30days.data.cards:
-                buyouts_percent[card.nmID] = round(card.statistics.selectedPeriod.conversions.buyoutsPercent / 100, 2)
-            if answer_last_30days.data.isNextPage:
-                update_dict = await get_buyouts_percent(client_id=client_id,
-                                                        api_key=api_key,
-                                                        date_from=date_from,
-                                                        page=page + 1)
-                buyouts_percent.update(update_dict)
-    return buyouts_percent
+    db_conn.add_wb_cards_products_statistics(list_card_product=list_card_product)
 
 
 async def main_wb_advert(retries: int = 6) -> None:
@@ -269,34 +264,28 @@ async def main_wb_advert(retries: int = 6) -> None:
         db_conn = WBDbConnection()
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="WB")
-        date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        date_yesterday = date - timedelta(days=1)
+
+        date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        from_date = date_now - timedelta(days=1)
 
         for client in clients:
             logger.info(f"Сбор карточек товаров {client.name_company}")
-            card_products_list = await get_product_card(db_conn=db_conn,
-                                                        client_id=client.client_id,
-                                                        api_key=client.api_key)
-            db_conn.add_wb_cards_products(client_id=client.client_id, list_card_product=card_products_list)
+            await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
 
             logger.info(f"Сбор рекламных компаний {client.name_company}")
-            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date_yesterday)
+            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
 
-            logger.info(f"Статистика карточек товара {client.name_company} за {date_yesterday.date().isoformat()}")
-            buyouts_percent = await get_buyouts_percent(client_id=client.client_id,
-                                                        api_key=client.api_key,
-                                                        date_from=date_yesterday)
-            list_card_product = await get_statistic_product_card(client_id=client.client_id,
-                                                                 api_key=client.api_key,
-                                                                 date_from=date_yesterday,
-                                                                 buyouts_percent=buyouts_percent)
-            db_conn.add_wb_cards_products_statistics(client_id=client.client_id, list_card_product=list_card_product)
+            logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
+            await get_statistic_card_product(db_conn=db_conn,
+                                             client_id=client.client_id,
+                                             api_key=client.api_key,
+                                             from_date=from_date)
 
-            logger.info(f"Статистика рекламы {client.name_company} за {date_yesterday.date().isoformat()}")
+            logger.info(f"Статистика рекламы {client.name_company}")
             await add_statistic_adverts(db_conn=db_conn,
                                         client_id=client.client_id,
                                         api_key=client.api_key,
-                                        date=date_yesterday)
+                                        from_date=from_date)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

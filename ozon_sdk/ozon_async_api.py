@@ -12,11 +12,11 @@ class OzonAsyncApi:
         self._url = url
         self._response_type = response_type
 
-    async def get(self, request, path: str = None):
+    async def get(self, request, format_dict: dict = None):
         parameters = request.dict(by_alias=True)
         url = self._url
-        if path is not None:
-            url += f'/{path}'
+        if format_dict:
+            url = url.format(**format_dict)
         response = await self._engine.get(url, parameters)
         data = await self._parse_response(response)
         return data

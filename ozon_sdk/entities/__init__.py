@@ -9,3 +9,4 @@ from .client_campaign import *
 from .client_statistics_daily_json import *
 from .client_statistics_uuid import *
 from .client_statistics_report import *
+from .client_campaign_objects import *

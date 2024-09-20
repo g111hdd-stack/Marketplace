@@ -8,3 +8,9 @@ from .supplier_report_detail_by_period import *
 from .paid_storage import *
 from .paid_storage_status import *
 from .paid_storage_download import *
+from .analytics_acceptance_report import *
+from .analytics_antifraud_details import *
+from .error import *
+from .warehouse_remains import *
+from .warehouse_remains_tasks_status import *
+from .warehouse_remains_tasks_download import *

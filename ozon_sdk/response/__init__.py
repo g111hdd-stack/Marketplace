@@ -10,3 +10,5 @@ from .client_statistics_json_response import *
 from .client_statistics_daily_json_response import *
 from .client_statistics_uuid_response import *
 from .client_statistics_report_response import *
+from .client_campaign_objects_response import *
+from .client_campaign_search_promo_products_response import *

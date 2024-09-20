@@ -1,14 +1,15 @@
 import asyncio
-import nest_asyncio
 import logging
 
+import nest_asyncio
+
 from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.exc import OperationalError
 
-from data_classes import DataOzService
-from ozon_sdk.ozon_api import OzonApi
 from database import OzDbConnection
-
+from ozon_sdk.ozon_api import OzonApi
+from data_classes import DataOzService
 
 nest_asyncio.apply()
 
@@ -16,23 +17,33 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def get_operations(client_id: str, api_key: str, from_date: str, to_date: str, page: int = 1) \
-        -> list[DataOzService]:
+async def add_oz_services(db_conn: OzDbConnection, client_id: str, api_key: str, date_now: datetime) -> None:
+    """
+        Добавление записей в таблицу `oz_services` за указанную дату.
 
+        Args:
+            db_conn (OzDbConnection): Объект соединения с базой данных.
+            client_id (str): ID кабинета.
+            api_key (str): API KEY кабинета.
+            date_now (datetime): Начальная дата периода.
+    """
+    start = date_now - timedelta(days=2)
+    end = date_now - timedelta(microseconds=1)
+    logger.info(f"За период с <{start}> до <{end}>")
+
+    page = 1
     list_services = []
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
+    while True:
+        # Получение списка финансовых транзакций
+        answer = await api_user.get_finance_transaction_list(from_field=start.isoformat(),
+                                                             to=end.isoformat(),
+                                                             page=page)
 
-    # Получение списка финансовых транзакций
-    answer_transaction = await api_user.get_finance_transaction_list(from_field=from_date,
-                                                                     to=to_date,
-                                                                     page=page)
-
-    # Обработка полученных результатов
-    if answer_transaction.result:
-        for operation in answer_transaction.result.operations:
-            skus = []
+        # Обработка полученных результатов
+        for operation in answer.result.operations:
             percentage_of_sales = {}
             vendor = {}
 
@@ -44,8 +55,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
             operation_type_name = operation.operation_type_name
             posting_number = operation.posting.posting_number
 
-            for item in operation.items:
-                skus.append(str(item.sku))
+            skus = [str(item.sku) for item in operation.items]
 
             if operation_type in ['OperationAgentDeliveredToCustomer',
                                   'OperationItemReturn',
@@ -62,9 +72,11 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                                                                translit=True)
                 else:
                     continue
+
+                products = answer_fb.result.products
                 if not accruals_for_sale:
-                    accruals_for_sale = sum([float(product.price) * product.quantity for product in answer_fb.result.products])
-                for product in answer_fb.result.products:
+                    accruals_for_sale = sum([float(product.price) * product.quantity for product in products])
+                for product in products:
                     sale = float(product.price)
                     percentage = sale / accruals_for_sale
                     percentage_of_sales[str(product.sku)] = percentage
@@ -72,7 +84,7 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
 
             for service in operation.services:
                 service_name = service.name
-                total_cost = round(float(service.price), 2)
+                total_cost = round(service.price, 2)
 
                 if len(skus) > 1:
                     for sku in skus:
@@ -83,85 +95,105 @@ async def get_operations(client_id: str, api_key: str, from_date: str, to_date: 
                         list_services.append(DataOzService(client_id=client_id,
                                                            date=accrual_date,
                                                            operation_type=operation_type,
-                                                           cost=cost,
                                                            operation_type_name=operation_type_name or None,
+                                                           vendor_code=vendor.get(sku),
                                                            sku=sku,
                                                            posting_number=posting_number or None,
                                                            service=service_name,
-                                                           vendor_code=vendor.get(str(sku), None)))
+                                                           cost=cost))
                 else:
                     if skus:
-                        vendor_code = vendor.get(str(skus[0]), None)
+                        vendor_code = vendor.get(skus[0])
                     else:
                         vendor_code = None
                     list_services.append(DataOzService(client_id=client_id,
                                                        date=accrual_date,
                                                        operation_type=operation_type,
-                                                       cost=total_cost,
                                                        operation_type_name=operation_type_name or None,
+                                                       vendor_code=vendor_code,
                                                        sku=', '.join(skus) or None,
                                                        posting_number=posting_number or None,
                                                        service=service_name or None,
-                                                       vendor_code=vendor_code))
+                                                       cost=total_cost))
 
             if not len(operation.services) and operation_type not in ['ClientReturnAgentOperation',
                                                                       'OperationAgentDeliveredToCustomer']:
-                cost = round(float(operation.amount), 2)
+                cost = round(operation.amount, 2)
                 list_services.append(DataOzService(client_id=client_id,
                                                    date=accrual_date,
                                                    operation_type=operation_type,
-                                                   cost=cost,
                                                    operation_type_name=operation_type_name or None,
+                                                   vendor_code=None,
                                                    sku=', '.join(skus) or None,
-                                                   posting_number=posting_number or None))
+                                                   posting_number=posting_number or None,
+                                                   service=None,
+                                                   cost=cost))
 
-        # Рекурсивный вызов функции для получения дополнительных страниц результатов
-        if answer_transaction.result.page_count > page:
-            extend_services = await get_operations(client_id=client_id,
-                                                   api_key=api_key,
-                                                   from_date=from_date,
-                                                   to_date=to_date,
-                                                   page=page + 1)
-            list_services.extend(extend_services)
+        # Получение дополнительных страниц результатов
+        if page >= answer.result.page_count:
+            break
 
-    return list_services
+        page += 1
+
+    # Агрегирование данных
+    aggregate = {}
+    for row in list_services:
+        key = (
+            row.client_id,
+            row.date,
+            row.operation_type,
+            row.operation_type_name,
+            row.vendor_code,
+            row.sku,
+            row.posting_number,
+            row.service
+        )
+        if key in aggregate:
+            aggregate[key] += row.cost
+        else:
+            aggregate[key] = row.cost
+    list_services = []
+    for key, cost in aggregate.items():
+        client_id, date_now, operation_type, operation_type_name, vendor_code, sku, posting_number, service = key
+        list_services.append(DataOzService(client_id=client_id,
+                                           date=date_now,
+                                           operation_type=operation_type,
+                                           operation_type_name=operation_type_name,
+                                           vendor_code=vendor_code,
+                                           sku=sku,
+                                           posting_number=posting_number,
+                                           service=service,
+                                           cost=cost))
+
+    logger.info(f'Количество записей: {len(list_services)}')
+    db_conn.add_oz_services_entry(client_id=client_id, list_services=list_services)
 
 
-async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: str, date: datetime) -> None:
-    start = date.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1) - timedelta(microseconds=1)
-    # for i in [3, 4, 5, 6, 7, 8]:
-    #     start = datetime(year=2024, month=i, day=1, tzinfo=timezone.utc)
-    #     end = datetime(year=2024, month=i+1, day=1, tzinfo=timezone.utc) - timedelta(microseconds=1)
-    #     if i == 8:
-    #         end = datetime(year=2024, month=i, day=8, tzinfo=timezone.utc) - timedelta(microseconds=1)
-    logger.info(f"За период с <{start}> до <{end}>")
-    services = await get_operations(client_id=client_id,
-                                    api_key=api_key,
-                                    from_date=start.isoformat(),
-                                    to_date=end.isoformat())
-    logger.info(f'Количество записей: {len(services)}')
-    db_conn.add_oz_services_entry(client_id=client_id, list_services=services)
-
-
-async def main_func_oz(retries: int = 6) -> None:
+async def main_oz_services(retries: int = 6) -> None:
     try:
         db_conn = OzDbConnection()
+
         db_conn.start_db()
+
         clients = db_conn.get_clients(marketplace="Ozon")
-        date = datetime.now(tz=timezone.utc) - timedelta(days=1)
+
+        date_now = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
         for client in clients:
             logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            await add_oz_main_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+            await add_oz_services(db_conn=db_conn,
+                                  client_id=client.client_id,
+                                  api_key=client.api_key,
+                                  date_now=date_now)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
-            await main_func_oz(retries=retries - 1)
+            await main_oz_services(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main_func_oz())
+    loop.run_until_complete(main_oz_services())
     loop.stop()

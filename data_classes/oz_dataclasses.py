@@ -1,4 +1,5 @@
 import datetime
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -6,8 +7,8 @@ from typing import Optional
 @dataclass
 class DataOzProductCard:
     sku: str
-    client_id: str
     vendor_code: str
+    client_id: str
     brand: str
     category: str
     link: str
@@ -19,25 +20,28 @@ class DataOzProductCard:
 class DataOzStatisticCardProduct:
     sku: str
     date: datetime.date
-    orders_count: int
     add_to_cart_from_search_count: int
     add_to_cart_from_card_count: int
     view_search: int
     view_card: int
-    add_to_cart_from_search_percent: float
-    add_to_cart_from_card_percent: float
+    orders_count: int
+    orders_sum: float
+    delivered_count: int
+    returns_count: int
+    cancel_count: int
+
 
 
 @dataclass
 class DataOzAdvert:
-    id_advert: int
+    id_advert: str
     field_type: str
     field_status: str
     name_advert: str
     create_time: datetime.date
     change_time: datetime.date
-    start_time: Optional[datetime.date] = None
-    end_time: Optional[datetime.date] = None
+    start_time: datetime.date
+    end_time: datetime.date
 
 
 @dataclass
@@ -45,30 +49,19 @@ class DataOzStatisticAdvert:
     client_id: str
     date: datetime.date
     sku: str
-    advert_id: int
+    advert_id: str
     views: int
     clicks: int
-    cpc: float
     sum_cost: float
     orders_count: int
     sum_price: float
 
 
 @dataclass
-class DataOzReport:
-    client_id: Optional[str] = None
-    posting_number: Optional[str] = None
-    sku: Optional[str] = None
-    service: Optional[str] = None
-    operation_date: Optional[datetime.date] = None
-    cost: Optional[float] = None
-
-
-@dataclass
 class DataOzStorage:
-    date: Optional[datetime.date] = None
-    sku: Optional[str] = None
-    cost: Optional[float] = None
+    date: datetime.date
+    sku: str
+    cost: float
 
 
 @dataclass
@@ -76,9 +69,15 @@ class DataOzService:
     client_id: str
     date: datetime.date
     operation_type: str
+    operation_type_name: str
+    vendor_code: Optional[str]
+    sku: str
+    posting_number: str
+    service: Optional[str]
     cost: float
-    operation_type_name: Optional[str] = None
-    sku: Optional[str] = None
-    posting_number: Optional[str] = None
-    service: Optional[str] = None
-    vendor_code: Optional[str] = None
+
+
+@dataclass
+class DataOzAdvertDailyBudget:
+    advert_id: str
+    daily_budget: float

@@ -7,7 +7,7 @@ import nest_asyncio
 import logging
 import pandas as pd
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, date
 from sqlalchemy.exc import OperationalError
 
 from data_classes import DataYaReport, DataYaCampaigns
@@ -62,7 +62,10 @@ async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
     return list_campaigns
 
 
-async def report_generate(client_id: str, api_key: str, campaign_id: str, from_date: str) -> str or None:
+async def report_generate(client_id: str, api_key: str, campaign_id: str, date_now: date) -> str or None:
+    date_from = date_now - timedelta(days=2)
+    date_to = date_now - timedelta(days=1)
+
     report_id = None
     link_report = None
     substatus = {'NO_DATA': 'Для такого отчета нет данных.',
@@ -72,8 +75,8 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, from_d
     api_user = YandexApi(api_key=api_key)
     answer = await api_user.get_reports_united_marketplace_services_generate(business_id=int(client_id),
                                                                              campaign_ids=[int(campaign_id)],
-                                                                             date_from=from_date,
-                                                                             date_to=from_date)
+                                                                             date_from=date_from.isoformat(),
+                                                                             date_to=date_to.isoformat())
     if answer:
         if answer.result:
             report_id = answer.result.reportId
@@ -110,42 +113,51 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, from_d
         logger.error(f"Не получилось отправить запрос")
 
     if link_report is not None:
-        path_file = download_file(url=link_report, file_name=f'{campaign_id}_{from_date}')
+        path_file = download_file(url=link_report, file_name=f'{campaign_id}_{date_to}')
         return path_file
     else:
         return None
 
 
 async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
-    headers = {'ID бизнес-аккаунта': None,
-               'Номер заказа': None,
-               'Номер заявки на утилизацию': None,
-               'Ваш SKU': None,
-               'Услуга': None,
-               'Дата оказания услуги': None,
-               'Дата и время оказания услуги': None,
-               'Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽': None,
-               'Стоимость услуги, ₽': None,
-               'Стоимость услуги': None,
-               'Постоплата, ₽': None,
-               'Номер заявки на Маркете': None,
-               'Номер кампании': None,
-               'Стоимость платного хранения, ₽': None}
-    name_sheets = ['Размещение товаров на витрине',
-                   'Обработка заказов в СЦ или ПВЗ',
+    headers_dict = {'client_id': {'ID бизнес-аккаунта': None},
+                    'posting_number': {'Номер заказа': None},
+                    'operation_date': {'Дата оказания услуги': None,
+                                     'Дата и время оказания услуги': None},
+                    'service': {'Услуга': None},
+                    'vendor_code': {'Ваш SKU': None},
+                    'cost': {'Стоимость услуги (': None,
+                             'Стоимость услуги, ₽': None,
+                             'Стоимость услуги': None,
+                             'Постоплата, ₽': None,
+                             'Стоимость платного хранения, ₽': None}
+                    }
+    headers = [key for val in headers_dict.values() for key in val.keys()]
+
+    name_sheets = ['Обработка заказов в СЦ или ПВЗ',
+                   'Размещение товаров на витрине',
                    'Обработка заказов на складе',
-                   'Организация утилизации',
+                   'Приём платежа',
+                   'Перевод платежа',
                    'Доставка покупателю',
                    'Экспресс-доставка покупателю',
-                   'Доставка из-за рубежа',
-                   'Вывоз со склада, СЦ, ПВЗ',
-                   'Буст продаж, оплата за продажи',
-                   'Буст продаж, оплата за показы',
+                   'Поставка через транзитный склад',  # new
+                   'Доставка из-за рубежа',  # new pass
                    'Программа лояльности и отзывы',
+                   'Буст продаж, оплата за показы',
+                   'Буст продаж, оплата за продажи',
                    'Полки',
-                   'Перевод платежа',
-                   'Приём платежа',
-                   'Хранение невыкупов и возвратов']
+                   'Баннеры',  # new pass
+                   'Хранение невыкупов и возвратов',
+                   'Рассрочка',  # new pass
+                   'Приём излишков на складе',  # new pass
+                   'Организация утилизации',
+                   'Вывоз со склада, СЦ, ПВЗ',
+                   'Организация забора заказов',  # new pass
+                   'Вознаграждение за продажу',  # new pass
+                   'Расширенный доступ к сервисам',  # new pass
+                   'Складская обработка'  # new
+                   ]
     campaign_id = path_file.split('\\')[-1].split('_')[0]
 
     try:
@@ -175,49 +187,67 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                     for idx, row in df.iterrows():
                         try:
                             row_data = {}
-                            for header in headers:
-                                if header in df.columns:
-                                    row_data[header] = row[header]
-                                else:
-                                    if header == 'Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽':
-                                        for column in df.columns:
-                                            if 'Стоимость услуги (' in column:
-                                                row_data[header] = row[column]
+                            for metric, value in headers_dict.items():
+                                row_data[metric] = {}
+                                for header in value.keys():
+                                    if header in df.columns:
+                                        row_data[metric][header] = row[header]
+                                    else:
+                                        if header == 'Стоимость услуги (':
+                                            for column in df.columns:
+                                                if header in column:
+                                                    row_data[metric][header] = row[column]
 
-                            client_id = convert_id(row_data.get('ID бизнес-аккаунта', None))
-                            posting_number = convert_id(row_data.get('Номер заказа', None))
-                            application_number = convert_id(row_data.get('Номер заявки на утилизацию', None)) \
-                                                 or convert_id(row_data.get('Номер заявки на Маркете', None)) \
-                                                 or convert_id(row_data.get('Номер кампании', None)) \
-                                                 or convert_id(row_data.get('Номер возврата', None))
-                            accrual_date = row_data.get('Дата оказания услуги', None) or row_data.get(
-                                'Дата и время оказания услуги', None)
-                            cost = row_data.get('Стоимость услуги (гр.46=гр. 34-гр.36+гр.41+гр.43-гр.44-гр.45), ₽', None) \
-                                   or row_data.get('Стоимость услуги, ₽', None) \
-                                   or row_data.get('Стоимость услуги', None) \
-                                   or row_data.get('Постоплата, ₽', None) \
-                                   or row_data.get('Стоимость платного хранения, ₽', None)
-                            name_service = 'Платное хранение' if 'Платное хранение' in sheet else sheet
-                            service = row_data.get('Услуга', None) or name_service
+                            client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v), None))
+                            posting_number = convert_id(next((v for v in row_data.get('posting_number', {}).values() if v), None))
+                            operation_date = next((v for v in row_data.get('operation_date', {}).values() if v), None)
+                            cost = next((v for v in row_data.get('cost', {}).values() if v), None)
+                            service = next((v for v in row_data.get('service', {}).values() if v), None)
+                            vendor_code = next((v for v in row_data.get('vendor_code', {}).values() if v), None)
+                            operation_type = sheet if 'Платное хранение' not in sheet else 'Платное хранение'
 
-                            if accrual_date is not None:
-                                accrual_date = datetime.strptime(accrual_date, '%Y-%m-%d %H:%M:%S').date()
-                            if cost is not None:
-                                cost = round(float(cost), 2)
+                            operation_date = datetime.strptime(operation_date, '%Y-%m-%d %H:%M:%S').date()
+                            cost = round(float(cost), 2)
 
                             entry = DataYaReport(client_id=client_id,
                                                  campaign_id=campaign_id,
+                                                 date=operation_date,
                                                  posting_number=posting_number,
-                                                 application_number=application_number,
-                                                 vendor_code=row_data.get('Ваш SKU', None),
+                                                 operation_type=operation_type,
+                                                 vendor_code=vendor_code,
                                                  service=service,
-                                                 accrual_date=accrual_date,
                                                  cost=cost)
                             result_data.append(entry)
                         except Exception:
                             continue
             else:
                 logger.error(f'Лист "{sheet}" не найден в файле.')
+        aggregate = {}
+        for row in result_data:
+            key = (
+                row.client_id,
+                row.campaign_id,
+                row.date,
+                row.posting_number,
+                row.operation_type,
+                row.vendor_code,
+                row.service
+            )
+            if key in aggregate:
+                aggregate[key] += row.cost
+            else:
+                aggregate[key] = row.cost
+        result_data = []
+        for key, cost in aggregate.items():
+            client_id, campaign_id, operation_date, posting_number, operation_type, vendor_code, service = key
+            result_data.append(DataYaReport(client_id=client_id,
+                                            campaign_id=campaign_id,
+                                            date=operation_date,
+                                            posting_number=posting_number,
+                                            operation_type=operation_type,
+                                            vendor_code=vendor_code,
+                                            service=service,
+                                            cost=cost))
         return result_data
     except Exception as e:
         logger.error(f'Ошибка при чтении файла {path_file}: {e}')
@@ -232,24 +262,30 @@ async def main_yandex_report(retries: int = 6) -> None:
     try:
         db_conn = YaDbConnection()
         db_conn.start_db()
+
         clients = db_conn.get_clients(marketplace='Yandex')
+
         api_key_set = {client.api_key for client in clients}
+
         for api_key in api_key_set:
             list_campaigns = await get_campaign_ids(api_key=api_key)
             db_conn.add_ya_campaigns(list_campaigns=list_campaigns)
-            from_date = datetime.now(tz=timezone(timedelta(hours=3))) - timedelta(days=1)
+
+            date_now = date.today()
+
             for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
 
                 client = db_conn.get_client(client_id=campaign.client_id)
-                logger.info(f"За дату {from_date.date().isoformat()}")
+
+                logger.info(f"За дату {date_now - timedelta(days=1)}")
                 logger.info(f"Добавление в базу данных компании '{client.name_company}' магазина '{campaign.name}'")
                 path_file = await report_generate(client_id=client.client_id,
                                                   campaign_id=campaign.campaign_id,
                                                   api_key=client.api_key,
-                                                  from_date=from_date.date().isoformat())
+                                                  date_now=date_now)
                 if path_file is not None:
                     list_reports = await add_yandex_report_entry(path_file=path_file)
-                    db_conn.add_ya_report(client_id=campaign.client_id, list_reports=list_reports)
+                    db_conn.add_ya_report(list_reports=list_reports)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

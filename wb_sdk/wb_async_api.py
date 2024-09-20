@@ -11,12 +11,15 @@ class WBAsyncApi:
         self._url = url
         self._response_type = response_type
 
-    async def get(self, request, format_dict: dict = None):
-        parameters = await self.params_to_dict(request)
+    async def get(self, body=None, query=None, file: bool = False, format_dict: dict = None):
+        if body:
+            body = await self.params_to_dict(body)
+        if query:
+            query = await self.params_to_dict(query)
         url = self._url
         if format_dict:
             url = url.format(**format_dict)
-        response = await self._engine.get(url, parameters)
+        response = await self._engine.get(url, file=file, json=body, params=query)
         data = await self._parse_response(response)
         return data
 

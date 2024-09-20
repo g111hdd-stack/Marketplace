@@ -1,12 +1,14 @@
 import asyncio
-import nest_asyncio
 import logging
 
-from datetime import datetime, timedelta, timezone
+import nest_asyncio
+
+from datetime import datetime, timedelta, date
+
 from sqlalchemy.exc import OperationalError
 
-from data_classes import DataOrder
 from wb_sdk.wb_api import WBApi
+from data_classes import DataOrder
 from database import WBDbConnection
 
 nest_asyncio.apply()
@@ -15,27 +17,28 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 
-async def get_orders(client_id: str, api_key: str, from_date: str) -> list[DataOrder]:
+async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: str, date_now: date) -> None:
     """
         Получает список заказов для указанного клиента за определенный период времени.
 
         Args:
+            db_conn (WBDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
-            from_date (str): Начальная дата периода (в формате строки)
+            date_now (date): Начальная дата периода.
                 Формат: YYYY-MM-DDTHH:mm:ss.sssZ.
                 Пример: 2019-11-25T10:43:06.51Z.
-
-        Returns:
-            list[DataOrder]: Список заказов.
     """
+    date_from = date_now - timedelta(days=10)
+    logger.info(f"За дату {date_now - timedelta(days=1)}")
+
     list_orders = []
 
-    # Инициализация API-клиента Ozon
+    # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
 
     # Получение списка заказов
-    answer_orders = await api_user.get_supplier_orders_response(date_from=from_date, flag=1)
+    answer_orders = await api_user.get_supplier_orders(date_from=date_from.isoformat(), flag=0)
 
     # Обработка полученных результатов
     for order in answer_orders.result:
@@ -43,6 +46,8 @@ async def get_orders(client_id: str, api_key: str, from_date: str) -> list[DataO
             continue
 
         order_date = order.date.date()  # Дата заказа
+        if order_date >= date_now:
+            continue
         posting_number = order.srid   # Уникальный идентификатор заказа
         vendor_code = order.supplierArticle  # Артикул продукта
         sku = str(order.nmId)  # Артикул продукта внутри системы WB
@@ -57,27 +62,9 @@ async def get_orders(client_id: str, api_key: str, from_date: str) -> list[DataO
                                      subject=order.subject,
                                      posting_number=posting_number,
                                      price=price))
-    return list_orders
 
-
-async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: str, date: datetime) -> None:
-    """
-        Добавление записей в таблицу `wb_orders_table` за указанную дату
-
-        Args:
-            db_conn (WBDbConnection): Объект соединения с базой данных Azure.
-            client_id (str): ID кабинета.
-            api_key (str): API KEY кабинета.
-            date (datetime): Дата, для которой добавляются записи.
-    """
-    start = date.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1) - timedelta(microseconds=1)
-    logger.info(f"За период с <{start}> до <{end}>")
-    orders = await get_orders(client_id=client_id,
-                              api_key=api_key,
-                              from_date=start.date().isoformat())
-    logger.info(f"Количество записей: {len(orders)}")
-    db_conn.add_wb_orders(client_id=client_id, list_orders=orders)
+    logger.info(f"Количество записей: {len(list_orders)}")
+    db_conn.add_wb_orders(list_orders=list_orders)
 
 
 async def main_orders_wb(retries: int = 6) -> None:
@@ -85,10 +72,15 @@ async def main_orders_wb(retries: int = 6) -> None:
         db_conn = WBDbConnection()
         db_conn.start_db()
         clients = db_conn.get_clients(marketplace="WB")
-        date = datetime.now(tz=timezone(timedelta(hours=3))) - timedelta(days=1)
+
+        date_now = date.today()
+
         for client in clients:
-            logger.info(f"Добавление в базу данных компании '{client.name_company}'")
-            await add_wb_orders_entry(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key, date=date)
+            logger.info(f"Добавление в базу данных компании {client.name_company}")
+            await add_wb_orders_entry(db_conn=db_conn,
+                                      client_id=client.client_id,
+                                      api_key=client.api_key,
+                                      date_now=date_now)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

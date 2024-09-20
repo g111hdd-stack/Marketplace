@@ -1,6 +1,7 @@
 import datetime
-from dataclasses import dataclass
+
 from typing import Optional
+from dataclasses import dataclass
 
 
 @dataclass
@@ -15,8 +16,6 @@ class DataOperation:
     sale: float
     quantities: int
     commission: Optional[float] = None
-    cost_last_mile: Optional[float] = None
-    cost_logistic: Optional[float] = None
 
 
 @dataclass
@@ -33,7 +32,17 @@ class DataOrder:
 
 @dataclass
 class DataCostPrice:
-    month_date: Optional[int] = None
-    year_date: Optional[int] = None
-    vendor_code: Optional[str] = None
-    cost: Optional[float] = None
+    month_date: int
+    year_date: int
+    vendor_code: str
+    cost: float
+
+
+@dataclass
+class DataSelfPurchase:
+    client_id: str
+    order_date: datetime.date
+    accrual_date: datetime.date
+    vendor_code: str
+    quantities: int
+    price: float
