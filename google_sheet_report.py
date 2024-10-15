@@ -196,7 +196,7 @@ async def stat_advert_update(clients: list[Type[Client]]):
     while sd <= end_date:
         date_list.append(sd.isoformat())
         sd += timedelta(days=1)
-    print(start_date, sd)
+
     for client in clients:
         adverts = {}
 
@@ -223,6 +223,7 @@ async def stat_advert_update(clients: list[Type[Client]]):
                         ending_date = advert.endTime.split('T')[0]
                         if change_date >= start_date.isoformat() or status == 9:
                             id_advert = advert.advertId
+
                             adverts[id_advert] = [
                                 client.entrepreneur,
                                 id_advert,
@@ -249,14 +250,25 @@ async def stat_advert_update(clients: list[Type[Client]]):
                         for stat in answer_stat.result:
                             for day in stat.days:
                                 data_sku = {}
-                                for app in day.apps:
-                                    for nm in app.nm:
-                                        if data_sku.get(nm.nmId):
-                                            data_sku[nm.nmId][0] += nm.views or 0
-                                            data_sku[nm.nmId][1] += nm.clicks or 0
-                                            data_sku[nm.nmId][2] += nm.sum or 0
-                                        else:
-                                            data_sku[nm.nmId] = [nm.views or 0, nm.clicks or 0, nm.sum or 0]
+                                if all([len(app.nm) == 1 for app in day.apps]) and len({app.nm[0].nmId for app in day.apps}) == 1:
+                                    data_sku[day.apps[0].nm[0].nmId] = [day.views or 0, day.clicks or 0, day.sum or 0]
+                                else:
+                                    for app in day.apps:
+                                        if len(app.nm) == 1:
+                                            if data_sku.get(app.nm[0].nmId):
+                                                data_sku[app.nm[0].nmId][0] += app.views or 0
+                                                data_sku[app.nm[0].nmId][1] += app.clicks or 0
+                                                data_sku[app.nm[0].nmId][2] += app.sum or 0
+                                            else:
+                                                data_sku[app.nm[0].nmId] = [app.views or 0, app.clicks or 0, app.sum or 0]
+                                            continue
+                                        for nm in app.nm:
+                                            if data_sku.get(nm.nmId):
+                                                data_sku[nm.nmId][0] += nm.views or 0
+                                                data_sku[nm.nmId][1] += nm.clicks or 0
+                                                data_sku[nm.nmId][2] += nm.sum or 0
+                                            else:
+                                                data_sku[nm.nmId] = [nm.views or 0, nm.clicks or 0, nm.sum or 0]
 
                                 for sku, val in data_sku.items():
                                     new = [
@@ -278,7 +290,7 @@ async def stat_advert_update(clients: list[Type[Client]]):
             worksheet = spreadsheet.worksheet(sheet_name)
         except gspread.exceptions.WorksheetNotFound:
             headers = [
-                'Магазин'
+                'Магазин',
                 'РК ID',
                 'Наименование',
                 'Тип',
@@ -310,10 +322,11 @@ async def main(retries: int = 6) -> None:
         db_conn.start_db()
 
         clients = db_conn.get_clients(marketplace="WB")
-        await stat_card_update(db_conn=db_conn, clients=clients)
-        await stat_advert_update(clients=clients)
-        await remains_update(clients=clients)
         db_conn.session.close()
+        # await stat_card_update(db_conn=db_conn, clients=clients)
+        await stat_advert_update(clients=clients)
+        # await remains_update(clients=clients)
+
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

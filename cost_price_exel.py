@@ -21,7 +21,7 @@ def select_files():
     if file_paths:
         for file_path in file_paths:
             list_cost_price = process_file(file_path)
-            db_conn.add_cost_price(list_cost_price=list_cost_price, clear=True)
+            db_conn.add_cost_price(list_cost_price=list_cost_price)
 
 
 def process_file(path_file):
@@ -71,6 +71,7 @@ def process_file(path_file):
                                              year_date=row[1],
                                              vendor_code=row[2],
                                              cost=cost))
+        logger.info(f'Получены данные: {len(result_data)} строк')
         return result_data
     except Exception as e:
         logger.error(f'Ошибка при чтении файла {path_file}: {e}')

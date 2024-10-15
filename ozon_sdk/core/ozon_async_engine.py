@@ -45,7 +45,7 @@ class OzonAsyncEngine:
                             retry -= 1
                             continue
                         return await response.json(content_type=None)
-                except aiohttp.ClientConnectionError as e:
+                except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
                     logger.error(f"Ошибка соединения: {e}")
                     logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                     await asyncio.sleep(60)
@@ -65,7 +65,7 @@ class OzonAsyncEngine:
                             retry -= 1
                             continue
                         return await response.json()
-                except aiohttp.ClientConnectionError as e:
+                except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
                     logger.error(f"Ошибка соединения: {e}")
                     logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                     await asyncio.sleep(60)

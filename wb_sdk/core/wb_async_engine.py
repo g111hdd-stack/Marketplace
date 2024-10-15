@@ -22,41 +22,57 @@ class WBAsyncEngine:
     async def _perform_get_request(self, url, file: bool, json=None, params=None, retry: int = 6):
         async with await self._get_session(file) as session:
             while retry != 0:
-                if params:
-                    params = {k: v for k, v in params.items() if v is not None}
-                async with session.get(url, json=json, params=params) as response:
-                    if response.status not in [200, 201, 204]:
-                        logger.info(f"Получен ответ от {url} ({response.status})")
-                        logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
-                        await asyncio.sleep(60)
-                        retry -= 1
-                        continue
-                    if file:
-                        content = await response.read()
-                        return {'file': content}
-                    return await response.json(content_type=None)
+                try:
+                    if params:
+                        params = {k: v for k, v in params.items() if v is not None}
+                    async with session.get(url, json=json, params=params, ssl=False, timeout=120) as response:
+                        if response.status not in [200, 201, 204]:
+                            logger.info(f"Получен ответ от {url} ({response.status})")
+                            logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                            await asyncio.sleep(60)
+                            retry -= 1
+                            continue
+                        if file:
+                            content = await response.read()
+                            return {'file': content}
+                        return await response.json(content_type=None)
+                except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    logger.error(f"Ошибка соединения: {e}")
+                    logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                    await asyncio.sleep(60)
+                    retry -= 1
+                    continue
             raise Exception
 
     async def _perform_post_request(self, url, json=None, params=None, retry: int = 6):
         async with await self._get_session() as session:
             while retry != 0:
-                async with session.post(url, json=json, params=params) as response:
-                    if response.content_type != 'application/json':
-                        logger.info(f"Получен ответ от {url} (html)")
-                        logger.error(f"Попытка повторного запроса.")
-                        await asyncio.sleep(60)
-                        continue
-                    if response.status not in [200, 204]:
-                        r = await response.json()
-                        if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
-                            logger.info(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
-                            return None
-                        logger.info(f"Получен ответ от {url} ({response.status})")
-                        logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
-                        await asyncio.sleep(60)
-                        retry -= 1
-                        continue
-                    return await response.json()
+                try:
+                    async with session.post(url, json=json, params=params, ssl=False, timeout=120) as response:
+                        if response.content_type != 'application/json':
+                            logger.info(f"Получен ответ от {url} (html)")
+                            logger.error(f"Попытка повторного запроса.")
+                            await asyncio.sleep(60)
+                            if response.status == 503:
+                                await asyncio.sleep(60)
+                            continue
+                        if response.status not in [200, 204]:
+                            r = await response.json()
+                            if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
+                                logger.info(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
+                                return None
+                            logger.info(f"Получен ответ от {url} ({response.status})")
+                            logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                            await asyncio.sleep(60)
+                            retry -= 1
+                            continue
+                        return await response.json()
+                except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    logger.error(f"Ошибка соединения: {e}")
+                    logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
+                    await asyncio.sleep(60)
+                    retry -= 1
+                    continue
             raise Exception
 
     async def _get_session(self, file: bool = False):

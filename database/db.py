@@ -84,16 +84,13 @@ class DbConnection:
         return result
 
     @retry_on_exception()
-    def add_cost_price(self, list_cost_price: list[DataCostPrice], clear: bool = False) -> None:
+    def add_cost_price(self, list_cost_price: list[DataCostPrice]) -> None:
         """
             Добавляет себестоймость товаров в БД.
 
             Args:
                 list_cost_price (list[DataCostPrice]): список данных по себестоймости.
-                clear (bool, optional): если True очистит таблицу перед добавлением.
         """
-        if clear:
-            self.session.query(CostPrice).delete()
         for row in list_cost_price:
             stmt = insert(CostPrice).values(
                 month_date=row.month_date,
@@ -109,9 +106,7 @@ class DbConnection:
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
-    def add_self_purchase(self, list_self_purchase: list[DataSelfPurchase], clear: bool = False) -> None:
-        if clear:
-            self.session.query(SelfPurchase).delete()
+    def add_self_purchase(self, list_self_purchase: list[DataSelfPurchase]) -> None:
         for row in list_self_purchase:
             stmt = insert(SelfPurchase).values(
                 client_id=row.client_id,
@@ -120,8 +115,9 @@ class DbConnection:
                 vendor_code=row.vendor_code,
                 quantities=row.quantities,
                 price=row.price
-            ).on_conflict_do_nothing(
-                index_elements=['client_id', 'order_date', 'accrual_date', 'vendor_code', 'price']
+            ).on_conflict_do_update(
+                index_elements=['client_id', 'order_date', 'accrual_date', 'vendor_code', 'price'],
+                set_={'quantities': row.quantities}
             )
             self.session.execute(stmt)
         self.session.commit()

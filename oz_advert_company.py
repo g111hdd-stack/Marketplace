@@ -475,7 +475,6 @@ async def main_oz_advert(retries: int = 6) -> None:
             tasks.append(statistic(db_conn=db_conn, client=client, date_yesterday=date_yesterday))
 
         await asyncio.gather(*tasks)
-        date_yesterday += timedelta(days=1)
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')

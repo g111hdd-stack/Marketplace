@@ -156,6 +156,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     api_user = WBApi(api_key=api_key)
 
     app_type = {
+        0: 'Неизвестно',
         1: 'Сайт',
         32: 'Android',
         64: 'IOS'
@@ -180,7 +181,25 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                 for advert in answer.result:
                     for day in advert.days:
                         for app in day.apps:
+                            if app.appType == 0:
+                                product_advertising_campaign.append(
+                                    DataWBStatisticAdvert(client_id=client_id,
+                                                          date=day.date_field,
+                                                          views=app.views,
+                                                          clicks=app.clicks,
+                                                          sum_cost=app.sum,
+                                                          atbs=app.atbs,
+                                                          orders_count=app.orders,
+                                                          shks=app.shks,
+                                                          sum_price=app.sum_price,
+                                                          sku=str(app.nm[0].nmId),
+                                                          advert_id=str(advert.advertId),
+                                                          app_type=app_type.get(app.appType))
+                                )
+                                continue
                             for position in app.nm:
+                                if position.views is None:
+                                    continue
                                 product_advertising_campaign.append(
                                     DataWBStatisticAdvert(client_id=client_id,
                                                           date=day.date_field,
