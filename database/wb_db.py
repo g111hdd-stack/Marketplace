@@ -2,7 +2,7 @@ import logging
 
 from datetime import date
 
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.dialects.postgresql import insert
 
 from .models import *
@@ -46,6 +46,30 @@ class WBDbConnection(DbConnection):
         """
         result = self.session.query(WBCardProduct.sku, WBCardProduct.vendor_code).filter_by(client_id=client_id).all()
         return {sku: vendor_code for sku, vendor_code in result}
+
+    @retry_on_exception()
+    def get_wb_stat_card_google(self) -> list:
+        """
+            Получает данные из wb_stat_card_google.
+
+            Returns:
+                List[tuple]: Список данных по статистики карточек.
+        """
+        query = text("SELECT * FROM wb_stat_card_google;")
+        result = self.session.execute(query).fetchall()
+        return result
+
+    @retry_on_exception()
+    def get_wb_stat_advert_google(self) -> list:
+        """
+            Получает данные из wb_stat_advert_google.
+
+            Returns:
+                List[tuple]: Список данных по статистики РК.
+        """
+        query = text("SELECT * FROM wb_stat_advert_google;")
+        result = self.session.execute(query).fetchall()
+        return result
 
     @retry_on_exception()
     def add_wb_operation(self, list_operations: list[DataOperation]) -> None:

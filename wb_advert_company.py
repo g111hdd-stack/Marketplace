@@ -181,7 +181,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                 for advert in answer.result:
                     for day in advert.days:
                         for app in day.apps:
-                            if app.appType == 0:
+                            if app.appType == 0 and app.nm:
                                 product_advertising_campaign.append(
                                     DataWBStatisticAdvert(client_id=client_id,
                                                           date=day.date_field,
@@ -196,24 +196,23 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                                                           advert_id=str(advert.advertId),
                                                           app_type=app_type.get(app.appType))
                                 )
-                                continue
-                            for position in app.nm:
-                                if position.views is None:
-                                    continue
-                                product_advertising_campaign.append(
-                                    DataWBStatisticAdvert(client_id=client_id,
-                                                          date=day.date_field,
-                                                          views=position.views,
-                                                          clicks=position.clicks,
-                                                          sum_cost=position.sum,
-                                                          atbs=position.atbs,
-                                                          orders_count=position.orders,
-                                                          shks=position.shks,
-                                                          sum_price=position.sum_price,
-                                                          sku=str(position.nmId),
-                                                          advert_id=str(advert.advertId),
-                                                          app_type=app_type.get(app.appType))
-                                )
+                            else:
+                                for position in app.nm:
+                                    if position.views is not None:
+                                        product_advertising_campaign.append(
+                                            DataWBStatisticAdvert(client_id=client_id,
+                                                                  date=day.date_field,
+                                                                  views=position.views,
+                                                                  clicks=position.clicks,
+                                                                  sum_cost=position.sum,
+                                                                  atbs=position.atbs,
+                                                                  orders_count=position.orders,
+                                                                  shks=position.shks,
+                                                                  sum_price=position.sum_price,
+                                                                  sku=str(position.nmId),
+                                                                  advert_id=str(advert.advertId),
+                                                                  app_type=app_type.get(app.appType))
+                                        )
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
     db_conn.add_wb_adverts_statistics(product_advertising_campaign=product_advertising_campaign)
