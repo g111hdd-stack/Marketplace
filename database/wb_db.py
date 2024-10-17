@@ -224,7 +224,23 @@ class WBDbConnection(DbConnection):
         self.session.query(WBReport).filter(WBReport.operation_date >= start_date,
                                             WBReport.client_id == client_id).delete(synchronize_session=False)
         self.session.commit()
+        type_services = set(self.session.query(WBTypeServices.operation_type,
+                                               WBTypeServices.service).all())
         for row in list_report:
+            match_found = any(
+                row.supplier_oper_name == existing_type[0] and (
+                        (existing_type[1] is None and row.bonus_type_name is None) or
+                        (existing_type[1] is not None and row.bonus_type_name.startswith(existing_type[1]))
+                )
+                for existing_type in type_services
+            )
+            if not match_found:
+                new_type = WBTypeServices(operation_type=row.supplier_oper_name,
+                                          service=row.bonus_type_name,
+                                          type_name='new')
+                self.session.add(new_type)
+                type_services.add((row.supplier_oper_name, row.bonus_type_name))
+
             new = WBReport(client_id=client_id,
                            realizationreport_id=row.realizationreport_id,
                            gi_id=row.gi_id,

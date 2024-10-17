@@ -79,7 +79,13 @@ class YaDbConnection(DbConnection):
                 date=row.date,
                 cost=row.cost
             ).on_conflict_do_update(
-                index_elements=['client_id', 'campaign_id', 'date', 'posting_number', 'vendor_code', 'operation_type', 'service'],
+                index_elements=['client_id',
+                                'campaign_id',
+                                'date',
+                                'posting_number',
+                                'vendor_code',
+                                'operation_type',
+                                'service'],
                 set_={'cost': row.cost}
             )
             self.session.execute(stmt)
