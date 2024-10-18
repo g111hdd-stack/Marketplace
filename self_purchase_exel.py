@@ -1,13 +1,12 @@
 import logging
-import tkinter as tk
 import warnings
 import pandas as pd
+import tkinter as tk
 
-from datetime import datetime
 from tkinter import filedialog
 
-from data_classes import DataSelfPurchase
 from database import DbConnection
+from data_classes import DataSelfPurchase
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
@@ -28,11 +27,11 @@ def select_files():
 
 
 def process_file(db_conn: DbConnection, path_file: str):
-    headers = {'Дата заказа': None,
-               'Дата забора': None,
+    headers = {'Дата Заказа: ': None,
+               'Дата забора:': None,
                'ИП': None,
                'Артикул': None,
-               'Количество': None,
+               'К-во товара': None,
                'Цена': None,
                'МП': None}
 
@@ -42,7 +41,9 @@ def process_file(db_conn: DbConnection, path_file: str):
         logger.info(f'Файл {path_file} прочитан успешно.')
 
         clients = db_conn.get_clients()
-        clients_ids = {(client.entrepreneur.lower(), client.marketplace.lower()): client.client_id for client in clients}
+        clients_ids = {
+            (client.entrepreneur.lower(), client.marketplace.lower()): client.client_id for client in clients
+        }
 
         result_data = []
 
@@ -64,8 +65,8 @@ def process_file(db_conn: DbConnection, path_file: str):
                     print('Not client')
                     continue
 
-                order_date = row_data.get('Дата заказа')
-                accrual_date = row_data.get('Дата забора')
+                order_date = row_data.get('Дата Заказа: ')
+                accrual_date = row_data.get('Дата забора:')
                 if order_date and accrual_date:
                     try:
                         order_date = order_date.date()
@@ -84,7 +85,7 @@ def process_file(db_conn: DbConnection, path_file: str):
                     print('Not vendor_code')
                     continue
 
-                quantities = row_data.get('Количество')
+                quantities = row_data.get('К-во товара')
                 if isinstance(quantities, (float, int)):
                     quantities = int(quantities)
                 else:
