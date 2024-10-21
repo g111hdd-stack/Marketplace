@@ -21,13 +21,15 @@ logger = logging.getLogger(__name__)
 
 warnings.simplefilter(action='ignore', category=UserWarning)
 
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 
 def download_file(url, file_name) -> str or None:
     try:
         response = requests.get(url)
         response.raise_for_status()
 
-        save_path = os.path.join('templates', 'yandex_report', f'{file_name}.xlsx')
+        save_path = os.path.join(PROJECT_ROOT, 'templates', 'yandex_report', f'{file_name}.xlsx')
 
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
@@ -158,7 +160,11 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                    'Расширенный доступ к сервисам',  # new pass
                    'Складская обработка'  # new
                    ]
-    campaign_id = path_file.split('\\')[-1].split('_')[0]
+
+    if '/' in path_file:
+        campaign_id = path_file.split('/')[-1].split('_')[0]
+    else:
+        campaign_id = path_file.split('\\')[-1].split('_')[0]
 
     try:
         excel_file = pd.ExcelFile(path_file)

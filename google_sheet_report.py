@@ -1,5 +1,7 @@
+import os
 import asyncio
 import logging
+
 import gspread
 import nest_asyncio
 
@@ -18,8 +20,10 @@ nest_asyncio.apply()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
 
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-PATH_JSON = 'templates/service-account-432709-1178152e9e49.json'
+PATH_JSON = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
 PROJECT = 'Воронка'
 
 
