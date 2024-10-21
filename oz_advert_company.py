@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, date
 
 from sqlalchemy.exc import OperationalError
 
+from ozon_sdk.errors import ClientError
 from database import OzDbConnection, Client
 from ozon_sdk.ozon_api import OzonApi, OzonPerformanceAPI
 from data_classes import DataOzProductCard, DataOzStatisticCardProduct, DataOzAdvert, DataOzStatisticAdvert, \
@@ -411,43 +412,47 @@ check_func = {'cards': False, 'adverts': False, 'stat_cards': False, 'stat_adver
 
 
 async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterday: datetime.date):
-    print(f"{client.name_company}: {readiness_check[client.name_company]}")
+    try:
+        print(f"{client.name_company}: {readiness_check[client.name_company]}")
 
-    # Получение данных рекламного кабинета магазина
-    performance = db_conn.get_oz_performance(client_id=client.client_id)
+        # Получение данных рекламного кабинета магазина
+        performance = db_conn.get_oz_performance(client_id=client.client_id)
 
-    if not readiness_check[client.name_company]['cards']:
-        await add_card_products(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
-        readiness_check[client.name_company]['cards'] = True
-        logger.info(f"{client.name_company} Сбор карточек товаров {client.name_company}")
+        if not readiness_check[client.name_company]['cards']:
+            await add_card_products(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            readiness_check[client.name_company]['cards'] = True
+            logger.info(f"{client.name_company} Сбор карточек товаров {client.name_company}")
 
-    if not readiness_check[client.name_company]['adverts']:
-        await add_adverts(db_conn=db_conn,
-                          client_id=client.client_id,
-                          performance_id=performance.performance_id,
-                          client_secret=performance.client_secret,
-                          from_date=date_yesterday)
-        readiness_check[client.name_company]['adverts'] = True
-        logger.info(f"{client.name_company} Сбор рекламных компаний")
+        if not readiness_check[client.name_company]['adverts']:
+            await add_adverts(db_conn=db_conn,
+                              client_id=client.client_id,
+                              performance_id=performance.performance_id,
+                              client_secret=performance.client_secret,
+                              from_date=date_yesterday)
+            readiness_check[client.name_company]['adverts'] = True
+            logger.info(f"{client.name_company} Сбор рекламных компаний")
 
-    if not readiness_check[client.name_company]['stat_cards']:
-        await add_statistics_card_products(db_conn=db_conn,
-                                           client_id=client.client_id,
-                                           api_key=client.api_key,
-                                           date_yesterday=date_yesterday)
-        readiness_check[client.name_company]['stat_cards'] = True
-        logger.info(f"{client.name_company} Статистика карточек товара за {date_yesterday.isoformat()}")
+        if not readiness_check[client.name_company]['stat_cards']:
+            await add_statistics_card_products(db_conn=db_conn,
+                                               client_id=client.client_id,
+                                               api_key=client.api_key,
+                                               date_yesterday=date_yesterday)
+            readiness_check[client.name_company]['stat_cards'] = True
+            logger.info(f"{client.name_company} Статистика карточек товара за {date_yesterday.isoformat()}")
 
-    if not readiness_check[client.name_company]['stat_adverts']:
-        await add_statistic_adverts(db_conn=db_conn,
-                                    client_id=client.client_id,
-                                    performance_id=performance.performance_id,
-                                    client_secret=performance.client_secret,
-                                    from_date=date_yesterday)
-        readiness_check[client.name_company]['stat_adverts'] = True
-        logger.info(f"{client.name_company} Статистика рекламы за {date_yesterday.isoformat()}")
+        if not readiness_check[client.name_company]['stat_adverts']:
+            await add_statistic_adverts(db_conn=db_conn,
+                                        client_id=client.client_id,
+                                        performance_id=performance.performance_id,
+                                        client_secret=performance.client_secret,
+                                        from_date=date_yesterday)
+            readiness_check[client.name_company]['stat_adverts'] = True
+            logger.info(f"{client.name_company} Статистика рекламы за {date_yesterday.isoformat()}")
 
-    if all(readiness_check[client.name_company].values()):
+        if all(readiness_check[client.name_company].values()):
+            readiness_check.pop(client.name_company)
+    except ClientError as e:
+        logger.error(f'{e}')
         readiness_check.pop(client.name_company)
 
 

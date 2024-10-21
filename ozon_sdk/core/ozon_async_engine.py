@@ -2,6 +2,8 @@ import asyncio
 import aiohttp
 import logging
 
+from ozon_sdk.errors import ClientError
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,8 +38,8 @@ class OzonAsyncEngine:
                 try:
                     new_params = {k: v for k, v in params.items() if v is not None}
                     async with session.get(url, params=new_params, verify_ssl=False) as response:
-                        if response.status == 404:
-                            return {}
+                        if response.status in [404, 403]:
+                            raise ClientError
                         if response.status != 200:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
@@ -58,6 +60,8 @@ class OzonAsyncEngine:
             while retry != 0:
                 try:
                     async with session.post(url, json=params, verify_ssl=False) as response:
+                        if response.status in [404, 403]:
+                            raise ClientError
                         if response.status != 200:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
