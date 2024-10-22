@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from .base import BaseEntity
@@ -6,9 +6,9 @@ from .base import BaseEntity
 
 class SupplierReportDetailByPeriod(BaseEntity):
     realizationreport_id: int = None
-    date_from: datetime = None
-    date_to: datetime = None
-    create_dt: datetime = None
+    date_from: date = None
+    date_to: date = None
+    create_dt: date = None
     currency_name: str = None
     suppliercontract_code: Optional[str] = None
     rrd_id: int = None
@@ -29,7 +29,7 @@ class SupplierReportDetailByPeriod(BaseEntity):
     supplier_oper_name: str = None
     order_dt: datetime = None
     sale_dt: datetime = None
-    rr_dt: datetime = None
+    rr_dt: date = None
     shk_id: int = None
     retail_price_withdisc_rub: float = None
     delivery_amount: int = None
