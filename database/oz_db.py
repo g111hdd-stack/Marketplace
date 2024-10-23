@@ -54,7 +54,7 @@ class OzDbConnection(DbConnection):
                 dict: словарь {sku: vendor_code}.
         """
         result = self.session.query(OzCardProduct.sku, OzCardProduct.vendor_code).filter_by(client_id=client_id).all()
-        return {sku: vendor_code for (sku, vendor_code) in result}
+        return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
     def add_oz_operation(self, list_operations: list[DataOperation]) -> None:
@@ -298,6 +298,34 @@ class OzDbConnection(DbConnection):
                                 'posting_number',
                                 'service'],
                 set_={'cost': row.cost}
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_oz_orders(self, list_orders: list[DataOrder]) -> None:
+        """
+            Добавление в базу данных записи о заказах.
+
+            Args:
+                list_orders (list[DataOrder]): Список данных о заказах.
+        """
+        for row in list_orders:
+            stmt = insert(OzOrders).values(
+                client_id=row.client_id,
+                order_date=row.order_date,
+                sku=row.sku,
+                vendor_code=row.vendor_code,
+                posting_number=row.posting_number,
+                delivery_schema=row.delivery_schema,
+                quantities=row.quantities,
+                price=row.price
+            ).on_conflict_do_update(
+                index_elements=['order_date', 'sku', 'posting_number'],
+                set_={'vendor_code': row.vendor_code,
+                      'quantities': row.quantities,
+                      'price': row.price}
             )
             self.session.execute(stmt)
         self.session.commit()

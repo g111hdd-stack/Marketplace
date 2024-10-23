@@ -215,7 +215,8 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                                         )
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
-    db_conn.add_wb_adverts_statistics(product_advertising_campaign=product_advertising_campaign)
+    db_conn.add_wb_adverts_statistics(client_id=client_id,
+                                      product_advertising_campaign=product_advertising_campaign)
 
 
 async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, api_key: str,
@@ -274,7 +275,7 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
                     ))
 
     logger.info(f"Количество записей: {len(list_card_product)}")
-    db_conn.add_wb_cards_products_statistics(list_card_product=list_card_product)
+    db_conn.add_wb_cards_products_statistics(client_id=client_id, list_card_product=list_card_product)
 
 
 async def main_wb_advert(retries: int = 6) -> None:

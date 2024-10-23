@@ -145,16 +145,18 @@ class WBDbConnection(DbConnection):
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
-    def add_wb_adverts_statistics(self, product_advertising_campaign: list[DataWBStatisticAdvert]) -> None:
+    def add_wb_adverts_statistics(self, client_id: str,
+                                  product_advertising_campaign: list[DataWBStatisticAdvert]) -> None:
         """
             Добавление в базу данных записи статистики рекламных компаний.
 
             Args:
+                client_id (str): ID кабинета.
                 product_advertising_campaign (list[DataWBStatisticAdvert]): Список данных статистики рекламных компаний.
         """
+        skus = self.get_wb_sku_vendor_code(client_id=client_id)
         for row in product_advertising_campaign:
-            existing_card = self.session.query(WBCardProduct).filter_by(sku=row.sku).first()
-            if existing_card:
+            if row.sku in skus:
                 stmt = insert(WBStatisticAdvert).values(
                     sku=row.sku,
                     advert_id=row.advert_id,
@@ -182,17 +184,20 @@ class WBDbConnection(DbConnection):
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
-    def add_wb_cards_products_statistics(self, list_card_product: list[DataWBStatisticCardProduct]) -> None:
+    def add_wb_cards_products_statistics(self, client_id: str,
+                                         list_card_product: list[DataWBStatisticCardProduct]) -> None:
         """
             Добавление в базу данных записи статистики карточек товаров.
 
             Args:
+                client_id (str): ID кабинета.
                 list_card_product (list[DataWBStatisticCardProduct]): Список данных статистики карточек товаров.
         """
+        skus = self.get_wb_sku_vendor_code(client_id=client_id)
         for row in list_card_product:
-            card_product = self.session.query(WBCardProduct).filter_by(sku=row.sku).first()
-            if card_product is None:
+            if row.sku not in skus:
                 continue
+            card_product = self.session.query(WBCardProduct).filter_by(sku=row.sku).first()
             price = card_product.price
             discount_price = card_product.discount_price
             stmt = insert(WBStatisticCardProduct).values(

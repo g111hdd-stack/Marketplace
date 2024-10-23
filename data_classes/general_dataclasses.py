@@ -26,6 +26,8 @@ class DataOrder:
     vendor_code: str
     posting_number: str
     price: float
+    delivery_schema: Optional[str] = None
+    quantities: Optional[int] = None
     category: Optional[str] = None
     subject: Optional[str] = None
 

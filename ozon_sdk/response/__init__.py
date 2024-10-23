@@ -12,3 +12,6 @@ from .client_statistics_uuid_response import *
 from .client_statistics_report_response import *
 from .client_campaign_objects_response import *
 from .client_campaign_search_promo_products_response import *
+from .posting_fbo_list_response import *
+from .posting_fbs_list_response import *
+from .product_info_discounted_response import *

@@ -22,41 +22,45 @@ class OzonApi:
         self._product_info_list_api = self._api_factory.get_api(ProductInfoListResponse)
         self._products_info_attributes_api = self._api_factory.get_api(ProductsInfoAttributesResponse)
         self._analytics_data_api = self._api_factory.get_api(AnalyticsDataResponse)
+        self._posting_fbo_list_api = self._api_factory.get_api(PostingFBOListResponse)
+        self._posting_fbs_list_api = self._api_factory.get_api(PostingFBSListResponse)
+        self._product_info_discounted_api = self._api_factory.get_api(ProductInfoDiscountedResponse)
 
     async def get_finance_transaction_list(self, from_field: str, to: str, posting_number: str = "",
-                                           operation_type: list[str] = None, transaction_type: str = 'all', page: int = 1,
-                                           page_size: int = 1000) -> FinanceTransactionListResponse:
+                                           operation_type: list[str] = None, transaction_type: str = 'all',
+                                           page: int = 1, page_size: int = 1000) -> FinanceTransactionListResponse:
         """
-            Список транзакций
+            Список транзакций.
+
+            Тип начисления(некоторые операции могут быть разделены во времени):
+                all — все, \n
+                orders — заказы, \n
+                returns — возвраты и отмены, \n
+                services — сервисные сборы, \n
+                compensation — компенсация, \n
+                transferDelivery — стоимость доставки, \n
+                other — прочее.
 
             Args:
                 from_field (str): Начало периода в формате YYYY-MM-DD.
                 to (str): Конец периода в формате YYYY-MM-DD.
                 posting_number (str, optional): Номер отправления.
-                operation_type (bool, optional):
-                transaction_type (str, optional): Тип начисления(некоторые операции могут быть разделены во времени):
-                    all — все,
-                    orders — заказы,
-                    returns — возвраты и отмены,
-                    services — сервисные сборы,
-                    compensation — компенсация,
-                    transferDelivery — стоимость доставки,
-                    other — прочее.. Defaults to all.
-                page (int, optional): Номер страницы, возвращаемой в запросе.. Defaults to 1.
-                page_size (int, optional): Количество элементов на странице.. Defaults to 1000
-
-                Returns:
-                    FinanceTransactionListResponse
+                operation_type (bool, optional): Тип Операции.
+                transaction_type (str, optional): Тип начисления.
+                page (int, optional): Номер страницы, возвращаемой в запросе.
+                page_size (int, optional): Количество элементов на странице.
         """
         if operation_type is None:
             operation_type = []
-        request = FinanceTransactionListRequest(filter=FinanceTransactionListFilter(date=FinanceTransactionListDate(from_field=from_field,
-                                                                                                                    to=to),
-                                                                                    operation_type=operation_type,
-                                                                                    posting_number=posting_number,
-                                                                                    transaction_type=transaction_type),
-                                                page=page,
-                                                page_size=page_size)
+        request = FinanceTransactionListRequest(
+            filter=FinanceTransactionListFilter(date=FinanceTransactionListDate(from_field=from_field,
+                                                                                to=to),
+                                                operation_type=operation_type,
+                                                posting_number=posting_number,
+                                                transaction_type=transaction_type),
+            page=page,
+            page_size=page_size
+        )
         answer: FinanceTransactionListResponse = await self._finance_transaction_list_api.post(request)
 
         return answer
@@ -65,21 +69,17 @@ class OzonApi:
                               financial_data: bool = False, product_exemplars: bool = False,
                               related_postings: bool = False, translit: bool = False) -> PostingFBSGetResponse:
         """
-            Получить информацию схемы доставки FBS об отправлении по идентификатору
+            Получить информацию схемы доставки FBS об отправлении по идентификатору.
 
             Args:
                 posting_number (str, optional): Номер отправления.
-                analytics_data (bool, optional): Добавить в ответ данные аналитики.. Defaults to False.
-                barcodes (bool, optional): Добавить в ответ штрихкоды отправления.. Defaults to False.
-                financial_data (bool, optional): Добавить в ответ финансовые данные.. Defaults to False.
-                product_exemplars (bool, optional): Добавить в ответ данные о продуктах и их экземплярах.. Defaults to False.
+                analytics_data (bool, optional): Добавить в ответ данные аналитики.
+                barcodes (bool, optional): Добавить в ответ штрихкоды отправления.
+                financial_data (bool, optional): Добавить в ответ финансовые данные.
+                product_exemplars (bool, optional): Добавить в ответ данные о продуктах и их экземплярах.
                 related_postings (bool, optional): Добавить в ответ номера связанных отправлений.
-                    Связанные отправления — те, на которое было разделено родительское отправление при сборке..
-                    Defaults to False.
-                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.. Defaults to False.
-
-            Returns:
-                PostingFBSGetResponse
+                    Связанные отправления — те, на которое было разделено родительское отправление при сборке.
+                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.
         """
         request = PostingFBSGetRequest(posting_number=posting_number,
                                        with_field=PostingFBSGetWith(analytics_data=analytics_data,
@@ -94,13 +94,13 @@ class OzonApi:
     async def get_posting_fbo(self, posting_number: str, analytics_data: bool = False, financial_data: bool = False,
                               translit: bool = False) -> PostingFBOGetResponse:
         """
-            Получить информацию схемы доставки FBO об отправлении по идентификатору
+            Получить информацию схемы доставки FBO об отправлении по идентификатору.
 
             Args:
                 posting_number (str, optional): Номер отправления.
-                analytics_data (bool, optional): Добавить в ответ данные аналитики.. Defaults to False.
-                financial_data (bool, optional): Добавить в ответ финансовые данные.. Defaults to False.
-                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.. Defaults to False.
+                analytics_data (bool, optional): Добавить в ответ данные аналитики.
+                financial_data (bool, optional): Добавить в ответ финансовые данные.
+                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.
 
             Returns:
                 PostingFBOGetResponse
@@ -146,11 +146,11 @@ class OzonApi:
                 MODERATION_BLOCK — товары, для которых заблокирована модерация. \n
 
             Args:
-                offer_id (list[str], optional): Список артикулов товаров в системе продавца.. Default None.
-                product_id (list[str], optional): Список id товаров из системы Ozon.. Default None.
-                visibility (str, optional): Фильтр по видимости товара.. Default ALL.
-                last_id (str, optional): Идентификатор последнего значения на странице.. Default None.
-                limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.. Default 100.
+                offer_id (list[str], optional): Список артикулов товаров в системе продавца.
+                product_id (list[str], optional): Список id товаров из системы Ozon.
+                visibility (str, optional): Фильтр по видимости товара.
+                last_id (str, optional): Идентификатор последнего значения на странице.
+                limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.
         """
         request = ProductListRequest(filter=ProductListFilter(offer_id=offer_id,
                                                               product_id=product_id,
@@ -166,9 +166,9 @@ class OzonApi:
             Получение информации о таварах.
 
             Args:
-                offer_id (list[str], optional): Список артикулов товаров в системе продавца.. Default None.
-                product_id (list[str], optional): Список id товаров в системе Ozon.. Default None.
-                sku (list[int], optional): Список sku товаров в системе Ozon.. Default None.
+                offer_id (list[str], optional): Список артикулов товаров в системе продавца.
+                product_id (list[str], optional): Список id товаров в системе Ozon.
+                sku (list[int], optional): Список sku товаров в системе Ozon.
         """
         request = ProductInfoListRequest(offer_id=offer_id, product_id=product_id, sku=sku)
         answer: ProductInfoListResponse = await self._product_info_list_api.post(request)
@@ -182,13 +182,13 @@ class OzonApi:
             Получаем описание характеристик товара.
 
             Args:
-                offer_id (list[str], optional): Список артикулов товаров в системе продавца.. Default None.
-                product_id (list[str], optional): Список id товаров в системе Ozon.. Default None.
+                offer_id (list[str], optional): Список артикулов товаров в системе продавца.
+                product_id (list[str], optional): Список id товаров в системе Ozon.
                 visibility (str, optional): Фильтр по видимости товара.. Default ALL.
-                last_id (str, optional): Идентификатор последнего значения на странице.. Default None.
-                limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.. Default 100.
-                sort_by (str, optional): Параметр, по которому товары будут отсортированы.. Default None.
-                sort_dir (str, optional): Направление сортировки.. Default None.
+                last_id (str, optional): Идентификатор последнего значения на странице.
+                limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.
+                sort_by (str, optional): Параметр, по которому товары будут отсортированы.
+                sort_dir (str, optional): Направление сортировки.
         """
         request = ProductsInfoAttributesRequest(filter=ProductsInfoAttributesFilter(offer_id=offer_id,
                                                                                     product_id=product_id,
@@ -227,12 +227,12 @@ class OzonApi:
             Args:
                 date_from (str): Дата, с которой будут данные в отчёте.
                 date_to (str): Дата, по которую будут данные в отчёте.
-                dimension (list[str], optional): Группировка данных в отчёте.. Default None.
-                filters (list[AnalyticsDataFilter], optional): Фильтры.. Default None.
-                limit (int. optional): Количество значений в ответе. Минимум — 1, максимум — 1000.. Default 100.
-                metrics (list[str], optional): Список метриĸ, по ĸоторым будет сформирован отчёт. Укажите до 14 метрик.. Defaul None.
-                offset (int, optional): Количество элементов, которое будет пропущено в ответе.. Default 0.
-                sort (list[AnalyticsDataSort], optional): Настройки сортировки отчёта.. Default None.
+                dimension (list[str], optional): Группировка данных в отчёте.
+                filters (list[AnalyticsDataFilter], optional): Фильтры.
+                limit (int. optional): Количество значений в ответе. Минимум — 1, максимум — 1000.
+                metrics (list[str], optional): Список метриĸ, по ĸоторым будет сформирован отчёт. Укажите до 14 метрик.
+                offset (int, optional): Количество элементов, которое будет пропущено в ответе.
+                sort (list[AnalyticsDataSort], optional): Настройки сортировки отчёта.
         """
         request = AnalyticsDataRequest(date_from=date_from,
                                        date_to=date_to,
@@ -243,6 +243,119 @@ class OzonApi:
                                        offset=offset,
                                        sort=sort)
         answer: AnalyticsDataResponse = await self._analytics_data_api.post(request)
+        return answer
+
+    async def get_posting_fbo_list(self, since: str, to: str, order_by: str = 'asc', status: str = '',
+                                   limit: int = 1000, offset: int = 0, translit: bool = False,
+                                   analytics_data: bool = False,
+                                   financial_data: bool = False) -> PostingFBOListResponse:
+        """
+            Получить информацию по отправлениям схемы FBO.
+
+            Направление сортировки:
+                asc — по возрастанию, \n
+                desc — по убыванию.
+            Статус отправления:
+                awaiting_packaging — ожидает упаковки, \n
+                awaiting_deliver — ожидает отгрузки, \n
+                delivering — доставляется, \n
+                delivered — доставлено, \n
+                cancelled — отменено. \n
+
+            Args:
+                since (str): Начало периода в формате YYYY-MM-DD.
+                to (str): Конец периода в формате YYYY-MM-DD.
+                order_by (str, optional): Направление сортировки.
+                status (str, optional): Статус отправления.
+                limit (int, optional): Количество значений в ответе. Минимум — 1, максимум — 1000.
+                offset (int, optional): Количество элементов, которое будет пропущено в ответе.
+                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.
+                analytics_data (bool, optional): Добавить в ответ данные аналитики.
+                financial_data (bool, optional): Добавить в ответ финансовые данные.
+        """
+        request = PostingFBOListRequest(order_by=order_by,
+                                        filter=PostingFBOListFilter(since=since,
+                                                                    status=status,
+                                                                    to=to),
+                                        limit=limit,
+                                        offset=offset,
+                                        translit=translit,
+                                        with_field=PostingFBOListWith(analytics_data=analytics_data,
+                                                                      financial_data=financial_data))
+        answer: PostingFBOListResponse = await self._posting_fbo_list_api.post(request)
+        return answer
+
+    async def get_posting_fbs_list(self, since: str, to: str, order_by: str = 'asc',
+                                   delivery_method_id: list[int] = None, order_id: int = None,
+                                   provider_id: list[int] = None, status: str = '', warehouse_id: list[int] = None,
+                                   from_last_changed_status_date: str = None,
+                                   to_last_changed_status_date: str = None, limit: int = 1000, offset: int = 0,
+                                   analytics_data: bool = False, barcodes: bool = False,
+                                   financial_data: bool = False, translit: bool = False) -> PostingFBSListResponse:
+        """
+            Получить информацию по отправлениям схемы FBO.
+
+            Направление сортировки:
+                asc — по возрастанию, \n
+                desc — по убыванию.
+            Статус отправления:
+                awaiting_packaging — ожидает упаковки, \n
+                awaiting_deliver — ожидает отгрузки, \n
+                delivering — доставляется, \n
+                delivered — доставлено, \n
+                cancelled — отменено. \n
+
+            Args:
+                since (str): Начало периода в формате YYYY-MM-DD.
+                to (str): Конец периода в формате YYYY-MM-DD.
+                order_by (str, optional): Направление сортировки.
+                delivery_method_id (list[int], optional): Идентификатор способа доставки.
+                order_id (int, optional): Идентификатор заказа.
+                provider_id (list[int], optional): Идентификатор службы доставки.
+                status (str, optional): Статус отправления.
+                warehouse_id (list[int], optional): Идентификатор склада.
+                from_last_changed_status_date (str, optional): Дата начала периода изменения статуса
+                                                               в формате YYYY-MM-DD.
+                to_last_changed_status_date (str, optional): Дата окончания периода изменения статуса
+                                                             в формате YYYY-MM-DD.
+                limit (int, optional): Количество значений в ответе. Минимум — 1, максимум — 1000.
+                offset (int, optional): Количество элементов, которое будет пропущено в ответе.
+                analytics_data (bool, optional): Добавить в ответ данные аналитики.
+                barcodes (bool, optional): Добавить в ответ штрихкоды отправления.
+                financial_data (bool, optional): Добавить в ответ финансовые данные.
+                translit (bool, optional): Выполнить транслитерацию возвращаемых значений.
+        """
+        request = PostingFBSListRequest(
+            order_by=order_by,
+            filter=PostingFBSListFilter(delivery_method_id=delivery_method_id or [],
+                                        order_id=order_id,
+                                        provider_id=provider_id or [],
+                                        since=since,
+                                        status=status,
+                                        warehouse_id=warehouse_id or [],
+                                        to=to,
+                                        last_changed_status_date=PostingFBSListFilterLastChangedStatusDate(
+                                            from_field=from_last_changed_status_date,
+                                            to=to_last_changed_status_date)),
+            limit=limit,
+            offset=offset,
+            with_field=PostingFBSListWith(analytics_data=analytics_data,
+                                          barcodes=barcodes,
+                                          financial_data=financial_data,
+                                          translit=translit))
+        answer: PostingFBSListResponse = await self._posting_fbs_list_api.post(request)
+        return answer
+
+    async def get_product_info_discounted(self, discounted_skus: list[str]) -> ProductInfoDiscountedResponse:
+        """
+            Метод для получения информации о состоянии и дефектах уценённого товара по его SKU.
+            Также метод возвращает SKU основного товара.
+
+            Args:
+                discounted_skus (list[str): Список SKU уценённых товаров.
+        """
+        request = ProductInfoDiscountedRequest(discounted_skus=discounted_skus)
+        answer: ProductInfoDiscountedResponse = await self._product_info_discounted_api.post(request)
         return answer
 
 
@@ -263,7 +376,8 @@ class OzonPerformanceAPI:
         self._client_statistics_uuid_api = self._api_factory.get_api(ClientStatisticsUUIDResponse)
         self._client_statistics_report_api = self._api_factory.get_api(ClientStatisticsReportResponse)
         self._client_campaign_objects_api = self._api_factory.get_api(ClientCampaignObjectsResponse)
-        self._client_campaign_search_promo_products_api = self._api_factory.get_api(ClientCampaignSearchPromoProductsResponse)
+        self._client_campaign_search_promo_products_api = self._api_factory.get_api(
+            ClientCampaignSearchPromoProductsResponse)
 
     async def get_client_campaign(self, campaign_ids: list[str] = None, adv_object_type: str = None,
                                   state: str = None) -> ClientCampaignResponse:
@@ -287,12 +401,14 @@ class OzonPerformanceAPI:
                 CAMPAIGN_STATE_MODERATION_DRAFT — отредактированная кампания до отправки на модерацию; \n
                 CAMPAIGN_STATE_MODERATION_IN_PROGRESS — кампания, отправленная на модерацию; \n
                 CAMPAIGN_STATE_MODERATION_FAILED — кампания, непрошедшая модерацию; \n
-                CAMPAIGN_STATE_FINISHED — кампания завершена, дата окончания в прошлом, такую кампанию нельзя изменить, можно только клонировать или создать новую.
+                CAMPAIGN_STATE_FINISHED — кампания завершена, дата окончания в прошлом, такую кампанию нельзя изменить,
+                можно только клонировать или создать новую.
 
             Args:
-                campaign_ids (list[str], optional): Список идентификаторов кампаний, для которых необходимо вывести информацию.. Default None.
-                adv_object_type (str, optional): Тип рекламируемой кампании. Default None.
-                state (str, optional): Состояние кампании.. Default None.
+                campaign_ids (list[str], optional): Список идентификаторов кампаний,
+                                                    для которых необходимо вывести информацию.
+                adv_object_type (str, optional): Тип рекламируемой кампании.
+                state (str, optional): Состояние кампании.
         """
         request = ClientCampaignRequest(campaignIds=campaign_ids, advObjectType=adv_object_type, state=state)
         answer: ClientCampaignResponse = await self._client_campaign_api.get(request)
@@ -310,11 +426,13 @@ class OzonPerformanceAPI:
                 START_OF_MONTH — группировка по месяцам.
 
             Args:
-                campaigns (list[str], optional): Список идентификаторов кампаний, для которых необходимо подготовить отчёт.
-                from_field (str, optional): Начальная дата периода отчёта в формате RFC 3339. Максимальный период — 62 дня.. Default None.
-                to (str, optional): Конечная дата периода отчёта в формате RFC 3339. Максимальный период — 62 дня.. Default None.
-                date_from (str, optional): Начальная дата периода отчёта в формате ГГГГ-ММ-ДД. Например: 2019-02-10.. Default None.
-                date_to (str, optional): Конечная дата периода отчёта в формате ГГГГ-ММ-ДД. Например: 2019-02-10.. Default None.
+                campaigns (list[str], optional): Список идентификаторов кампаний,
+                                                 для которых необходимо подготовить отчёт.
+                from_field (str, optional): Начальная дата периода отчёта в формате RFC 3339.
+                                            Максимальный период — 62 дня.
+                to (str, optional): Конечная дата периода отчёта в формате RFC 3339. Максимальный период — 62 дня.
+                date_from (str, optional): Начальная дата периода отчёта в формате ГГГГ-ММ-ДД.
+                date_to (str, optional): Конечная дата периода отчёта в формате ГГГГ-ММ-ДД.
                 group_by (str, optional): Тип группировки по времени.. Default None.
         """
         request = ClientStatisticsJSONRequest(campaigns=campaigns,
@@ -332,9 +450,10 @@ class OzonPerformanceAPI:
             Получение дневной статистики по рекламной компании.
 
             Args:
-                campaigns (list[str], optional): Список идентификаторов кампаний, для которых необходимо подготовить отчёт.
-                date_from (str, optional): Начальная дата периода отчёта в формате ГГГГ-ММ-ДД. Например: 2019-02-10.. Default None.
-                date_to (str, optional): Конечная дата периода отчёта в формате ГГГГ-ММ-ДД. Например: 2019-02-10.. Default None.
+                campaigns (list[str], optional): Список идентификаторов кампаний,
+                                                 для которых необходимо подготовить отчёт.
+                date_from (str, optional): Начальная дата периода отчёта в формате ГГГГ-ММ-ДД.
+                date_to (str, optional): Конечная дата периода отчёта в формате ГГГГ-ММ-ДД.
         """
         request = ClientStatisticsDailyJSONRequest(campaigns=campaigns,
                                                    dateFrom=date_from,
@@ -373,8 +492,8 @@ class OzonPerformanceAPI:
                 campaign_id (str): ID РК.
         """
         request = ClientCampaignObjectsRequest()
-        answer: ClientCampaignObjectsResponse = await self._client_campaign_objects_api.get(request,
-                                                                                            format_dict={'campaignId': campaign_id})
+        answer: ClientCampaignObjectsResponse = await self._client_campaign_objects_api.get(
+            request, format_dict={'campaignId': campaign_id})
         return answer
 
     async def get_client_campaign_search_promo_products(self,
@@ -386,6 +505,6 @@ class OzonPerformanceAPI:
                 campaign_id (str): ID РК.
         """
         request = ClientCampaignObjectsRequest()
-        answer: ClientCampaignSearchPromoProductsResponse = await self._client_campaign_search_promo_products_api.get(request,
-                                                                                                                      format_dict={'campaignId': campaign_id})
+        answer: ClientCampaignSearchPromoProductsResponse = await self._client_campaign_search_promo_products_api.get(
+            request, format_dict={'campaignId': campaign_id})
         return answer

@@ -183,3 +183,22 @@ class OzTypeServices(Base):
     operation_type = Column(String(length=255), nullable=False)
     service = Column(String(length=255), default='', nullable=False)
     type_name = Column(String(length=255), default='new', nullable=False)
+
+
+class OzOrders(Base):
+    """Модель таблицы oz_orders."""
+    __tablename__ = 'oz_orders'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    order_date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    posting_number = Column(String(length=255), nullable=False)
+    delivery_schema = Column(String(length=100), nullable=False)
+    quantities = Column(Integer, nullable=False)
+    price = Column(Numeric(precision=12, scale=2), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('order_date', 'sku', 'posting_number', name='oz_orders_unique'),
+    )

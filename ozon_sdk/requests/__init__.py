@@ -11,3 +11,6 @@ from .client_statistics_daily_json_request import *
 from .client_statistics_uuid_request import *
 from .client_statistics_report_request import *
 from .client_campaign_objects_request import *
+from .posting_fbo_list_requests import *
+from .posting_fbs_list_requests import *
+from .product_info_discounted_request import *

@@ -228,6 +228,7 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                             continue
             else:
                 logger.error(f'Лист "{sheet}" не найден в файле.')
+
         aggregate = {}
         for row in result_data:
             key = (

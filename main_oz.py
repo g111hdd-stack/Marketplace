@@ -35,12 +35,15 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
 
     page = 1
     list_operation = []
+    list_sku = list(db_conn.get_oz_sku_vendor_code(client_id=client_id).keys())
     operation_type = {"OperationAgentDeliveredToCustomer": "delivered",
                       "ClientReturnAgentOperation": "cancelled"}
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
+
     while True:
+        print(page)
         # Получение списка финансовых транзакций
         answer = await api_user.get_finance_transaction_list(from_field=from_date.isoformat(),
                                                              to=to_date.isoformat(),
@@ -99,6 +102,12 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
                     quantities = -len([item for item in operation.items if item.sku == product.sku])
                     if commission:
                         commission = round((commission / product.quantity) * quantities, 2)
+
+                if sku not in list_sku:
+                    answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
+                    for info in answer_info.items:
+                        if sku == str(info.discounted_sku):
+                            sku = str(info.sku)
 
                 # Добавление операции в список
                 list_operation.append(DataOperation(client_id=client_id,

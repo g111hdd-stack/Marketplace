@@ -15,7 +15,10 @@ class OzonAPIFactory:
         ProductListResponse: '/v2/product/list',
         ProductInfoListResponse: '/v2/product/info/list',
         ProductsInfoAttributesResponse: '/v3/products/info/attributes',
-        AnalyticsDataResponse: '/v1/analytics/data'
+        AnalyticsDataResponse: '/v1/analytics/data',
+        PostingFBOListResponse: '/v2/posting/fbo/list',
+        PostingFBSListResponse: 'v3/posting/fbs/list',
+        ProductInfoDiscountedResponse: '/v1/product/info/discounted'
     }
 
     def __init__(self, engine: OzonAsyncEngine):

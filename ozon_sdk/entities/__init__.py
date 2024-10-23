@@ -10,3 +10,6 @@ from .client_statistics_daily_json import *
 from .client_statistics_uuid import *
 from .client_statistics_report import *
 from .client_campaign_objects import *
+from .posting_fbo_list import *
+from .posting_fbs_list import *
+from .product_info_discounted import *

@@ -4,7 +4,7 @@ from typing import Type
 import nest_asyncio
 import logging
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 
 from sqlalchemy.exc import OperationalError
 
@@ -91,19 +91,24 @@ async def get_products_ids(client_id: str, api_key: str) -> list[int]:
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
-    last_id = None
-    total = 1000
 
-    # Получение всех страниц товаров
-    while total >= 1000:
-        # Получение списка товаров
-        answer = await api_user.get_product_list(limit=1000, last_id=last_id)
+    visibility_params = ['ALL', 'ARCHIVED']
 
-        # Обработка полученных результатов
-        for item in answer.result.items:
-            list_product_ids.append(item.product_id)
-        total = answer.result.total
-        last_id = answer.result.last_id
+    for visibility in visibility_params:
+        last_id = None
+        total = 1000
+
+        # Получение всех страниц товаров
+        while total >= 1000:
+            # Получение списка товаров
+            answer = await api_user.get_product_list(limit=1000, last_id=last_id, visibility=visibility)
+
+            # Обработка полученных результатов
+            for item in answer.result.items:
+                list_product_ids.append(item.product_id)
+            total = answer.result.total
+            last_id = answer.result.last_id
+
     return list_product_ids
 
 
@@ -217,7 +222,13 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
 
             # Фильтруем только те товары что есть в БД
             if sku not in list_sku:
+                answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
+                for info in answer_info.items:
+                    if sku == str(info.discounted_sku):
+                        sku = str(info.sku)
+            if sku not in list_sku:
                 continue
+
             metrics_round = [round(metric, 2) for metric in product.metrics]  # Список значений метрик
 
             # Проверка на Премиум
@@ -249,6 +260,57 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
             break
 
         offset += limit
+
+    # Агрегирование данных
+    aggregate = {}
+    for row in list_statistics_card_products:
+        key = (row.sku, row.date)
+        if key in aggregate:
+            aggregate[key].append((row.add_to_cart_from_search_count,
+                                   row.add_to_cart_from_card_count,
+                                   row.view_search,
+                                   row.view_card,
+                                   row.orders_count,
+                                   row.orders_sum,
+                                   row.delivered_count,
+                                   row.returns_count,
+                                   row.cancel_count))
+        else:
+            aggregate[key] = [(row.add_to_cart_from_search_count,
+                               row.add_to_cart_from_card_count,
+                               row.view_search,
+                               row.view_card,
+                               row.orders_count,
+                               row.orders_sum,
+                               row.delivered_count,
+                               row.returns_count,
+                               row.cancel_count)]
+    list_statistics_card_products = []
+    for key, value in aggregate.items():
+        sku, field_date = key
+        add_to_cart_from_search_count = sum([val[0] for val in value])
+        add_to_cart_from_card_count = sum([val[1] for val in value])
+        view_search = round(sum([val[2] for val in value]), 2)
+        view_card = sum([val[3] for val in value])
+        orders_count = sum([val[4] for val in value])
+        orders_sum = sum([val[5] for val in value])
+        delivered_count = sum([val[6] for val in value])
+        returns_count = sum([val[7] for val in value])
+        cancel_count = sum([val[8] for val in value])
+
+        list_statistics_card_products.append(DataOzStatisticCardProduct(
+            sku=sku,
+            date=field_date,
+            add_to_cart_from_search_count=add_to_cart_from_search_count,
+            add_to_cart_from_card_count=add_to_cart_from_card_count,
+            view_search=view_search,
+            view_card=view_card,
+            orders_count=orders_count,
+            orders_sum=round(orders_sum, 2),
+            delivered_count=delivered_count,
+            returns_count=returns_count,
+            cancel_count=cancel_count
+        ))
 
     logger.info(f"Количество записей: {len(list_statistics_card_products)}")
     db_conn.add_oz_statistics_card_products(list_card_product=list_statistics_card_products)
@@ -346,7 +408,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             for advert in answer_report.result:
                 advert_id = advert.field_id  # ID РК
                 for row in advert.statistic.report.rows:
-                    sku = row.sku  # Артикул WB товара
+                    sku = row.sku  # Артикул Ozon товара
                     if sku not in list_sku:
                         continue
                     # Дата статистики
@@ -421,7 +483,7 @@ async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterda
         if not readiness_check[client.name_company]['cards']:
             await add_card_products(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
             readiness_check[client.name_company]['cards'] = True
-            logger.info(f"{client.name_company} Сбор карточек товаров {client.name_company}")
+            logger.info(f"Сбор карточек товаров {client.name_company}")
 
         if not readiness_check[client.name_company]['adverts']:
             await add_adverts(db_conn=db_conn,

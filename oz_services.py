@@ -34,6 +34,7 @@ async def add_oz_services(db_conn: OzDbConnection, client_id: str, api_key: str,
 
     page = 1
     list_services = []
+    dict_sku = db_conn.get_oz_sku_vendor_code(client_id=client_id)
 
     # Инициализация API-клиента Ozon
     api_user = OzonApi(client_id=client_id, api_key=api_key)
@@ -93,26 +94,38 @@ async def add_oz_services(db_conn: OzDbConnection, client_id: str, api_key: str,
                             cost = round(total_cost * percentage_of_sales.get(sku), 2)
                         else:
                             cost = round(total_cost / len(skus), 2)
+                        if sku not in dict_sku:
+                            answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
+                            for info in answer_info.items:
+                                if sku == str(info.discounted_sku):
+                                    sku = str(info.sku)
                         list_services.append(DataOzService(client_id=client_id,
                                                            date=accrual_date,
                                                            operation_type=operation_type,
                                                            operation_type_name=operation_type_name or None,
-                                                           vendor_code=vendor.get(sku),
+                                                           vendor_code=vendor.get(sku) or dict_sku.get(sku),
                                                            sku=sku,
                                                            posting_number=posting_number or None,
                                                            service=service_name,
                                                            cost=cost))
                 else:
                     if skus:
-                        vendor_code = vendor.get(skus[0])
+                        sku = skus[0]
+                        if sku not in dict_sku:
+                            answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
+                            for info in answer_info.items:
+                                if sku == str(info.discounted_sku):
+                                    sku = str(info.sku)
+                        vendor_code = vendor.get(sku) or dict_sku.get(sku)
                     else:
                         vendor_code = None
+                        sku = None
                     list_services.append(DataOzService(client_id=client_id,
                                                        date=accrual_date,
                                                        operation_type=operation_type,
                                                        operation_type_name=operation_type_name or None,
                                                        vendor_code=vendor_code,
-                                                       sku=', '.join(skus) or None,
+                                                       sku=sku,
                                                        posting_number=posting_number or None,
                                                        service=service_name or None,
                                                        cost=total_cost))
