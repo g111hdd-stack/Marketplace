@@ -227,8 +227,13 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
                     if sku == str(info.discounted_sku):
                         sku = str(info.sku)
             if sku not in list_sku:
+                answer_info = await api_user.get_product_related_sku_get(skus=[sku])
+                for info in answer_info.items:
+                    if str(info.sku) in list_sku:
+                        sku = str(info.sku)
+                        break
+            if sku not in list_sku:
                 continue
-
             metrics_round = [round(metric, 2) for metric in product.metrics]  # Список значений метрик
 
             # Проверка на Премиум

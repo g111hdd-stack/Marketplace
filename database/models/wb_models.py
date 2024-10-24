@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint, Boolean
 
 from .general_models import Base
 
@@ -216,6 +216,7 @@ class WBOrders(Base):
     subject = Column(String(length=255), nullable=False)
     posting_number = Column(String(length=255), nullable=False)
     price = Column(Numeric(precision=12, scale=2), nullable=False)
+    is_cancel = Column(Boolean, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('order_date', 'sku', 'posting_number', name='wb_orders_unique'),

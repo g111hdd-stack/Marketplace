@@ -30,6 +30,7 @@ class DataOrder:
     quantities: Optional[int] = None
     category: Optional[str] = None
     subject: Optional[str] = None
+    is_cancel: Optional[bool] = None
 
 
 @dataclass

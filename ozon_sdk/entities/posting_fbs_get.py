@@ -197,7 +197,7 @@ class PostingFBSGet(BaseEntity):
     cancellation: Optional[PostingFBSGetCancellation] = None
     courier: Optional[PostingFBSGetCourier] = None
     customer: Optional[PostingFBSGetCustomer] = None
-    delivering_date: datetime = None
+    delivering_date: Optional[datetime] = None
     delivery_method: Optional[PostingFBSGetDeliveryMethod] = None
     delivery_price: str
     financial_data: Optional[PostingFBSGetFinancialData] = None

@@ -25,6 +25,7 @@ class OzonApi:
         self._posting_fbo_list_api = self._api_factory.get_api(PostingFBOListResponse)
         self._posting_fbs_list_api = self._api_factory.get_api(PostingFBSListResponse)
         self._product_info_discounted_api = self._api_factory.get_api(ProductInfoDiscountedResponse)
+        self._product_related_sku_get_api = self._api_factory.get_api(ProductRelatedSkuGetResponse)
 
     async def get_finance_transaction_list(self, from_field: str, to: str, posting_number: str = "",
                                            operation_type: list[str] = None, transaction_type: str = 'all',
@@ -356,6 +357,20 @@ class OzonApi:
         """
         request = ProductInfoDiscountedRequest(discounted_skus=discounted_skus)
         answer: ProductInfoDiscountedResponse = await self._product_info_discounted_api.post(request)
+        return answer
+
+    async def get_product_related_sku_get(self, skus: list[str]) -> ProductRelatedSkuGetResponse:
+        """
+            Метод для получения единого SKU по старым идентификаторам SKU FBS и SKU FBO.
+            В ответе будут все SKU, связанные с переданными.
+
+            Передавайте до 200 SKU в одном запросе.
+
+            Args:
+                skus (list[str): Список SKU.
+        """
+        request = ProductRelatedSkuGetRequest(sku=skus)
+        answer: ProductRelatedSkuGetResponse = await self._product_related_sku_get_api.post(request)
         return answer
 
 

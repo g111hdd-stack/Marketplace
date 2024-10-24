@@ -29,7 +29,7 @@ async def add_oz_orders_entry(db_conn: OzDbConnection, client_id: str, api_key: 
             date_now (datetime): Начальная дата периода.
     """
 
-    from_date = date_now - timedelta(days=1)
+    from_date = date_now - timedelta(days=30)
     to_date = date_now - timedelta(microseconds=1)
     logger.info(f"За период с <{from_date}> до <{to_date}>")
 
@@ -59,10 +59,14 @@ async def add_oz_orders_entry(db_conn: OzDbConnection, client_id: str, api_key: 
                             sku = str(info.sku)
 
                 if sku not in list_sku:
-                    print(client_id, sku)
+                    answer_info = await api_user.get_product_related_sku_get(skus=[sku])
+                    for info in answer_info.items:
+                        if str(info.sku) in list_sku:
+                            sku = str(info.sku)
+
                 list_orders.append(DataOrder(client_id=client_id,
                                              order_date=order_date,
-                                             sku=str(product.sku),
+                                             sku=sku,
                                              vendor_code=product.offer_id,
                                              posting_number=order.posting_number,
                                              delivery_schema='FBO',
@@ -88,9 +92,22 @@ async def add_oz_orders_entry(db_conn: OzDbConnection, client_id: str, api_key: 
         for order in answer.result.postings:
             order_date = (order.in_process_at + timedelta(hours=3)).date()
             for product in order.products:
+                sku = str(product.sku)
+                if sku not in list_sku:
+                    answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
+                    for info in answer_info.items:
+                        if sku == str(info.discounted_sku):
+                            sku = str(info.sku)
+
+                if sku not in list_sku:
+                    answer_info = await api_user.get_product_related_sku_get(skus=[sku])
+                    for info in answer_info.items:
+                        if str(info.sku) in list_sku:
+                            sku = str(info.sku)
+
                 list_orders.append(DataOrder(client_id=client_id,
                                              order_date=order_date,
-                                             sku=str(product.sku),
+                                             sku=sku,
                                              vendor_code=product.offer_id,
                                              posting_number=order.posting_number,
                                              delivery_schema='FBS',
