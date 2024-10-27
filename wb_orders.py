@@ -46,6 +46,8 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
             continue
 
         order_date = order.date.date()  # Дата заказа
+        cancel_date = order.cancelDate.date()  # Дата отмены
+
         if order_date >= date_now:
             continue
         posting_number = order.srid   # Уникальный идентификатор заказа
@@ -62,7 +64,8 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
                                      subject=order.subject,
                                      posting_number=posting_number,
                                      price=price,
-                                     is_cancel=order.isCancel))
+                                     is_cancel=order.isCancel,
+                                     cancel_date=cancel_date))
 
     logger.info(f"Количество записей: {len(list_orders)}")
     db_conn.add_wb_orders(list_orders=list_orders)

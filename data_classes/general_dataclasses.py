@@ -31,6 +31,7 @@ class DataOrder:
     category: Optional[str] = None
     subject: Optional[str] = None
     is_cancel: Optional[bool] = None
+    cancel_date: Optional[datetime.date] = None
 
 
 @dataclass
