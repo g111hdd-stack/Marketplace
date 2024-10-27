@@ -61,7 +61,8 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
                                      category=order.category,
                                      subject=order.subject,
                                      posting_number=posting_number,
-                                     price=price))
+                                     price=price,
+                                     is_cancel=order.isCancel))
 
     logger.info(f"Количество записей: {len(list_orders)}")
     db_conn.add_wb_orders(list_orders=list_orders)
