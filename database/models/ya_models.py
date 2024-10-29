@@ -62,3 +62,26 @@ class YaTypeReport(Base):
     operation_type = Column(String(length=255), nullable=False)
     service = Column(String(length=255), default='', nullable=False)
     type_name = Column(String(length=255), default='new', nullable=False)
+
+
+class YaOrders(Base):
+    """Модель таблицы ya_orders."""
+    __tablename__ = 'ya_orders'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    order_date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    posting_number = Column(String(length=255), nullable=False)
+    delivery_schema = Column(String(length=255), nullable=False)
+    quantities = (Column(Integer, nullable=False))
+    rejected = (Column(Integer, nullable=False))
+    returned = (Column(Integer, nullable=False))
+    price = Column(Numeric(precision=12, scale=2), nullable=False)
+    status = Column(String(length=255), nullable=False)
+    update_date = Column(Date, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('order_date', 'sku', 'posting_number', name='ya_orders_unique'),
+    )

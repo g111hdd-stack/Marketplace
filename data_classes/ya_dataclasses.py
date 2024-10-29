@@ -21,3 +21,19 @@ class DataYaReport:
     service: str
     date: datetime.date
     cost: float
+
+
+@dataclass
+class DataYaOrder:
+    order_date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    posting_number: str
+    delivery_schema: str
+    price: float
+    quantities: int
+    rejected: int
+    returned: int
+    status: str
+    update_date: datetime.date

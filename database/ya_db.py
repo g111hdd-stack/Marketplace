@@ -2,9 +2,9 @@ import logging
 
 from sqlalchemy.dialects.postgresql import insert
 
+from .models import *
+from data_classes import *
 from .db import DbConnection, retry_on_exception
-from data_classes import DataOperation, DataYaCampaigns, DataYaReport
-from .models import Client, YaMain, YaCampaigns, YaReport, YaTypeReport
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,44 @@ class YaDbConnection(DbConnection):
                                 'operation_type',
                                 'service'],
                 set_={'cost': row.cost}
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_orders(self, list_orders: list[DataYaOrder]) -> None:
+        """
+            Добавление в базу данных записи о заказах.
+
+            Args:
+                list_orders (list[DataYaOrder]): Список данных о заказах.
+        """
+        for row in list_orders:
+            stmt = insert(YaOrders).values(
+                order_date=row.order_date,
+                client_id=row.client_id,
+                sku=row.sku,
+                vendor_code=row.vendor_code,
+                posting_number=row.posting_number,
+                delivery_schema=row.delivery_schema,
+                quantities=row.quantities,
+                rejected=row.rejected,
+                returned=row.returned,
+                price=row.price,
+                status=row.status,
+                update_date=row.update_date
+            ).on_conflict_do_update(
+                index_elements=['order_date',
+                                'sku',
+                                'posting_number'],
+                set_={'price': row.price,
+                      'quantities': row.quantities,
+                      'rejected': row.rejected,
+                      'returned': row.returned,
+                      'status': row.status,
+                      'update_date': row.update_date,
+                      }
             )
             self.session.execute(stmt)
         self.session.commit()

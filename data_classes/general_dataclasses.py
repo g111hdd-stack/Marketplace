@@ -19,22 +19,6 @@ class DataOperation:
 
 
 @dataclass
-class DataOrder:
-    client_id: str
-    order_date: datetime.date
-    sku: str
-    vendor_code: str
-    posting_number: str
-    price: float
-    delivery_schema: Optional[str] = None
-    quantities: Optional[int] = None
-    category: Optional[str] = None
-    subject: Optional[str] = None
-    is_cancel: Optional[bool] = None
-    cancel_date: Optional[datetime.date] = None
-
-
-@dataclass
 class DataCostPrice:
     month_date: int
     year_date: int

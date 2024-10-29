@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError
 
 from database import OzDbConnection
 from ozon_sdk.ozon_api import OzonApi
-from data_classes import DataOrder
+from data_classes import DataOzOrder
 from ozon_sdk.errors import ClientError
 
 nest_asyncio.apply()
@@ -64,14 +64,14 @@ async def add_oz_orders_entry(db_conn: OzDbConnection, client_id: str, api_key: 
                         if str(info.sku) in list_sku:
                             sku = str(info.sku)
 
-                list_orders.append(DataOrder(client_id=client_id,
-                                             order_date=order_date,
-                                             sku=sku,
-                                             vendor_code=product.offer_id,
-                                             posting_number=order.posting_number,
-                                             delivery_schema='FBO',
-                                             quantities=product.quantity,
-                                             price=round(float(product.price), 2)))
+                list_orders.append(DataOzOrder(client_id=client_id,
+                                               order_date=order_date,
+                                               sku=sku,
+                                               vendor_code=product.offer_id,
+                                               posting_number=order.posting_number,
+                                               delivery_schema='FBO',
+                                               quantities=product.quantity,
+                                               price=round(float(product.price), 2)))
 
         if len(answer.result) >= limit:
             offset += limit
@@ -105,14 +105,14 @@ async def add_oz_orders_entry(db_conn: OzDbConnection, client_id: str, api_key: 
                         if str(info.sku) in list_sku:
                             sku = str(info.sku)
 
-                list_orders.append(DataOrder(client_id=client_id,
-                                             order_date=order_date,
-                                             sku=sku,
-                                             vendor_code=product.offer_id,
-                                             posting_number=order.posting_number,
-                                             delivery_schema='FBS',
-                                             quantities=product.quantity,
-                                             price=round(float(product.price), 2)))
+                list_orders.append(DataOzOrder(client_id=client_id,
+                                               order_date=order_date,
+                                               sku=sku,
+                                               vendor_code=product.offer_id,
+                                               posting_number=order.posting_number,
+                                               delivery_schema='FBS',
+                                               quantities=product.quantity,
+                                               price=round(float(product.price), 2)))
 
         if answer.result.has_next:
             offset += limit
@@ -150,6 +150,7 @@ async def main_func_oz(retries: int = 6) -> None:
             await main_func_oz(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

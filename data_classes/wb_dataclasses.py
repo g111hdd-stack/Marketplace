@@ -133,3 +133,17 @@ class DataWBAcceptance:
     date: datetime.date
     sku: str
     cost: float
+
+
+@dataclass
+class DataWBOrder:
+    order_date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    category: str
+    subject: str
+    posting_number: str
+    price: float
+    is_cancel: bool
+    cancel_date: datetime.date

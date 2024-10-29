@@ -28,31 +28,30 @@ async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
     return list_campaigns
 
 
-async def get_orders(api_key: str, campaign_id: str, updated_at_from: str, updated_at_to: str, page: int = 1) \
-        -> list[int]:
+async def get_orders(api_key: str, campaign_id: str, updated_at_from: str, updated_at_to: str) -> list[int]:
     list_orders = []
-    api_user = YandexApi(api_key=api_key)
-    answer_orders = await api_user.get_campaigns_orders(campaign_id=campaign_id,
-                                                        updated_at_from=updated_at_from,
-                                                        updated_at_to=updated_at_to,
-                                                        status=['DELIVERED'],
-                                                        page=page)
-    if answer_orders:
-        for order in answer_orders.orders:
-            list_orders.append(order.id_field)
+    page = 1
 
-    if answer_orders.pager.pagesCount > page:
-        extend_orders = await get_orders(campaign_id=campaign_id,
-                                         api_key=api_key,
-                                         updated_at_from=updated_at_from,
-                                         updated_at_to=updated_at_to,
-                                         page=page + 1)
-        list_orders.extend(extend_orders)
+    api_user = YandexApi(api_key=api_key)
+    while True:
+        answer_orders = await api_user.get_campaigns_orders(campaign_id=campaign_id,
+                                                            updated_at_from=updated_at_from,
+                                                            updated_at_to=updated_at_to,
+                                                            status=['DELIVERED'],
+                                                            page=page)
+        if answer_orders:
+            for order in answer_orders.orders:
+                list_orders.append(order.id_field)
+
+        if answer_orders.pager.pagesCount <= page:
+            break
+
+        page += 1
 
     return list_orders
 
 
-async def get_operations(client_id: str, campaign_id:str, api_key: str, updated_at_from: str, updated_at_to: str) \
+async def get_operations(client_id: str, campaign_id: str, api_key: str, updated_at_from: str, updated_at_to: str) \
         -> list[DataOperation]:
     """
         Получает список операций для указанного клиента за определенный период времени.
@@ -84,54 +83,56 @@ async def get_operations(client_id: str, campaign_id:str, api_key: str, updated_
                                    updated_at_to=updated_at_to)
     if not list_orders:
         return list_operation
+
     page_token = None
+
     while True:
         answer = await api_user.get_campaigns_stats_orders(campaign_id=campaign_id,
                                                            orders=list_orders,
                                                            limit=200,
                                                            page_token=page_token)
-        if answer.result:
-            for order in answer.result.orders:
-                posting_number = str(order.id_field)  # Номер отправления
-                accrual_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата доставки
-                for item in order.items:
-                    vendor_code = item.shopSku
-                    quantities = item.count
-                    sku = str(item.marketSku)
-                    sale = round(sum([price.total for price in item.prices]) / quantities, 2)
-                    if item.details:
-                        quantities_returned = 0
-                        for detail in item.details:
-                            if detail.itemStatus == 'REJECTED':
-                                quantities -= detail.itemCount
-                            elif detail.itemStatus == 'RETURNED':
-                                quantities_returned -= detail.itemCount
-                        if quantities_returned < 0:
-                            list_operation.append(DataOperation(client_id=client_id,
-                                                                accrual_date=accrual_date,
-                                                                type_of_transaction='cancelled',
-                                                                vendor_code=vendor_code,
-                                                                delivery_schema=campaign_id,
-                                                                posting_number=posting_number,
-                                                                sku=sku,
-                                                                sale=-sale,
-                                                                quantities=quantities_returned))
-                    if quantities > 0:
+        if not answer.result:
+            break
+
+        for order in answer.result.orders:
+            posting_number = str(order.id_field)  # Номер отправления
+            accrual_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата доставки
+            for item in order.items:
+                vendor_code = item.shopSku
+                quantities = item.count
+                sku = str(item.marketSku)
+                sale = round(sum([price.total for price in item.prices]) / quantities, 2)
+                if item.details:
+                    quantities_returned = 0
+                    for detail in item.details:
+                        if detail.itemStatus == 'REJECTED':
+                            quantities -= detail.itemCount
+                        elif detail.itemStatus == 'RETURNED':
+                            quantities_returned -= detail.itemCount
+                    if quantities_returned < 0:
                         list_operation.append(DataOperation(client_id=client_id,
                                                             accrual_date=accrual_date,
-                                                            type_of_transaction='delivered',
+                                                            type_of_transaction='cancelled',
                                                             vendor_code=vendor_code,
                                                             delivery_schema=campaign_id,
                                                             posting_number=posting_number,
                                                             sku=sku,
-                                                            sale=sale,
-                                                            quantities=quantities))
-            if answer.result.paging.nextPageToken:
-                page_token = answer.result.paging.nextPageToken
-            else:
-                break
-        else:
+                                                            sale=-sale,
+                                                            quantities=quantities_returned))
+                if quantities > 0:
+                    list_operation.append(DataOperation(client_id=client_id,
+                                                        accrual_date=accrual_date,
+                                                        type_of_transaction='delivered',
+                                                        vendor_code=vendor_code,
+                                                        delivery_schema=campaign_id,
+                                                        posting_number=posting_number,
+                                                        sku=sku,
+                                                        sale=sale,
+                                                        quantities=quantities))
+        if not answer.result.paging.nextPageToken:
             break
+
+        page_token = answer.result.paging.nextPageToken
 
     return list_operation
 
@@ -142,7 +143,7 @@ async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaig
         Добавление записей в таблицу `ya_main_table` за указанную дату
 
         Args:
-            db_conn (YaDbConnection): Объект соединения с базой данных Azure.
+            db_conn (YaDbConnection): Объект соединения с базой данных.
             client_id (str): ID кабинета.
             campaign_id (str): ID магазина.
             api_key (str): API KEY кабинета.

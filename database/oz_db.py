@@ -304,12 +304,12 @@ class OzDbConnection(DbConnection):
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
-    def add_oz_orders(self, list_orders: list[DataOrder]) -> None:
+    def add_oz_orders(self, list_orders: list[DataOzOrder]) -> None:
         """
             Добавление в базу данных записи о заказах.
 
             Args:
-                list_orders (list[DataOrder]): Список данных о заказах.
+                list_orders (list[DataOzOrder]): Список данных о заказах.
         """
         for row in list_orders:
             stmt = insert(OzOrders).values(

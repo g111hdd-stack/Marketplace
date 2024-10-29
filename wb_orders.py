@@ -3,12 +3,12 @@ import logging
 
 import nest_asyncio
 
-from datetime import datetime, timedelta, date
+from datetime import timedelta, date
 
 from sqlalchemy.exc import OperationalError
 
 from wb_sdk.wb_api import WBApi
-from data_classes import DataOrder
+from data_classes import DataWBOrder
 from database import WBDbConnection
 
 nest_asyncio.apply()
@@ -50,22 +50,22 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
 
         if order_date >= date_now:
             continue
-        posting_number = order.srid   # Уникальный идентификатор заказа
+        posting_number = order.srid  # Уникальный идентификатор заказа
         vendor_code = order.supplierArticle  # Артикул продукта
         sku = str(order.nmId)  # Артикул продукта внутри системы WB
         price = round(float(order.priceWithDisc), 2)  # Стоимость продажи товара
 
         # Добавление заказа в список
-        list_orders.append(DataOrder(client_id=client_id,
-                                     order_date=order_date,
-                                     sku=sku,
-                                     vendor_code=vendor_code,
-                                     category=order.category,
-                                     subject=order.subject,
-                                     posting_number=posting_number,
-                                     price=price,
-                                     is_cancel=order.isCancel,
-                                     cancel_date=cancel_date))
+        list_orders.append(DataWBOrder(client_id=client_id,
+                                       order_date=order_date,
+                                       sku=sku,
+                                       vendor_code=vendor_code,
+                                       category=order.category,
+                                       subject=order.subject,
+                                       posting_number=posting_number,
+                                       price=price,
+                                       is_cancel=order.isCancel,
+                                       cancel_date=cancel_date))
 
     logger.info(f"Количество записей: {len(list_orders)}")
     db_conn.add_wb_orders(list_orders=list_orders)

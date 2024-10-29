@@ -31,7 +31,6 @@ class DataOzStatisticCardProduct:
     cancel_count: int
 
 
-
 @dataclass
 class DataOzAdvert:
     id_advert: str
@@ -81,3 +80,15 @@ class DataOzService:
 class DataOzAdvertDailyBudget:
     advert_id: str
     daily_budget: float
+
+
+@dataclass
+class DataOzOrder:
+    order_date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    posting_number: str
+    delivery_schema: str
+    quantities: int
+    price: float
