@@ -64,7 +64,7 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
             date_now (datetime): Дата.
     """
     start = date_now - timedelta(days=1)
-    end = date_now + timedelta(days=1) - timedelta(microseconds=1)
+    end = date_now - timedelta(microseconds=1)
 
     logger.info(f"За период с <{start}> до <{end}>")
 
@@ -95,7 +95,7 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
         for order in answer.result.orders:
             posting_number = str(order.id_field)  # Номер отправления
             order_date = datetime.strptime(order.creationDate, date_format).date()  # Дата заказа
-            if order_date == date_now.date() or order_date < datetime(year=2024, month=6, day=1):
+            if order_date == date_now.date() or order_date < datetime(year=2024, month=6, day=1).date():
                 continue
             update_date = datetime.strptime(order.statusUpdateDate.split('T')[0], date_format).date()  # Дата обновления
             for item in order.items:
