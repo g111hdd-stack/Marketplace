@@ -148,7 +148,8 @@ class YaDbConnection(DbConnection):
                 warehouse=row.warehouse,
                 quantity=row.quantity,
                 type=row.type
-            )
+            ).on_conflict_do_nothing(
+                index_elements=['client_id', 'date', 'campaign_id', 'vendor_code', 'size', 'warehouse', 'type'])
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
