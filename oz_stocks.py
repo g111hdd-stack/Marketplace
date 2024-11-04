@@ -98,8 +98,8 @@ async def main_oz_stock(retries: int = 6) -> None:
         if retries > 0:
             await asyncio.sleep(10)
             await main_oz_stock(retries=retries - 1)
-    # except Exception as e:
-    #     logger.error(f'{e}')
+    except Exception as e:
+        logger.error(f'{e}')
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
