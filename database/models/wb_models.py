@@ -238,3 +238,25 @@ class WBAcceptance(Base):
     __table_args__ = (
         UniqueConstraint('date', 'sku', name='wb_acceptance_unique'),
     )
+
+
+class WBStock(Base):
+    """Модель таблицы wb_stocks."""
+    __tablename__ = 'wb_stocks'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    size = Column(String(length=255), nullable=False)
+    category = Column(String(length=255), nullable=False)
+    subject = Column(String(length=255), nullable=False)
+    warehouse = Column(String(length=255), nullable=False)
+    quantity_warehouse = Column(Integer, nullable=False)
+    quantity_to_client = Column(Integer, nullable=False)
+    quantity_from_client = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('client_id', 'date', 'sku', 'warehouse', 'size', name='wb_stocks_unique'),
+    )

@@ -26,6 +26,7 @@ class OzonApi:
         self._posting_fbs_list_api = self._api_factory.get_api(PostingFBSListResponse)
         self._product_info_discounted_api = self._api_factory.get_api(ProductInfoDiscountedResponse)
         self._product_related_sku_get_api = self._api_factory.get_api(ProductRelatedSkuGetResponse)
+        self._product_info_stocks_api = self._api_factory.get_api(ProductInfoStocksResponse)
 
     async def get_finance_transaction_list(self, from_field: str, to: str, posting_number: str = "",
                                            operation_type: list[str] = None, transaction_type: str = 'all',
@@ -161,7 +162,7 @@ class OzonApi:
         answer: ProductListResponse = await self._product_list_api.post(request)
         return answer
 
-    async def get_product_info_list(self, offer_id: list[str] = None, product_id: list[int] = None,
+    async def get_product_info_list(self, offer_id: list[str] = None, product_id: list[str] = None,
                                     sku: list[int] = None) -> ProductInfoListResponse:
         """
             Получение информации о таварах.
@@ -371,6 +372,55 @@ class OzonApi:
         """
         request = ProductRelatedSkuGetRequest(sku=skus)
         answer: ProductRelatedSkuGetResponse = await self._product_related_sku_get_api.post(request)
+        return answer
+
+    async def get_product_info_stocks(self, offer_id: list[str] = None, product_id: list[str] = None,
+                                      visibility: str = 'ALL', last_id: str = None,
+                                      limit: int = 100) -> ProductInfoStocksResponse:
+        """
+            Получение остатков товаров на складе.
+
+            Фильтр по видимости товара:
+                ALL — все товары, кроме архивных. \n
+                VISIBLE — товары, которые видны покупателям. \n
+                INVISIBLE — товары, которые не видны покупателям. \n
+                EMPTY_STOCK — товары, у которых не указано наличие. \n
+                NOT_MODERATED — товары, которые не прошли модерацию. \n
+                MODERATED — товары, которые прошли модерацию. \n
+                DISABLED — товары, которые видны покупателям, но недоступны к покупке. \n
+                STATE_FAILED — товары, создание которых завершилось ошибкой. \n
+                READY_TO_SUPPLY — товары, готовые к поставке. \n
+                VALIDATION_STATE_PENDING — товары, которые проходят проверку валидатором на премодерации. \n
+                VALIDATION_STATE_FAIL — товары, которые не прошли проверку валидатором на премодерации. \n
+                VALIDATION_STATE_SUCCESS — товары, которые прошли проверку валидатором на премодерации. \n
+                TO_SUPPLY — товары, готовые к продаже. \n
+                IN_SALE — товары в продаже. \n
+                REMOVED_FROM_SALE — товары, скрытые от покупателей. \n
+                BANNED — заблокированные товары. \n
+                OVERPRICED — товары с завышенной ценой. \n
+                CRITICALLY_OVERPRICED — товары со слишком завышенной ценой. \n
+                EMPTY_BARCODE — товары без штрихкода. \n
+                BARCODE_EXISTS — товары со штрихкодом. \n
+                QUARANTINE — товары на карантине после изменения цены более чем на 50%. \n
+                ARCHIVED — товары в архиве. \n
+                OVERPRICED_WITH_STOCK — товары в продаже со стоимостью выше, чем у конкурентов. \n
+                PARTIAL_APPROVED — товары в продаже с пустым или неполным описанием. \n
+                IMAGE_ABSENT — товары без изображений. \n
+                MODERATION_BLOCK — товары, для которых заблокирована модерация. \n
+
+            Args:
+                offer_id (list[str], optional): Список артикулов товаров в системе продавца.
+                product_id (list[str], optional): Список id товаров из системы Ozon.
+                visibility (str, optional): Фильтр по видимости товара.
+                last_id (str, optional): Идентификатор последнего значения на странице.
+                limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.
+        """
+        request = ProductInfoStocksRequest(filter=ProductInfoStocksFilter(offer_id=offer_id,
+                                                                          product_id=product_id,
+                                                                          visibility=visibility),
+                                           last_id=last_id,
+                                           limit=limit)
+        answer: ProductInfoStocksResponse = await self._product_info_stocks_api.post(request)
         return answer
 
 

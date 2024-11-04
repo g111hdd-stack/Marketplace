@@ -15,3 +15,4 @@ from .nm_report_downloads_file_request import *
 from .warehouse_remains_request import *
 from .warehouse_remains_tasks_status_request import *
 from .warehouse_remains_tasks_download_request import *
+from .supplier_stocks_request import *

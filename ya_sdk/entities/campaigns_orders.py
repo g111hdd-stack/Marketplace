@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import Field
 
+from .gps import GpsDTO
 from .base import BaseEntity
 
 
@@ -81,12 +82,6 @@ class RegionDTO(BaseEntity):
     type_field: str = Field(default=None, alias='type')
     parent: Optional['RegionDTO'] = None
     children: list['RegionDTO'] = []
-
-
-class GpsDTO(BaseEntity):
-    """GPS-координаты широты и долготы."""
-    latitude: float = None
-    longitude: float = None
 
 
 class OrderDeliveryAddressDTO(BaseEntity):

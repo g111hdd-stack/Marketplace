@@ -25,7 +25,8 @@ class WBAPIFactory:
         NmReportDownloadsFileResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/downloads/file/{downloadId}',
         WarehouseRemainsResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains',
         WarehouseRemainsTasksStatusResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/status',
-        WarehouseRemainsTasksDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/download'
+        WarehouseRemainsTasksDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/download',
+        SupplierStocksResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/stocks'
     }
 
     def __init__(self, engine: WBAsyncEngine):

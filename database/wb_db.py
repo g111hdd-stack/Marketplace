@@ -390,3 +390,29 @@ class WBDbConnection(DbConnection):
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_wb_stock_entry(self, list_stocks: list[DataWBStock]) -> None:
+        """
+            Добавление в базу данных записи о остатках на складах.
+
+            Args:
+                list_stocks (list[DataWBStock]): Список данных о остатках на складах.
+        """
+        for row in list_stocks:
+            stmt = insert(WBStock).values(
+                date=row.date,
+                client_id=row.client_id,
+                sku=row.sku,
+                vendor_code=row.vendor_code,
+                size=row.size,
+                category=row.category,
+                subject=row.subject,
+                warehouse=row.warehouse,
+                quantity_warehouse=row.quantity_warehouse,
+                quantity_to_client=row.quantity_to_client,
+                quantity_from_client=row.quantity_from_client
+            ).on_conflict_do_nothing(index_elements=['client_id', 'date', 'sku', 'warehouse', 'size'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")

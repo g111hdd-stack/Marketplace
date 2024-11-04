@@ -85,3 +85,23 @@ class YaOrders(Base):
     __table_args__ = (
         UniqueConstraint('order_date', 'sku', 'posting_number', name='ya_orders_unique'),
     )
+
+
+class YaStock(Base):
+    """Модель таблицы ya_stocks."""
+    __tablename__ = 'ya_stocks'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    campaign_id = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    size = Column(String(length=255), nullable=False)
+    warehouse = Column(String(length=255), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    type = Column(String(length=255), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('client_id', 'date', 'campaign_id', 'vendor_code', 'size', 'warehouse', 'type',
+                         name='ya_stocks_unique'),
+    )

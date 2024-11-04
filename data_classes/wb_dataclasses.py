@@ -147,3 +147,18 @@ class DataWBOrder:
     price: float
     is_cancel: bool
     cancel_date: datetime.date
+
+
+@dataclass
+class DataWBStock:
+    date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    size: str
+    category: str
+    subject: str
+    warehouse: str
+    quantity_warehouse: int
+    quantity_to_client: int
+    quantity_from_client: int

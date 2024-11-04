@@ -202,3 +202,21 @@ class OzOrders(Base):
     __table_args__ = (
         UniqueConstraint('order_date', 'sku', 'posting_number', name='oz_orders_unique'),
     )
+
+
+class OzStock(Base):
+    """Модель таблицы oz_stocks."""
+    __tablename__ = 'oz_stocks'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    size = Column(String(length=255), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    reserved = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('date', 'sku', 'size', name='oz_stocks_unique'),
+    )

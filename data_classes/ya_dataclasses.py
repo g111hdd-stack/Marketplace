@@ -37,3 +37,15 @@ class DataYaOrder:
     returned: int
     status: str
     update_date: datetime.date
+
+
+@dataclass
+class DataYaStock:
+    date: datetime.date
+    client_id: str
+    campaign_id: str
+    vendor_code: str
+    size: str
+    warehouse: str
+    quantity: int
+    type: str

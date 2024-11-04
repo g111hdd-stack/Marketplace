@@ -92,3 +92,14 @@ class DataOzOrder:
     delivery_schema: str
     quantities: int
     price: float
+
+
+@dataclass
+class DataOzStock:
+    date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    size: str
+    quantity: int
+    reserved: int

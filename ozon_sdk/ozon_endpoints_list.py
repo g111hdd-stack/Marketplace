@@ -19,7 +19,8 @@ class OzonAPIFactory:
         PostingFBOListResponse: '/v2/posting/fbo/list',
         PostingFBSListResponse: 'v3/posting/fbs/list',
         ProductInfoDiscountedResponse: '/v1/product/info/discounted',
-        ProductRelatedSkuGetResponse: '/v1/product/related-sku/get'
+        ProductRelatedSkuGetResponse: '/v1/product/related-sku/get',
+        ProductInfoStocksResponse: '/v3/product/info/stocks'
     }
 
     def __init__(self, engine: OzonAsyncEngine):

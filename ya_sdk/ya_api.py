@@ -16,7 +16,10 @@ class YandexApi:
         self._campaigns_orders_api = self._api_factory.get_api(CampaignsOrdersResponse)
         self._campaigns_stats_orders_api = self._api_factory.get_api(CampaignsStatsOrdersResponse)
         self._reports_info_api = self._api_factory.get_api(ReportsInfoResponse)
-        self._reports_united_marketplace_services_generate_api = self._api_factory.get_api(ReportsUnitedMarketplaceServicesGenerateResponse)
+        self._reports_united_marketplace_services_generate_api = self._api_factory.get_api(
+            ReportsUnitedMarketplaceServicesGenerateResponse)
+        self._campaigns_offers_stocks_api = self._api_factory.get_api(CampaignsOffersStocksResponse)
+        self._warehouses_api = self._api_factory.get_api(WarehousesResponse)
 
     async def get_campaigns(self, page: int = 1, page_size: int = None) -> CampaignsResponse:
         request = CampaignsRequest(page=page, pageSize=page_size)
@@ -129,5 +132,29 @@ class YandexApi:
     async def get_reports_info(self, report_id: str) -> ReportsInfoResponse:
         request = ReportsInfoRequest()
         answer: ReportsInfoResponse = await self._reports_info_api.get(request, format_dict={'reportId': report_id})
+
+        return answer
+
+    async def get_campaigns_offers_stocks(self,
+                                          campaign_id: Union[str, int],
+                                          archived: bool = None,
+                                          offer_ids: list[str] = None,
+                                          with_turnover: bool = False,
+                                          page_token: str = None,
+                                          limit: int = 100) -> CampaignsOffersStocksResponse:
+        query = CampaignsOffersStocksQueryRequest(page_token=page_token,
+                                                  limit=limit)
+        body = CampaignsOffersStocksBodyRequest(archived=archived,
+                                                offerIds=offer_ids,
+                                                withTurnover=with_turnover)
+        answer: CampaignsOffersStocksResponse = await self._campaigns_offers_stocks_api.post(body=body,
+                                                                                             query=query,
+                                                                                             format_dict={'campaignId': campaign_id})
+
+        return answer
+
+    async def get_warehouses(self) -> WarehousesResponse:
+        request = WarehousesRequest()
+        answer: WarehousesResponse = await self._warehouses_api.get(request)
 
         return answer

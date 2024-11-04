@@ -27,6 +27,7 @@ class WBApi:
         self._warehouse_remains_api = self._api_factory.get_api(WarehouseRemainsResponse)
         self._warehouse_remains_tasks_status_api = self._api_factory.get_api(WarehouseRemainsTasksStatusResponse)
         self._warehouse_remains_tasks_download_api = self._api_factory.get_api(WarehouseRemainsTasksDownloadResponse)
+        self._supplier_stocks_api = self._api_factory.get_api(SupplierStocksResponse)
 
     async def get_supplier_sales(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
@@ -329,5 +330,11 @@ class WBApi:
         answer: WarehouseRemainsTasksDownloadResponse = await self._warehouse_remains_tasks_download_api.get(query=request,
                                                                                                              format_dict={
                                                                                                                  'task_id': task_id})
+
+        return answer
+
+    async def get_supplier_stocks(self, date_from: str) -> SupplierStocksResponse:
+        request = SupplierStocksRequest(dateFrom=date_from)
+        answer: SupplierStocksResponse = await self._supplier_stocks_api.get(query=request)
 
         return answer

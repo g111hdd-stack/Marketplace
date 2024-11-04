@@ -330,3 +330,25 @@ class OzDbConnection(DbConnection):
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_oz_stock_entry(self, list_stocks: list[DataOzStock]) -> None:
+        """
+            Добавление в базу данных записи о остатках на складах.
+
+            Args:
+                list_stocks (list[DataOzStock]): Список данных о остатках на складах.
+        """
+        for row in list_stocks:
+            stmt = insert(OzStock).values(
+                date=row.date,
+                client_id=row.client_id,
+                sku=row.sku,
+                vendor_code=row.vendor_code,
+                size=row.size,
+                quantity=row.quantity,
+                reserved=row.reserved
+            ).on_conflict_do_nothing(index_elements=['date', 'sku', 'size'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")

@@ -11,7 +11,9 @@ class YandexAPIFactory:
         CampaignsOrdersResponse: 'campaigns/{campaignId}/orders',
         CampaignsStatsOrdersResponse: 'campaigns/{campaignId}/stats/orders',
         ReportsUnitedMarketplaceServicesGenerateResponse: 'reports/united-marketplace-services/generate',
-        ReportsInfoResponse: 'reports/info/{reportId}'
+        ReportsInfoResponse: 'reports/info/{reportId}',
+        CampaignsOffersStocksResponse: 'campaigns/{campaignId}/offers/stocks',
+        WarehousesResponse: 'warehouses'
     }
 
     def __init__(self, engine: YandexAsyncEngine):

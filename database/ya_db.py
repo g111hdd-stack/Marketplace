@@ -129,3 +129,26 @@ class YaDbConnection(DbConnection):
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_stock_entry(self, list_stocks: list[DataYaStock]) -> None:
+        """
+            Добавление в базу данных записи о заказах.
+
+            Args:
+                list_stocks (list[DataYaStock]): Список данных о заказах.
+        """
+        for row in list_stocks:
+            stmt = insert(YaStock).values(
+                date=row.date,
+                client_id=row.client_id,
+                campaign_id=row.campaign_id,
+                vendor_code=row.vendor_code,
+                size=row.size,
+                warehouse=row.warehouse,
+                quantity=row.quantity,
+                type=row.type
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
