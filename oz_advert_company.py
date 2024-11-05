@@ -76,7 +76,7 @@ async def add_adverts(db_conn: OzDbConnection, client_id: str, performance_id: s
     db_conn.add_oz_adverts_daily_budget(date=from_date, adverts_daily_budget=daily_budget)
 
 
-async def get_products_ids(client_id: str, api_key: str) -> list[int]:
+async def get_products_ids(client_id: str, api_key: str) -> list[str]:
     """
         Получения списка ID товаров.
 
@@ -85,7 +85,7 @@ async def get_products_ids(client_id: str, api_key: str) -> list[int]:
             api_key (str): API KEY кабинета.
 
         Returns:
-            List[int]: Список ID товаров.
+            List[str]: Список ID товаров.
     """
     list_product_ids = []
 
@@ -105,7 +105,7 @@ async def get_products_ids(client_id: str, api_key: str) -> list[int]:
 
             # Обработка полученных результатов
             for item in answer.result.items:
-                list_product_ids.append(item.product_id)
+                list_product_ids.append(str(item.product_id))
             total = answer.result.total
             last_id = answer.result.last_id
 
