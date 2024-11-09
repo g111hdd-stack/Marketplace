@@ -135,6 +135,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     """
     end_date = from_date.date()
     start_date = end_date - timedelta(days=30)
+    sd = start_date
 
     # Получение ID РК и время создания и окончания
     adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date)
@@ -142,9 +143,9 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
 
     date_list = []
 
-    while start_date <= end_date:
-        date_list.append(start_date.isoformat())
-        start_date += timedelta(days=1)
+    while sd <= end_date:
+        date_list.append(sd.isoformat())
+        sd += timedelta(days=1)
 
     product_advertising_campaign = []
 
@@ -216,7 +217,9 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
     db_conn.add_wb_adverts_statistics(client_id=client_id,
-                                      product_advertising_campaign=product_advertising_campaign)
+                                      product_advertising_campaign=product_advertising_campaign,
+                                      start_date=start_date,
+                                      end_date=end_date)
 
 
 async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, api_key: str,

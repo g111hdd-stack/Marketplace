@@ -4,7 +4,7 @@ from typing import Type
 import nest_asyncio
 import logging
 
-from datetime import datetime, timedelta, date, timezone
+from datetime import datetime, timedelta, date
 
 from sqlalchemy.exc import OperationalError
 
@@ -238,7 +238,8 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
 
             # Проверка на Премиум
             if len(metrics_round) < len(metrics):
-                logger.error(f"Статистика не доступна из-за отсутсвия Премиума")
+                logger.error(f"{client_id} Статистика не доступна из-за отсутсвия Премиума")
+                limit = 0
                 break
 
             # Проверка на полностью нулевую статистику
@@ -533,7 +534,7 @@ async def main_oz_advert(retries: int = 6) -> None:
 
         if not readiness_check:
             for client in clients:
-                if client.name_company in ['Vayor']:
+                if client.name_company in ['Vayor', 'UniStellar']:
                     continue
                 readiness_check[client.name_company] = check_func.copy()
 

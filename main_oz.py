@@ -43,7 +43,6 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
     api_user = OzonApi(client_id=client_id, api_key=api_key)
 
     while True:
-        print(page)
         # Получение списка финансовых транзакций
         answer = await api_user.get_finance_transaction_list(from_field=from_date.isoformat(),
                                                              to=to_date.isoformat(),

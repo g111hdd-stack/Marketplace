@@ -2,7 +2,7 @@ import logging
 
 from datetime import date
 
-from sqlalchemy import or_, text
+from sqlalchemy import or_, text, select
 from sqlalchemy.dialects.postgresql import insert
 
 from .models import *
@@ -146,14 +146,30 @@ class WBDbConnection(DbConnection):
 
     @retry_on_exception()
     def add_wb_adverts_statistics(self, client_id: str,
-                                  product_advertising_campaign: list[DataWBStatisticAdvert]) -> None:
+                                  product_advertising_campaign: list[DataWBStatisticAdvert],
+                                  start_date: date, end_date: date) -> None:
         """
-            Добавление в базу данных записи статистики рекламных компаний.
+            Заменяет в базе данных записи статистики рекламных компаний.
 
             Args:
                 client_id (str): ID кабинета.
                 product_advertising_campaign (list[DataWBStatisticAdvert]): Список данных статистики рекламных компаний.
+                start_date (date): Начальная дата записей.
+                end_date (date): Конченая дата записей.
         """
+
+        subquery = self.session.query(WBStatisticAdvert.id).join(
+            WBAdverts,
+            WBStatisticAdvert.advert_id == WBAdverts.id_advert
+        ).filter(
+            WBStatisticAdvert.date >= start_date,
+            WBStatisticAdvert.date <= end_date,
+            WBAdverts.client_id == client_id
+        ).with_entities(WBStatisticAdvert.id).subquery()
+        self.session.query(WBStatisticAdvert).filter(WBStatisticAdvert.id.in_(select(subquery))).delete(
+            synchronize_session=False)
+        self.session.commit()
+
         skus = self.get_wb_sku_vendor_code(client_id=client_id)
         for row in product_advertising_campaign:
             if row.sku in skus:
