@@ -137,12 +137,12 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                            "innerHorizontal": BORDER_STYLE,
                                            "innerVertical": BORDER_STYLE}})
 
-    # Закрепляем заголовки и первый столбец
+    # Закрепляем заголовки и первые 2 столбеца
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
                                                                   "gridProperties": {"frozenRowCount": 1}},
                                                    "fields": "gridProperties.frozenRowCount"}})
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
-                                                                  "gridProperties": {"frozenColumnCount": 1}},
+                                                                  "gridProperties": {"frozenColumnCount": 2}},
                                                    "fields": "gridProperties.frozenColumnCount"}})
 
     # Задаём высоту первой строки
@@ -160,11 +160,11 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                         "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER"}},
                                         "fields": "userEnteredFormat(horizontalAlignment)"}})
 
-    # Задаём цвет для первой колонки
+    # Задаём цвет для первых двух колонок
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 1,
                                                   "startColumnIndex": 0,
-                                                  "endColumnIndex": 1},
+                                                  "endColumnIndex": 2},
                                         "cell": {"userEnteredFormat": {"backgroundColor": COLOR_FIRST_COLUMN}},
                                         "fields": "userEnteredFormat.backgroundColor"}})
 
@@ -244,11 +244,10 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     # Дата за которую формируется лист
     from_date = date.today() - timedelta(days=days)
 
-    # Получаем статиску по заказам
+    # Получаем данные из БД
     orders = db_conn.get_orders(from_date=from_date)
-
-    # Получаем артикулы из БД
     vendors_in_database = db_conn.get_vendors()
+    links = db_conn.get_link_wb_card_product()
 
     # Задаем имена шаблонного листа и создаваемого
     sheet_name = 'Шаблон'
@@ -307,6 +306,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
 
         # Строка с заголовками
         if i == 1:
+            row.append('Ссылка')
             for market in markets:
                 # Формировние списков маркетплейсов
                 marketplace = market.split()[-1]
@@ -331,10 +331,17 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
             data.append(row)
             continue
 
+        # Добавляем ссылку на товар
+        link = links.get(vendor.lower().strip(), '')
+        if link:
+            row.append(f'=ГИПЕРССЫЛКА("{link}";"ССЫЛКА")')
+        else:
+            row.append('')
+
         # Строки с данными
         for market in markets:
             marketplace = market.split()[-1]
-            # Для каждого маркетплейса лобавляем формулу суммы данных по магазинам
+            # Для каждого маркетплейса добавляем формулу суммы данных по магазинам
             if len(row) + 1 == col_map.get(marketplace, {}).get('index', 0):
                 # Получаем буквенные индексы первого и последнего магазина по маркетплейсу
                 letters = [val['letter'] for name, val in sorted(col_map.items(), key=lambda x: x[1]['index']) if

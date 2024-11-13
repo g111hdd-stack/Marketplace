@@ -6,9 +6,9 @@ from typing import Type
 from functools import wraps
 
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, text
 from pyodbc import Error as PyodbcError
 from sqlalchemy.exc import OperationalError
+from sqlalchemy import create_engine, text, func as f
 from sqlalchemy.dialects.postgresql import insert
 
 from config import *
@@ -39,7 +39,9 @@ def retry_on_exception(retries=3, delay=10):
                         self.session.rollback()
                     raise e
             raise RuntimeError("Max retries exceeded. Operation failed.")
+
         return wrapper
+
     return decorator
 
 
@@ -98,6 +100,18 @@ class DbConnection:
         query = text("SELECT client_id, vendor_code, orders_count FROM orders_from_card_stat WHERE date = :from_date")
         result = self.session.execute(query, {'from_date': from_date.isoformat()}).fetchall()
         return [DataOrder(client=clients[row[0]], vendor_code=row[1], orders_count=row[2]) for row in result]
+
+    @retry_on_exception()
+    def get_link_wb_card_product(self) -> dict:
+        """
+            Получает данные из wb_card_product.
+
+            Returns:
+                dict: Словарь артикул: ссылка на товар.
+        """
+        result = (self.session.query(WBCardProduct.vendor_code, f.min(WBCardProduct.link).label('link')).group_by(
+            WBCardProduct.vendor_code).all())
+        return {row.vendor_code.lower().strip(): row.link for row in result}
 
     @retry_on_exception()
     def get_vendors(self) -> list[str]:

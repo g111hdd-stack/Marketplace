@@ -3,7 +3,6 @@ import time
 import logging
 
 import gspread
-import nest_asyncio
 
 from decimal import Decimal
 from gspread_formatting import *
@@ -12,8 +11,6 @@ from datetime import date, datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
 from database import WBDbConnection
-
-nest_asyncio.apply()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
