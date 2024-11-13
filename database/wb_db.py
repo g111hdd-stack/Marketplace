@@ -72,6 +72,18 @@ class WBDbConnection(DbConnection):
         return result
 
     @retry_on_exception()
+    def get_wb_stocks_google(self) -> list:
+        """
+            Получает данные из wb_stocks_google.
+
+            Returns:
+                List[tuple]: Список данных по остаткам на складах.
+        """
+        query = text("SELECT * FROM wb_stocks_google;")
+        result = self.session.execute(query).fetchall()
+        return result
+
+    @retry_on_exception()
     def add_wb_operation(self, list_operations: list[DataOperation]) -> None:
         """
             Добавление в базу данных записи об операциях с товарами.

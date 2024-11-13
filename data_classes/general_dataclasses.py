@@ -34,3 +34,10 @@ class DataSelfPurchase:
     vendor_code: str
     quantities: int
     price: float
+
+
+@dataclass
+class DataOrder:
+    client: "Client"
+    vendor_code: str
+    orders_count: float

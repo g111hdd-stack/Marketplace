@@ -1,11 +1,12 @@
 import time
 import logging
+import datetime
 
 from typing import Type
 from functools import wraps
 
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from pyodbc import Error as PyodbcError
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.dialects.postgresql import insert
@@ -82,6 +83,33 @@ class DbConnection:
         else:
             result = self.session.query(Client).all()
         return result
+
+    @retry_on_exception()
+    def get_orders(self, from_date: datetime.date) -> list[DataOrder]:
+        """
+            Получает данные из orders_from_card_stat.
+
+            Args:
+                from_date (datetime.date): Дата за которую нужна статиситка.
+            Returns:
+                List[DataOrder]: Список данных по заказам.
+        """
+        clients = {client.client_id: client for client in self.get_clients()}
+        query = text("SELECT client_id, vendor_code, orders_count FROM orders_from_card_stat WHERE date = :from_date")
+        result = self.session.execute(query, {'from_date': from_date.isoformat()}).fetchall()
+        return [DataOrder(client=clients[row[0]], vendor_code=row[1], orders_count=row[2]) for row in result]
+
+    @retry_on_exception()
+    def get_vendors(self) -> list[str]:
+        """
+            Получает данные из vendor_code.
+
+            Returns:
+                List[str]: Список артикулов.
+        """
+        query = text("SELECT * FROM vendor_code")
+        result = self.session.execute(query).fetchall()
+        return [row[0] for row in result]
 
     @retry_on_exception()
     def add_cost_price(self, list_cost_price: list[DataCostPrice]) -> None:

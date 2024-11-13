@@ -1,19 +1,17 @@
 import os
-import asyncio
+import time
 import logging
 
 import gspread
 import nest_asyncio
 
-from typing import Type
 from decimal import Decimal
 from gspread_formatting import *
 from sqlalchemy.exc import OperationalError
 from datetime import date, datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
-from wb_sdk.wb_api import WBApi
-from database import WBDbConnection, Client
+from database import WBDbConnection
 
 nest_asyncio.apply()
 
@@ -47,7 +45,7 @@ def column_to_letter(column: int):
     return "".join(letters[::-1])
 
 
-async def stat_card_update(db_conn: WBDbConnection) -> None:
+def stat_card_update(db_conn: WBDbConnection) -> None:
     entry = []
     records = db_conn.get_wb_stat_card_google()
     for record in records:
@@ -93,41 +91,12 @@ async def stat_card_update(db_conn: WBDbConnection) -> None:
         format_cell_range(worksheet, f'{cl}2:{cl}{len(entry) + 1}', date_format)
 
 
-async def remains_update(clients: list[Type[Client]]):
+def stock_update(db_conn: WBDbConnection):
     entry = []
 
-    for client in clients:
-        api_user = WBApi(api_key=client.api_key)
-
-        answer_report = await api_user.get_warehouse_remains(group_by_nm=True)
-
-        task_id = answer_report.data.taskId
-
-        while True:
-            await asyncio.sleep(10)
-            answer_status_report = await api_user.get_warehouse_remains_tasks_status(task_id=task_id)
-
-            status = answer_status_report.data.status
-            if status == 'done':
-                break
-            elif status in ['canceled', 'purged']:
-                logger.error(f"Ошибка отчёта по остаткам на складах {client.name_company}")
-                break
-
-        if status != 'done':
-            continue
-
-        answer_download_report = await api_user.get_warehouse_remains_tasks_download(task_id=task_id)
-
-        for row in answer_download_report.result:
-            new = [
-                client.entrepreneur,
-                row.nmId,
-                row.quantityWarehousesFull,
-                row.inWayToClient,
-                row.inWayFromClient
-            ]
-            entry.append(new)
+    records = db_conn.get_wb_stocks_google()
+    for record in records:
+        entry.append([value for value in record])
 
     if entry:
         sheet_name = 'Остатки на складах WB'
@@ -154,7 +123,7 @@ async def remains_update(clients: list[Type[Client]]):
         worksheet.insert_rows(entry, 2)
 
 
-async def stat_advert_update(db_conn: WBDbConnection):
+def stat_advert_update(db_conn: WBDbConnection):
     entry = []
     records = db_conn.get_wb_stat_advert_google()
     for record in records:
@@ -199,26 +168,23 @@ async def stat_advert_update(db_conn: WBDbConnection):
         format_cell_range(worksheet, f'{cl}2:{cl}{len(entry) + 1}', date_format)
 
 
-async def main(retries: int = 6) -> None:
+def main(retries: int = 6) -> None:
     try:
         db_conn = WBDbConnection()
         db_conn.start_db()
 
-        clients = db_conn.get_clients(marketplace="WB")
-        db_conn.session.close()
-        await stat_card_update(db_conn=db_conn)
-        await stat_advert_update(db_conn=db_conn)
-        await remains_update(clients=clients)
+        stat_card_update(db_conn=db_conn)
+        stat_advert_update(db_conn=db_conn)
+        stock_update(db_conn=db_conn)
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
-            await asyncio.sleep(10)
-            await main(retries=retries - 1)
+            time.sleep(10)
+            main(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
 
+
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    loop.stop()
+    main()
