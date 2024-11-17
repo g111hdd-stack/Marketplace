@@ -98,75 +98,96 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
     # Форматируем заголовки задаём шрифт, цвет и выравниваем по середине
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 0,
-                                                  "endRowIndex": 1},
-                                        "cell": {"userEnteredFormat": {"textFormat": {"fontSize": HEADER_FONT_SIZE,
-                                                                                      "bold": True},
-                                                                       "horizontalAlignment": "CENTER",
+                                                  "endRowIndex": 2},
+                                        "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER",
                                                                        "verticalAlignment": "MIDDLE",
                                                                        "wrapStrategy": "WRAP",
-                                                                       "backgroundColor": COLOR_HEADER}},
-                                        "fields": "userEnteredFormat(textFormat, horizontalAlignment, "
-                                                  "verticalAlignment, wrapStrategy, backgroundColor)"}})
-
-    # Для каждой обязательной колонки задаём ширину
-    for enum, header in enumerate([data[0][0], *data[0][-3:]], 1):
-        all_requests.append({
-            "updateDimensionProperties": {"range": {"sheetId": worksheet.id,
-                                                    "dimension": "COLUMNS",
-                                                    "startIndex": col_map[header]['index'] - 1,
-                                                    "endIndex": col_map[header]['index']},
-                                          "properties": {"pixelSize": 125 if enum > 2 else 225},
-                                          "fields": "pixelSize"}})
+                                                                       "backgroundColor": {
+                                                                           "red": 0.69,
+                                                                           "green": 0.93,
+                                                                           "blue": 0.93
+                                                                       }}},
+                                        "fields": "userEnteredFormat(horizontalAlignment,verticalAlignment, "
+                                                  "wrapStrategy,backgroundColor)"}})
+    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+    #                                               "startRowIndex": 0,
+    #                                               "endRowIndex": 1},
+    #                                     "cell": {"userEnteredFormat": {"textFormat": {"fontSize": HEADER_FONT_SIZE,
+    #                                                                                   "bold": True},
+    #                                                                    "horizontalAlignment": "CENTER",
+    #                                                                    "verticalAlignment": "MIDDLE",
+    #                                                                    "wrapStrategy": "WRAP",
+    #                                                                    "backgroundColor": COLOR_HEADER}},
+    #                                     "fields": "userEnteredFormat(textFormat, horizontalAlignment, "
+    #                                               "verticalAlignment, wrapStrategy, backgroundColor)"}})
 
     # Для остальных колонок задаём ширину
     all_requests.append({"updateDimensionProperties": {"range": {"sheetId": worksheet.id,
                                                                  "dimension": "COLUMNS",
                                                                  "startIndex": 1,
                                                                  "endIndex": col_total_stock_i},
-                                                       "properties": {"pixelSize": 110},
+                                                       "properties": {"pixelSize": 90},
                                                        "fields": "pixelSize"}})
+
+    # Для каждой обязательной колонки задаём ширину
+    for enum, header in enumerate([*data[1][0:2], *data[1][-5:]], 1):
+        size = {1: 170,
+                2: 130}
+        all_requests.append({
+            "updateDimensionProperties": {"range": {"sheetId": worksheet.id,
+                                                    "dimension": "COLUMNS",
+                                                    "startIndex": col_map[header]['index'] - 1,
+                                                    "endIndex": col_map[header]['index']},
+                                          "properties": {"pixelSize": size.get(enum, 100)},
+                                          "fields": "pixelSize"}})
 
     # Задаём стиль границ для заголовков
     all_requests.append({"updateBorders": {"range": {"sheetId": worksheet.id,
-                                                     "startRowIndex": 0,
-                                                     "endRowIndex": 1},
-                                           "top": BORDER_STYLE,
+                                                     "startRowIndex": 1,
+                                                     "endRowIndex": 2},
+                                           # "top": BORDER_STYLE,
                                            "bottom": BORDER_STYLE,
                                            "left": BORDER_STYLE,
                                            "right": BORDER_STYLE,
-                                           "innerHorizontal": BORDER_STYLE,
+                                           # "innerHorizontal": BORDER_STYLE,
                                            "innerVertical": BORDER_STYLE}})
 
-    # Закрепляем заголовки и первые 2 столбеца
+    # Закрепляем заголовки и первые 1 столбеца
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
-                                                                  "gridProperties": {"frozenRowCount": 1}},
+                                                                  "gridProperties": {"frozenRowCount": 2}},
                                                    "fields": "gridProperties.frozenRowCount"}})
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
-                                                                  "gridProperties": {"frozenColumnCount": 2}},
+                                                                  "gridProperties": {"frozenColumnCount": 1}},
                                                    "fields": "gridProperties.frozenColumnCount"}})
 
     # Задаём высоту первой строки
     all_requests.append({"updateDimensionProperties": {"range": {"sheetId": worksheet.id,
                                                                  "dimension": "ROWS",
-                                                                 "startIndex": 0,
-                                                                 "endIndex": 1},
-                                                       "properties": {"pixelSize": 70},
+                                                                 "startIndex": 1,
+                                                                 "endIndex": 2},
+                                                       "properties": {"pixelSize": 37},
                                                        "fields": "pixelSize"}})
 
     # Выравниваем по центру данные
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                  "startRowIndex": 1,
+                                                  "startRowIndex": 2,
+                                                  "endColumnIndex": 1},
+                                        "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER"}},
+                                        "fields": "userEnteredFormat(horizontalAlignment)"}})
+    all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+                                                  "startRowIndex": 2,
+                                                  "startColumnIndex": 2,
                                                   "endColumnIndex": col_total_stock_i},
                                         "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER"}},
                                         "fields": "userEnteredFormat(horizontalAlignment)"}})
 
     # Задаём цвет для первых двух колонок
-    all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                  "startRowIndex": 1,
-                                                  "startColumnIndex": 0,
-                                                  "endColumnIndex": 2},
-                                        "cell": {"userEnteredFormat": {"backgroundColor": COLOR_FIRST_COLUMN}},
-                                        "fields": "userEnteredFormat.backgroundColor"}})
+    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+    #                                               "startRowIndex": 1,
+    #                                               "startColumnIndex": 0,
+    #                                               "endColumnIndex": 2},
+    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_FIRST_COLUMN}},
+    #                                     "fields": "userEnteredFormat.backgroundColor"}})
 
     # Для каждого маркетплейса группируем магазины
     for marketplace in marketplaces:
@@ -180,56 +201,77 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                                            "properties": {"hiddenByUser": True},
                                                            "fields": "hiddenByUser"}})
 
-        indexes = [val['index'] for name, val in col_map.items() if marketplace in name]
+        # indexes = [val['index'] for name, val in col_map.items() if marketplace in name]
 
         # Задаём цвет для колонок с данными по магазинам
-        all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                      "startRowIndex": 1,
-                                                      "startColumnIndex": min(indexes) - 1,
-                                                      "endColumnIndex": max(indexes)},
-                                            "cell": {"userEnteredFormat": {
-                                                "backgroundColor": COLOR_MARKETS_DATA.get(marketplace,
-                                                                                          COLOR_MARKET_DATA)}},
-                                            "fields": "userEnteredFormat.backgroundColor"}})
-        all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                      "startRowIndex": 0,
-                                                      "endRowIndex": 1,
-                                                      "startColumnIndex": min(indexes) - 1,
-                                                      "endColumnIndex": max(indexes)},
-                                            "cell": {"userEnteredFormat": {
-                                                "backgroundColor": COLOR_HEADER_MARKETS.get(marketplace,
-                                                                                            COLOR_HEADER)}},
-                                            "fields": "userEnteredFormat.backgroundColor"}})
+        # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+        #                                               "startRowIndex": 1,
+        #                                               "startColumnIndex": min(indexes) - 1,
+        #                                               "endColumnIndex": max(indexes)},
+        #                                     "cell": {"userEnteredFormat": {
+        #                                         "backgroundColor": COLOR_MARKETS_DATA.get(marketplace,
+        #                                                                                   COLOR_MARKET_DATA)}},
+        #                                     "fields": "userEnteredFormat.backgroundColor"}})
+        # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+        #                                               "startRowIndex": 0,
+        #                                               "endRowIndex": 1,
+        #                                               "startColumnIndex": min(indexes) - 1,
+        #                                               "endColumnIndex": max(indexes)},
+        #                                     "cell": {"userEnteredFormat": {
+        #                                         "backgroundColor": COLOR_HEADER_MARKETS.get(marketplace,
+        #                                                                                     COLOR_HEADER)}},
+        #                                     "fields": "userEnteredFormat.backgroundColor"}})
 
-    # Задаём цвет для колонок с итоговыми данными
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 0,
-                                                  "endRowIndex": 1,
-                                                  "startColumnIndex": col_total_i - 1,
-                                                  "endColumnIndex": col_total_stock_i},
-                                        "cell": {"userEnteredFormat": {"backgroundColor": COLOR_HEADER_TOTAL}},
+                                                  "startColumnIndex": 2,
+                                                  "endColumnIndex": col_total_i - 1},
+                                        "cell": {"userEnteredFormat": {"backgroundColor": {"red": 0.72,
+                                                                                           "green": 0.88,
+                                                                                           "blue": 0.8}}},
                                         "fields": "userEnteredFormat.backgroundColor"}})
-    all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                  "startRowIndex": 1,
-                                                  "startColumnIndex": col_total_i - 1,
-                                                  "endColumnIndex": col_total_stock_i},
-                                        "cell": {"userEnteredFormat": {"backgroundColor": COLOR_TOTAL_COLUMNS}},
-                                        "fields": "userEnteredFormat.backgroundColor"}})
+
+    # Задаём цвет для колонок с итоговыми данными
+    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+    #                                               "startRowIndex": 0,
+    #                                               "endRowIndex": 1,
+    #                                               "startColumnIndex": col_total_i - 1,
+    #                                               "endColumnIndex": col_total_stock_i},
+    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_HEADER_TOTAL}},
+    #                                     "fields": "userEnteredFormat.backgroundColor"}})
+    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+    #                                               "startRowIndex": 1,
+    #                                               "startColumnIndex": col_total_i - 1,
+    #                                               "endColumnIndex": col_total_stock_i},
+    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_TOTAL_COLUMNS}},
+    #                                     "fields": "userEnteredFormat.backgroundColor"}})
 
     # Задаём цвет и границы для строк с категориями
     for idx, value in enumerate(data, 1):
-        if len(value) == 1:
-            all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-                                                          "startRowIndex": idx - 1,
-                                                          "endRowIndex": idx},
-                                                "cell": {
-                                                    "userEnteredFormat": {"backgroundColor": CATEGORY_ROW_COLOR}},
-                                                "fields": "userEnteredFormat.backgroundColor"}})
+        if len(value) == 1 and idx != 1:
+            # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+            #                                               "startRowIndex": idx - 1,
+            #                                               "endRowIndex": idx},
+            #                                     "cell": {
+            #                                         "userEnteredFormat": {"backgroundColor": CATEGORY_ROW_COLOR}},
+            #                                     "fields": "userEnteredFormat.backgroundColor"}})
             all_requests.append({"updateBorders": {"range": {"sheetId": worksheet.id,
                                                              "startRowIndex": idx - 1,
                                                              "endRowIndex": idx},
                                                    "top": BORDER_STYLE,
                                                    "bottom": BORDER_STYLE}})
+
+    all_requests.append({
+        "addConditionalFormatRule": {"rule": {"ranges": [{"sheetId": worksheet.id,
+                                                          "startRowIndex": 2,
+                                                          "startColumnIndex": col_map["Оборачиваемость"]["index"] - 1,
+                                                          "endColumnIndex": col_map["Оборачиваемость"]["index"]}],
+                                              "booleanRule": {"condition": {"type": "NUMBER_LESS_THAN_EQ",
+                                                                            "values": [{"userEnteredValue": "30"}]},
+                                                              "format": {"backgroundColor": {"red": 0.96,
+                                                                                             "green": 0.8,
+                                                                                             "blue": 0.8}}}},
+                                     "index": 0}})
 
     # Маркируем новую страницу цветом
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
@@ -257,7 +299,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     spreadsheet = initialize_google_sheet()
 
     # Список данных для таблицы
-    data = []
+    data = [[f'{from_date.isoformat()}']]
 
     worksheet = spreadsheet.worksheet(sheet_name)
 
@@ -289,7 +331,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
             vendors.append(vendor)
 
         # Формирование списка магазинов
-        market = f"{order.client.name_company}\n{order.client.marketplace}"
+        market = f"{order.client.marketplace}\n{order.client.name_company.split()[0]}".upper()
         if market not in markets:
             markets.append(market)
 
@@ -298,18 +340,18 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         data_map[vendor][market] = order.orders_count
 
     # Сортировка магазинов по маркетплейсу и названию
-    markets.sort(key=lambda x: (x.split()[-1], x.split()[0]))
+    markets.sort(key=lambda x: (x.split()[0], x.split()[-1]))
 
     # Формирование строк данных
-    for i, vendor in enumerate(vendors, 1):
+    for i, vendor in enumerate(vendors, 2):
         row = [vendor]
 
         # Строка с заголовками
-        if i == 1:
+        if i == 2:
             row.append('Ссылка')
             for market in markets:
                 # Формировние списков маркетплейсов
-                marketplace = market.split()[-1]
+                marketplace = market.split()[0]
                 if marketplace not in row:
                     marketplaces.append(marketplace)
                     row.append(marketplace)
@@ -334,13 +376,14 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         # Добавляем ссылку на товар
         link = links.get(vendor.lower().strip(), '')
         if link:
-            row.append(f'=ГИПЕРССЫЛКА("{link}";"ССЫЛКА")')
+            row.append(link)
+            # row.append(f'=ГИПЕРССЫЛКА("{link}";"ССЫЛКА")')
         else:
             row.append('')
 
         # Строки с данными
         for market in markets:
-            marketplace = market.split()[-1]
+            marketplace = market.split()[0]
             # Для каждого маркетплейса добавляем формулу суммы данных по магазинам
             if len(row) + 1 == col_map.get(marketplace, {}).get('index', 0):
                 # Получаем буквенные индексы первого и последнего магазина по маркетплейсу
@@ -364,12 +407,12 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         prev_sheet = (from_date - timedelta(days=1)).isoformat()
         row.append(
             f"""=ЕСЛИОШИБКА(ВПР(A{i};ДВССЫЛ("'{prev_sheet}'!$A$1:$WW$1000");"""
-            f"""ПОИСКПОЗ({col_total_stock_l}1;ДВССЫЛ("'{prev_sheet}'!$A$1:$WW$1");0);ЛОЖЬ);0)-{col_total}{i}""")
+            f"""ПОИСКПОЗ({col_total_stock_l}2;ДВССЫЛ("'{prev_sheet}'!$A$1:$WW$1");0);ЛОЖЬ);0)-{col_total}{i}""")
 
         # Добавляем данные из шаблона из столбцов Комментарий, Кол-во, Дата прихода
-        row.append(next(iter(comments[i - 1:i]), ''))
-        row.append(next(iter(counts[i - 1:i]), ''))
-        row.append(next(iter(delivery_dates[i - 1:i]), ''))
+        row.append(next(iter(comments[i - 2:i - 1]), ''))
+        row.append(next(iter(counts[i - 2:i - 1]), ''))
+        row.append(next(iter(delivery_dates[i - 2:i - 1]), ''))
 
         data.append(row)
 
