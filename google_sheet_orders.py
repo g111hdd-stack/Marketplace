@@ -407,7 +407,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         prev_sheet = (from_date - timedelta(days=1)).isoformat()
         row.append(
             f"""=ЕСЛИОШИБКА(ВПР(A{i};ДВССЫЛ("'{prev_sheet}'!$A$1:$WW$1000");"""
-            f"""ПОИСКПОЗ({col_total_stock_l}2;ДВССЫЛ("'{prev_sheet}'!$A$1:$WW$1");0);ЛОЖЬ);0)-{col_total}{i}""")
+            f"""ПОИСКПОЗ({col_total_stock_l}2;ДВССЫЛ("'{prev_sheet}'!$A$2:$WW$2");0);ЛОЖЬ);0)-{col_total}{i}""")
 
         # Добавляем данные из шаблона из столбцов Комментарий, Кол-во, Дата прихода
         row.append(next(iter(comments[i - 2:i - 1]), ''))
