@@ -61,6 +61,9 @@ class WBAsyncEngine:
                             if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
                                 logger.info(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
                                 return None
+                            elif r.get('detail') == 'Authorization error':
+                                logger.info(f"Получен ответ от {url} ({response.status}) {r.get('detail')}")
+                                return None
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
                             await asyncio.sleep(60)

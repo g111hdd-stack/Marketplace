@@ -98,6 +98,9 @@ def process_file(db_conn: DbConnection, path_file: str):
                 else:
                     print('Not price')
                     continue
+                for s in ['/xs', '/s', '/m', '/м', '/l', '/xl', '/2xl']:
+                    if vendor_code.lower().endswith(s):
+                        vendor_code = '/'.join(vendor_code.split('/')[:-1])
                 result_data.append(DataSelfPurchase(client_id=client_id,
                                                     order_date=order_date,
                                                     accrual_date=accrual_date,
