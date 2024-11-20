@@ -1,5 +1,7 @@
 import os
 import time
+from copy import copy
+
 import gspread
 import logging
 
@@ -22,22 +24,11 @@ PATH_JSON = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178
 PROJECT = 'Ежедневные заказы'
 
 # Цветовые схемы
-COLOR_HEADER = {"red": 0.75, "green": 0.85, "blue": 0.9}
-COLOR_HEADER_MARKETS = {"Ozon": {"red": 0.7, "green": 0.8, "blue": 0.9},
-                        "WB": {"red": 0.8, "green": 0.7, "blue": 0.9},
-                        "Yandex": {"red": 0.9, "green": 0.8, "blue": 0.7}}
-COLOR_HEADER_TOTAL = {"red": 0.65, "green": 0.75, "blue": 0.65}
-COLOR_FIRST_COLUMN = {"red": 0.75, "green": 0.85, "blue": 0.9}
-COLOR_MARKETS_DATA = {"Ozon": {"red": 0.91, "green": 0.96, "blue": 1.0},
-                      "WB": {"red": 0.96, "green": 0.91, "blue": 1.0},
-                      "Yandex": {"red": 1.0, "green": 0.96, "blue": 0.91}}
-COLOR_MARKET_DATA = {"red": 0.91, "green": 0.96, "blue": 0.91}
-COLOR_TOTAL_COLUMNS = {"red": 0.82, "green": 0.93, "blue": 0.82}
-CATEGORY_ROW_COLOR = {"red": 0.88, "green": 0.88, "blue": 0.88}
+COLOR_HEADER = {"red": 0.69, "green": 0.93, "blue": 0.93}
+COLOR_MARKET_DATA = {"red": 0.72, "green": 0.88, "blue": 0.8}
+COLOR_FORMAT = {"red": 0.96, "green": 0.8, "blue": 0.8}
 TAB_COLOR_NEW_SHEET = {"red": 0, "green": 1, "blue": 0.33}
 TAB_COLOR_COPY_SHEET = {"red": 1, "green": 1, "blue": 0}
-TEXT_ROTATION_ANGLE = 40
-HEADER_FONT_SIZE = 12
 BORDER_STYLE = {"style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0}}
 
 
@@ -89,37 +80,23 @@ def hide_and_rename_existing_sheet(spreadsheet: gspread.Spreadsheet, worksheet_n
 
 
 def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet, data: list, col_map: dict,
-                 marketplaces: list) -> None:
+                 cat_map: dict, marketplaces: list) -> None:
     all_requests = []  # Список запросов на форматирование
 
     col_total_i = col_map["Итого"]["index"]
     col_total_stock_i = col_map["Итого остаток"]["index"]
 
-    # Форматируем заголовки задаём шрифт, цвет и выравниваем по середине
+    # Форматируем заголовки задаём цвет и выравниваем по середине
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 0,
-                                                  "endRowIndex": 2},
+                                                  "endRowIndex": 2,
+                                                  "endColumnIndex": len(data[1])},
                                         "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER",
                                                                        "verticalAlignment": "MIDDLE",
                                                                        "wrapStrategy": "WRAP",
-                                                                       "backgroundColor": {
-                                                                           "red": 0.69,
-                                                                           "green": 0.93,
-                                                                           "blue": 0.93
-                                                                       }}},
+                                                                       "backgroundColor": COLOR_HEADER}},
                                         "fields": "userEnteredFormat(horizontalAlignment,verticalAlignment, "
                                                   "wrapStrategy,backgroundColor)"}})
-    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-    #                                               "startRowIndex": 0,
-    #                                               "endRowIndex": 1},
-    #                                     "cell": {"userEnteredFormat": {"textFormat": {"fontSize": HEADER_FONT_SIZE,
-    #                                                                                   "bold": True},
-    #                                                                    "horizontalAlignment": "CENTER",
-    #                                                                    "verticalAlignment": "MIDDLE",
-    #                                                                    "wrapStrategy": "WRAP",
-    #                                                                    "backgroundColor": COLOR_HEADER}},
-    #                                     "fields": "userEnteredFormat(textFormat, horizontalAlignment, "
-    #                                               "verticalAlignment, wrapStrategy, backgroundColor)"}})
 
     # Для остальных колонок задаём ширину
     all_requests.append({"updateDimensionProperties": {"range": {"sheetId": worksheet.id,
@@ -144,12 +121,11 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
     # Задаём стиль границ для заголовков
     all_requests.append({"updateBorders": {"range": {"sheetId": worksheet.id,
                                                      "startRowIndex": 1,
-                                                     "endRowIndex": 2},
-                                           # "top": BORDER_STYLE,
+                                                     "endRowIndex": 2,
+                                                     "endColumnIndex": len(data[1])},
                                            "bottom": BORDER_STYLE,
                                            "left": BORDER_STYLE,
                                            "right": BORDER_STYLE,
-                                           # "innerHorizontal": BORDER_STYLE,
                                            "innerVertical": BORDER_STYLE}})
 
     # Закрепляем заголовки и первые 1 столбеца
@@ -181,14 +157,6 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                         "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER"}},
                                         "fields": "userEnteredFormat(horizontalAlignment)"}})
 
-    # Задаём цвет для первых двух колонок
-    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-    #                                               "startRowIndex": 1,
-    #                                               "startColumnIndex": 0,
-    #                                               "endColumnIndex": 2},
-    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_FIRST_COLUMN}},
-    #                                     "fields": "userEnteredFormat.backgroundColor"}})
-
     # Для каждого маркетплейса группируем магазины
     for marketplace in marketplaces:
         range_col = {"sheetId": worksheet.id,
@@ -201,82 +169,57 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                                            "properties": {"hiddenByUser": True},
                                                            "fields": "hiddenByUser"}})
 
-        # indexes = [val['index'] for name, val in col_map.items() if marketplace in name]
-
-        # Задаём цвет для колонок с данными по магазинам
-        # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-        #                                               "startRowIndex": 1,
-        #                                               "startColumnIndex": min(indexes) - 1,
-        #                                               "endColumnIndex": max(indexes)},
-        #                                     "cell": {"userEnteredFormat": {
-        #                                         "backgroundColor": COLOR_MARKETS_DATA.get(marketplace,
-        #                                                                                   COLOR_MARKET_DATA)}},
-        #                                     "fields": "userEnteredFormat.backgroundColor"}})
-        # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-        #                                               "startRowIndex": 0,
-        #                                               "endRowIndex": 1,
-        #                                               "startColumnIndex": min(indexes) - 1,
-        #                                               "endColumnIndex": max(indexes)},
-        #                                     "cell": {"userEnteredFormat": {
-        #                                         "backgroundColor": COLOR_HEADER_MARKETS.get(marketplace,
-        #                                                                                     COLOR_HEADER)}},
-        #                                     "fields": "userEnteredFormat.backgroundColor"}})
-
+    # Задаём цвет данным по магазинам
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 0,
+                                                  "endRowIndex": len(data),
                                                   "startColumnIndex": 2,
                                                   "endColumnIndex": col_total_i - 1},
-                                        "cell": {"userEnteredFormat": {"backgroundColor": {"red": 0.72,
-                                                                                           "green": 0.88,
-                                                                                           "blue": 0.8}}},
+                                        "cell": {"userEnteredFormat": {"backgroundColor": COLOR_MARKET_DATA}},
                                         "fields": "userEnteredFormat.backgroundColor"}})
-
-    # Задаём цвет для колонок с итоговыми данными
-    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-    #                                               "startRowIndex": 0,
-    #                                               "endRowIndex": 1,
-    #                                               "startColumnIndex": col_total_i - 1,
-    #                                               "endColumnIndex": col_total_stock_i},
-    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_HEADER_TOTAL}},
-    #                                     "fields": "userEnteredFormat.backgroundColor"}})
-    # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-    #                                               "startRowIndex": 1,
-    #                                               "startColumnIndex": col_total_i - 1,
-    #                                               "endColumnIndex": col_total_stock_i},
-    #                                     "cell": {"userEnteredFormat": {"backgroundColor": COLOR_TOTAL_COLUMNS}},
-    #                                     "fields": "userEnteredFormat.backgroundColor"}})
 
     # Задаём цвет и границы для строк с категориями
     for idx, value in enumerate(data, 1):
         if len(value) == 1 and idx != 1:
-            # all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
-            #                                               "startRowIndex": idx - 1,
-            #                                               "endRowIndex": idx},
-            #                                     "cell": {
-            #                                         "userEnteredFormat": {"backgroundColor": CATEGORY_ROW_COLOR}},
-            #                                     "fields": "userEnteredFormat.backgroundColor"}})
             all_requests.append({"updateBorders": {"range": {"sheetId": worksheet.id,
                                                              "startRowIndex": idx - 1,
-                                                             "endRowIndex": idx},
+                                                             "endRowIndex": idx,
+                                                             "endColumnIndex": len(data[1])},
                                                    "top": BORDER_STYLE,
                                                    "bottom": BORDER_STYLE}})
 
     all_requests.append({
         "addConditionalFormatRule": {"rule": {"ranges": [{"sheetId": worksheet.id,
                                                           "startRowIndex": 2,
+                                                          "endRowIndex": len(data),
                                                           "startColumnIndex": col_map["Оборачиваемость"]["index"] - 1,
                                                           "endColumnIndex": col_map["Оборачиваемость"]["index"]}],
                                               "booleanRule": {"condition": {"type": "NUMBER_LESS_THAN_EQ",
                                                                             "values": [{"userEnteredValue": "30"}]},
-                                                              "format": {"backgroundColor": {"red": 0.96,
-                                                                                             "green": 0.8,
-                                                                                             "blue": 0.8}}}},
+                                                              "format": {"backgroundColor": COLOR_FORMAT}}},
                                      "index": 0}})
 
     # Маркируем новую страницу цветом
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
                                                                   "tabColor": TAB_COLOR_NEW_SHEET},
                                                    "fields": "tabColor"}})
+
+    # Добавляем новые строки для дублей и группируем
+    for enum, (key, val) in enumerate(sorted(cat_map.items(), key=lambda x: x[0])):
+        all_requests.append({"insertDimension": {"range": {"sheetId": worksheet.id,
+                                                           "dimension": "ROWS",
+                                                           "startIndex": key + 1 + enum,
+                                                           "endIndex": key + 2 + enum},
+                                                 "inheritFromBefore": False}})
+        range_col = {"sheetId": worksheet.id,
+                     "dimension": "ROWS",
+                     "startIndex": key + 2 + enum,
+                     "endIndex": max(val['index_row']) + 2 + enum}
+        all_requests.append({"addDimensionGroup": {"range": range_col}})
+
+        all_requests.append({"updateDimensionProperties": {"range": range_col,
+                                                           "properties": {"hiddenByUser": True},
+                                                           "fields": "hiddenByUser"}})
 
     # Отправляем запрос на форматирование
     spreadsheet.batch_update({"requests": all_requests})
@@ -307,7 +250,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     hide_and_rename_existing_sheet(spreadsheet, worksheet_name)
 
     # Создаём новый лист
-    new_worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=10, cols=10)
+    new_worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=300, cols=45)
 
     # Сортируем листы для удобства
     reorder_sheets(spreadsheet=spreadsheet, pattern_name=sheet_name)
@@ -319,7 +262,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     delivery_dates = worksheet.col_values(4)
 
     markets = []  # Список магазинов
-    marketplaces = []  # Список маркетплейсов
+    marketplaces = ['OZON', 'YANDEX', 'WB']  # Список маркетплейсов
     data_map = {}  # Словарь для данных
     col_map = {}  # Словарь колонок с индексами
 
@@ -340,7 +283,9 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         data_map[vendor][market] = order.orders_count
 
     # Сортировка магазинов по маркетплейсу и названию
-    markets.sort(key=lambda x: (x.split()[0], x.split()[-1]))
+    markets.sort(key=lambda x: (marketplaces.index(x.split()[0]) if x.split()[0] in marketplaces else float('inf'),
+                                x.split()[0], x.split()[-1]))
+    marketplaces = []
 
     # Формирование строк данных
     for i, vendor in enumerate(vendors, 2):
@@ -377,7 +322,6 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         link = links.get(vendor.lower().strip(), '')
         if link:
             row.append(link)
-            # row.append(f'=ГИПЕРССЫЛКА("{link}";"ССЫЛКА")')
         else:
             row.append('')
 
@@ -401,7 +345,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
         col_total_stock_l = col_map["Итого остаток"]["letter"]
 
         # Добавляем формулу оборачиваемости
-        row.append(f'=ЕСЛИ({col_total}{i}=0; 0; ОКРУГЛ({col_total_stock_l}{i}/{col_total}{i}; 0))')
+        row.append(f'=ЕСЛИ({col_total}{i}=0;0;ОКРУГЛ({col_total_stock_l}{i}/{col_total}{i};0))')
 
         # Добавляем формулу итоговых остатков
         prev_sheet = (from_date - timedelta(days=1)).isoformat()
@@ -410,11 +354,58 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
             f"""ПОИСКПОЗ({col_total_stock_l}2;ДВССЫЛ("'{prev_sheet}'!$A$2:$WW$2");0);ЛОЖЬ);0)-{col_total}{i}""")
 
         # Добавляем данные из шаблона из столбцов Комментарий, Кол-во, Дата прихода
-        row.append(next(iter(comments[i - 2:i - 1]), ''))
-        row.append(next(iter(counts[i - 2:i - 1]), ''))
-        row.append(next(iter(delivery_dates[i - 2:i - 1]), ''))
+        if len(row) != 1:
+            row.append(next(iter(comments[i - 2:i - 1]), ''))
+            row.append(next(iter(counts[i - 2:i - 1]), ''))
+            row.append(next(iter(delivery_dates[i - 2:i - 1]), ''))
 
         data.append(row)
+
+    # Подсчёт данных по дублям
+    cat_map = {}
+    default = None
+
+    # Сбор информации по строкам с дублями
+    for index, row in enumerate(data[2:], 2):
+        if len(row) == 1 and 'дубли' in row[0].lower().split():
+            default = index
+            cat_map.setdefault(default, {'index_row': [], 'data': []})
+        elif len(row) == 1:
+            default = None
+        else:
+            if cat_map.get(default) is not None:
+                cat_map[default]['index_row'].append(index)
+
+    # Получение индексов столбцов с итогами
+    col_total_i = col_map['Итого']['index'] - 1
+    col_total_l = col_map['Итого']['letter']
+    col_turnover_i = col_map['Оборачиваемость']['index'] - 1
+    col_turnover_l = col_map['Оборачиваемость']['letter']
+    col_total_stock_i = col_map["Итого остаток"]["index"] - 1
+    col_total_stock_l = col_map["Итого остаток"]["letter"]
+
+    # Формирование данных по дублям
+    for enum, (key, val) in enumerate(cat_map.items(), 1):
+        indexes = val['index_row']
+        if len(indexes) > 1:
+            new_row = copy(data[min(indexes)])
+            for i, v in enumerate(new_row):
+                if i < 2 or i > col_total_stock_i:
+                    continue
+                elif i in [col_map[mp]['index'] - 1 for mp in marketplaces] + [col_total_i, col_total_i + 1]:
+                    new_row[i] = v.replace(f'{min(indexes) + 1}', f'{key + 1 + enum}')
+                elif i == col_total_stock_i:
+                    new_row[i] = v.replace(f'A{min(indexes) + 1}', f'A{key + 1 + enum}').replace(
+                        f'{col_total_l}{min(indexes) + 1}', f'{col_total_l}{key + 1 + enum}')
+                else:
+                    for idx in [i for i in indexes if i != min(indexes)]:
+                        new_row[i] += data[idx][i]
+            for idx in indexes:
+                for pos in range(col_total_stock_i, len(data[idx])):
+                    data[idx][pos] = ''
+            cat_map[key]['data'] = new_row
+        else:
+            cat_map.pop(key)
 
     # Записываем данные в гугл таблицу
     new_worksheet.update(range_name='A1', values=data, value_input_option=ValueInputOption("USER_ENTERED"))
@@ -424,7 +415,24 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
                  worksheet=new_worksheet,
                  data=data,
                  col_map=col_map,
+                 cat_map=cat_map,
                  marketplaces=marketplaces)
+
+    # Добавление данных по дублям
+    all_updates = []
+    for enum, (key, val) in enumerate(sorted(cat_map.items(), key=lambda x: x[0])):
+        indexes = val['index_row']
+        all_updates.append({"range": f"A{key + 2 + enum}", "values": [val['data']]})
+        all_updates.append({"range": f"{col_turnover_l}{min(indexes) + 2 + enum}:"
+                                     f"{col_turnover_l}{max(indexes) + 2 + enum}",
+                            "values": [[
+                                f'=ЕСЛИ({col_total_l}{idx + 2 + enum}=0;0;ОКРУГЛ('
+                                f'{col_total_stock_l}{min(indexes) + 1 + enum}/{col_total_l}{idx + 2 + enum};0))']
+                                for idx in indexes
+                            ]})
+
+    # Выполнение одного обновления для всех изменений
+    new_worksheet.batch_update(all_updates, value_input_option=ValueInputOption("USER_ENTERED"))
 
 
 def main(retries: int = 6) -> None:
