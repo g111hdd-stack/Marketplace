@@ -286,6 +286,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     markets.sort(key=lambda x: (marketplaces.index(x.split()[0]) if x.split()[0] in marketplaces else float('inf'),
                                 x.split()[0], x.split()[-1]))
     marketplaces = []
+    other = True
 
     # Формирование строк данных
     for i, vendor in enumerate(vendors, 2):
@@ -314,7 +315,9 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
             continue
 
         # Строки с категориями
-        if vendor.strip().lower() not in vendors_in_database:
+        if vendor.strip().lower() not in vendors_in_database and other:
+            if vendor == 'Остальное':
+                other = False
             data.append(row)
             continue
 
@@ -379,7 +382,6 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     # Получение индексов столбцов с итогами
     col_total_i = col_map['Итого']['index'] - 1
     col_total_l = col_map['Итого']['letter']
-    col_turnover_i = col_map['Оборачиваемость']['index'] - 1
     col_turnover_l = col_map['Оборачиваемость']['letter']
     col_total_stock_i = col_map["Итого остаток"]["index"] - 1
     col_total_stock_l = col_map["Итого остаток"]["letter"]
