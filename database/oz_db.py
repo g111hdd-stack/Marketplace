@@ -352,3 +352,23 @@ class OzDbConnection(DbConnection):
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_oz_bonus_entry(self, list_bonus: list[DataOzBonus]) -> None:
+        """
+            Добавление в базу данных записи о бонусах продавца.
+
+            Args:
+                list_bonus (list[DataOzBonus]): Список данных о бонусах продавца.
+        """
+        for row in list_bonus:
+            stmt = insert(OzBonus).values(
+                date=row.date,
+                client_id=row.client_id,
+                sku=row.sku,
+                vendor_code=row.vendor_code,
+                bonus=row.bonus
+            ).on_conflict_do_nothing(index_elements=['date', 'sku', 'vendor_code'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")

@@ -16,6 +16,7 @@ class DataOperation:
     sale: float
     quantities: int
     commission: Optional[float] = None
+    bonus: Optional[float] = None
 
 
 @dataclass

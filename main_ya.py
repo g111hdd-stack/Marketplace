@@ -101,7 +101,8 @@ async def get_operations(client_id: str, campaign_id: str, api_key: str, updated
                 vendor_code = item.shopSku
                 quantities = item.count
                 sku = str(item.marketSku)
-                sale = round(sum([price.total for price in item.prices]) / quantities, 2)
+                sale = round(sum([price.costPerItem for price in item.prices]), 2)
+                bonus = round(sum([price.costPerItem for price in item.prices if price.type != 'BUYER']), 2)
                 if item.details:
                     quantities_returned = 0
                     for detail in item.details:
@@ -118,7 +119,8 @@ async def get_operations(client_id: str, campaign_id: str, api_key: str, updated
                                                             posting_number=posting_number,
                                                             sku=sku,
                                                             sale=-sale,
-                                                            quantities=quantities_returned))
+                                                            quantities=quantities_returned,
+                                                            bonus=-bonus))
                 if quantities > 0:
                     list_operation.append(DataOperation(client_id=client_id,
                                                         accrual_date=accrual_date,
@@ -128,7 +130,8 @@ async def get_operations(client_id: str, campaign_id: str, api_key: str, updated
                                                         posting_number=posting_number,
                                                         sku=sku,
                                                         sale=sale,
-                                                        quantities=quantities))
+                                                        quantities=quantities,
+                                                        bonus=bonus))
         if not answer.result.paging.nextPageToken:
             break
 

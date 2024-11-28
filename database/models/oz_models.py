@@ -220,3 +220,19 @@ class OzStock(Base):
     __table_args__ = (
         UniqueConstraint('date', 'sku', 'size', name='oz_stocks_unique'),
     )
+
+
+class OzBonus(Base):
+    """Модель таблицы oz_bonus."""
+    __tablename__ = 'oz_bonus'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    bonus = Column(Numeric(precision=12, scale=2), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('date', 'sku', 'vendor_code', name='oz_bonus_unique'),
+    )

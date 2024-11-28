@@ -17,6 +17,7 @@ class YaMain(Base):
     sku = Column(String(length=255), nullable=False)
     sale = Column(Numeric(precision=12, scale=2), nullable=False)
     quantities = Column(Integer, nullable=False)
+    bonus = Column(Numeric(precision=12, scale=2), nullable=False)
 
     __table_args__ = (
         UniqueConstraint('accrual_date', 'client_id', 'type_of_transaction', 'posting_number', 'sku',

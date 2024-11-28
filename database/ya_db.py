@@ -42,11 +42,13 @@ class YaDbConnection(DbConnection):
                 delivery_schema=row.delivery_schema,
                 sku=row.sku,
                 sale=row.sale,
-                quantities=row.quantities
+                quantities=row.quantities,
+                bonus=row.bonus
             ).on_conflict_do_update(
                 index_elements=['accrual_date', 'client_id', 'type_of_transaction', 'posting_number', 'sku'],
                 set_={'sale': row.sale,
-                      'quantities': row.quantities}
+                      'quantities': row.quantities,
+                      'bonus': row.bonus}
             )
             self.session.execute(stmt)
         self.session.commit()

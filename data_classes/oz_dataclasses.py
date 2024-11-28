@@ -103,3 +103,12 @@ class DataOzStock:
     size: str
     quantity: int
     reserved: int
+
+
+@dataclass
+class DataOzBonus:
+    date: datetime.date
+    client_id: str
+    sku: str
+    vendor_code: str
+    bonus: float

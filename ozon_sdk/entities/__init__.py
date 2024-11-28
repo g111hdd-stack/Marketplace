@@ -15,3 +15,4 @@ from .posting_fbs_list import *
 from .product_info_discounted import *
 from .product_related_sku_get import *
 from .product_info_stocks import *
+from .finance_realization import *

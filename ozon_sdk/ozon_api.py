@@ -27,6 +27,7 @@ class OzonApi:
         self._product_info_discounted_api = self._api_factory.get_api(ProductInfoDiscountedResponse)
         self._product_related_sku_get_api = self._api_factory.get_api(ProductRelatedSkuGetResponse)
         self._product_info_stocks_api = self._api_factory.get_api(ProductInfoStocksResponse)
+        self._finance_realization_api = self._api_factory.get_api(FinanceRealizationResponse)
 
     async def get_finance_transaction_list(self, from_field: str, to: str, posting_number: str = "",
                                            operation_type: list[str] = None, transaction_type: str = 'all',
@@ -65,6 +66,18 @@ class OzonApi:
         )
         answer: FinanceTransactionListResponse = await self._finance_transaction_list_api.post(request)
 
+        return answer
+
+    async def get_finance_realization(self, month: int, year: int) -> FinanceRealizationResponse:
+        """
+            Отчёт о реализации доставленных и возвращённых товаров за месяц.
+
+            Args:
+                month (int): Месяц.
+                year (int): Год.
+        """
+        request = FinanceRealizationRequest(month=month, year=year)
+        answer: FinanceRealizationResponse = await self._finance_realization_api.post(request)
         return answer
 
     async def get_posting_fbs(self, posting_number: str, analytics_data: bool = False, barcodes: bool = False,

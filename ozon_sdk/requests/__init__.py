@@ -16,3 +16,4 @@ from .posting_fbs_list_requests import *
 from .product_info_discounted_request import *
 from .product_related_sku_get_request import *
 from .product_info_stocks_request import *
+from .finance_realization_request import *
