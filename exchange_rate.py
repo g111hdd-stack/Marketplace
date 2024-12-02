@@ -16,15 +16,14 @@ valutes = ['USD', 'CNY']
 url = 'https://www.cbr-xml-daily.ru/daily_json.js'
 
 proxies = {
-    'http': 'http://MetalScan:v4L2CKDr@176.113.82.161:2355',
-    'https': 'http://MetalScan:v4L2CKDr@176.113.82.161:2355'
+    'http': 'http://spare:kB3wia9z@176.113.83.95:7657',
+    'https': 'http://spare:kB3wia9z@176.113.83.95:7657'
 }
 
 try:
     response = requests.get(url, timeout=10, proxies=proxies)
     response.raise_for_status()
     data = response.json()
-    print(data)
 
     for valute in valutes:
         try:
@@ -34,7 +33,6 @@ try:
             logger.error(f"Ошибка: Валюта {valute} не найдена в данных")
         except (ValueError, TypeError):
             logger.error(f"Ошибка: Некорректное значение курса для {valute}")
-    print('123')
     db_conn.add_exchange_rate(list_rate=list_rate)
 except RequestException as e:
     logger.error(f"Ошибка при выполнении запроса: {e}")
