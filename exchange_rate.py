@@ -16,8 +16,7 @@ valutes = ['USD', 'CNY']
 url = 'https://www.cbr-xml-daily.ru/daily_json.js'
 
 try:
-    db_conn.start_db()
-    response = requests.get(url)
+    response = requests.get(url, timeout=10)
     response.raise_for_status()
     data = response.json()
 
