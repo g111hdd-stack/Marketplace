@@ -15,6 +15,11 @@ list_rate = []
 valutes = ['USD', 'CNY']
 url = 'https://www.cbr-xml-daily.ru/daily_json.js'
 
+proxies = {
+    'http': 'http://MetalScan:v4L2CKDr@176.113.82.161:2355',
+    'https': 'http://MetalScan:v4L2CKDr@176.113.82.161:2355'
+}
+
 try:
     response = requests.get(url, timeout=10)
     response.raise_for_status()
