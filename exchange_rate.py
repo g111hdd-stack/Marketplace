@@ -19,6 +19,7 @@ try:
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     data = response.json()
+    print(data)
 
     for valute in valutes:
         try:
@@ -28,6 +29,7 @@ try:
             logger.error(f"Ошибка: Валюта {valute} не найдена в данных")
         except (ValueError, TypeError):
             logger.error(f"Ошибка: Некорректное значение курса для {valute}")
+    print('123')
     db_conn.add_exchange_rate(list_rate=list_rate)
 except RequestException as e:
     logger.error(f"Ошибка при выполнении запроса: {e}")
