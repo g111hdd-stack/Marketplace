@@ -21,7 +21,7 @@ proxies = {
 }
 
 try:
-    response = requests.get(url, timeout=10)
+    response = requests.get(url, timeout=10, proxies=proxies)
     response.raise_for_status()
     data = response.json()
     print(data)
