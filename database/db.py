@@ -164,3 +164,15 @@ class DbConnection:
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_exchange_rate(self, list_rate: list[DataRate]) -> None:
+        for row in list_rate:
+            stmt = insert(ExchangeRate).values(
+                date=row.date,
+                currency=row.currency,
+                rate=row.rate
+            ).on_conflict_do_nothing(index_elements=['date', 'currency'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")

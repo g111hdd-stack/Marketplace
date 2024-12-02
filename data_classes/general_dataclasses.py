@@ -42,3 +42,10 @@ class DataOrder:
     client: "Client"
     vendor_code: str
     orders_count: float
+
+
+@dataclass
+class DataRate:
+    date: datetime.date
+    currency: str
+    rate: float

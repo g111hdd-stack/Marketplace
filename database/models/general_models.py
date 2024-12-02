@@ -53,3 +53,17 @@ class TypeOfTransaction(Base):
     __tablename__ = 'type_of_transaction'
 
     type_of_transaction = Column(String(length=100), primary_key=True)
+
+
+class ExchangeRate(Base):
+    """Модель таблицы exchange_rate."""
+    __tablename__ = 'exchange_rate'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    date = Column(Date, nullable=False)
+    currency = Column(String(length=100), nullable=False)
+    rate = Column(Numeric(precision=12, scale=4), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('date', 'currency', name='exchange_rate_unique'),
+    )
