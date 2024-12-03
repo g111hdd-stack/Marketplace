@@ -2,6 +2,8 @@ import asyncio
 import aiohttp
 import logging
 
+from config import PROXY
+
 logger = logging.getLogger(__name__)
 
 
@@ -10,6 +12,7 @@ class WBAsyncEngine:
         self.__headers = {
             'Authorization': api_key
         }
+        self.proxy_url = PROXY
 
     async def get(self, url: str, json: dict, params: dict, file: bool) -> dict:
         response = await self._perform_get_request(url, file, json, params)
@@ -25,7 +28,8 @@ class WBAsyncEngine:
                 try:
                     if params:
                         params = {k: v for k, v in params.items() if v is not None}
-                    async with session.get(url, json=json, params=params, ssl=False, timeout=120) as response:
+                    async with session.get(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
+                                           timeout=120) as response:
                         if response.status not in [200, 201, 204]:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
@@ -48,7 +52,8 @@ class WBAsyncEngine:
         async with await self._get_session() as session:
             while retry != 0:
                 try:
-                    async with session.post(url, json=json, params=params, ssl=False, timeout=120) as response:
+                    async with session.post(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
+                                            timeout=120) as response:
                         if response.content_type != 'application/json':
                             logger.info(f"Получен ответ от {url} (html)")
                             logger.error(f"Попытка повторного запроса.")
@@ -58,7 +63,8 @@ class WBAsyncEngine:
                             continue
                         if response.status not in [200, 204]:
                             r = await response.json()
-                            if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
+                            if r.get(
+                                    'error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
                                 logger.error(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
                                 return None
                             elif r.get('detail') == 'Authorization error':
