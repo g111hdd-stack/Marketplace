@@ -63,8 +63,7 @@ class WBAsyncEngine:
                             continue
                         if response.status not in [200, 204]:
                             r = await response.json()
-                            if r.get(
-                                    'error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
+                            if r.get('error') == 'некорректные параметры запроса: нет кампаний с корректными интервалами':
                                 logger.error(f"Получен ответ от {url} ({response.status}) {r.get('error')}")
                                 return None
                             elif r.get('detail') == 'Authorization error':

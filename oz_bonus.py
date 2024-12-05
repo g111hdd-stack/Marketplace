@@ -106,7 +106,7 @@ async def main_oz_services(retries: int = 6) -> None:
 
         clients = db_conn.get_clients(marketplace="Ozon")
 
-        for client in clients:
+        for client in clients[-2:]:
             try:
                 logger.info(f"Добавление в базу данных компании '{client.name_company}'")
                 await add_oz_bonus(db_conn=db_conn,

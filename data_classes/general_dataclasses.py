@@ -49,3 +49,13 @@ class DataRate:
     date: datetime.date
     currency: str
     rate: float
+
+
+@dataclass
+class DataOverseasPurchase:
+    accrual_date: datetime.date
+    vendor_code: str
+    quantities: int
+    price: float
+    log_cost: float
+    log_add_cost: float

@@ -48,6 +48,23 @@ class SelfPurchase(Base):
     )
 
 
+class OverseasPurchase(Base):
+    """Модель таблицы overseas_purchase."""
+    __tablename__ = 'overseas_purchase'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    accrual_date = Column(Date, nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    quantities = Column(Integer, nullable=False)
+    price = Column(Numeric(precision=12, scale=2), nullable=False)
+    log_cost = Column(Numeric(precision=12, scale=2), nullable=False)
+    log_add_cost = Column(Numeric(precision=12, scale=2), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('accrual_date', 'vendor_code', name='overseas_purchase_unique'),
+    )
+
+
 class TypeOfTransaction(Base):
     """Модель таблицы type_of_transaction."""
     __tablename__ = 'type_of_transaction'

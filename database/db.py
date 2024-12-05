@@ -166,6 +166,27 @@ class DbConnection:
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
+    def add_overseas_purchases(self, list_purchase: list[DataOverseasPurchase]) -> None:
+        for row in list_purchase:
+            stmt = insert(OverseasPurchase).values(
+                accrual_date=row.accrual_date,
+                vendor_code=row.vendor_code,
+                quantities=row.quantities,
+                price=row.price,
+                log_cost=row.log_cost,
+                log_add_cost=row.log_add_cost
+            ).on_conflict_do_update(
+                index_elements=['accrual_date', 'vendor_code'],
+                set_={'quantities': row.quantities,
+                      'price': row.price,
+                      'log_cost': row.log_cost,
+                      'log_add_cost': row.log_add_cost}
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
     def add_exchange_rate(self, list_rate: list[DataRate]) -> None:
         for row in list_rate:
             stmt = insert(ExchangeRate).values(

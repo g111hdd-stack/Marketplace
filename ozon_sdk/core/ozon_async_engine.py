@@ -62,6 +62,10 @@ class OzonAsyncEngine:
                     async with session.post(url, json=params, verify_ssl=False) as response:
                         if response.status in [404, 403]:
                             raise ClientError
+                        if response.status == 400:
+                            r = await response.json()
+                            if r.get('code', 0) == 3:
+                                raise ClientError(r.get('message', ''))
                         if response.status != 200:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
