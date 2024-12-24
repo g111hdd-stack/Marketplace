@@ -8,6 +8,7 @@ class SupplierOrders(BaseEntity):
     date: datetime = None
     lastChangeDate: datetime = None
     warehouseName: str = None
+    warehouseType: str = None
     countryName: str = None
     oblastOkrugName: str = None
     regionName: str = None

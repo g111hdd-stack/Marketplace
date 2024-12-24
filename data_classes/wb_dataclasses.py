@@ -147,6 +147,8 @@ class DataWBOrder:
     price: float
     is_cancel: bool
     cancel_date: datetime.date
+    warehouse: str
+    warehouse_type: str
 
 
 @dataclass

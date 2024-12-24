@@ -380,7 +380,9 @@ class WBDbConnection(DbConnection):
                 subject=row.subject,
                 price=row.price,
                 is_cancel=row.is_cancel,
-                cancel_date=row.cancel_date
+                cancel_date=row.cancel_date,
+                warehouse=row.warehouse,
+                warehouse_type=row.warehouse_type
             ).on_conflict_do_update(
                 index_elements=['order_date', 'sku', 'posting_number'],
                 set_={'vendor_code': row.vendor_code,
@@ -388,7 +390,9 @@ class WBDbConnection(DbConnection):
                       'subject': row.subject,
                       'price': row.price,
                       'is_cancel': row.is_cancel,
-                      'cancel_date': row.cancel_date}
+                      'cancel_date': row.cancel_date,
+                      'warehouse': row.warehouse,
+                      'warehouse_type': row.warehouse_type}
             )
             self.session.execute(stmt)
         self.session.commit()

@@ -534,8 +534,6 @@ async def main_oz_advert(retries: int = 6) -> None:
 
         if not readiness_check:
             for client in clients:
-                if client.name_company in ['Vayor', 'UniStellar']:
-                    continue
                 readiness_check[client.name_company] = check_func.copy()
 
         date_yesterday = (datetime.now() - timedelta(days=1)).date()

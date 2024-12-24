@@ -54,6 +54,8 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
         vendor_code = order.supplierArticle  # Артикул продукта
         sku = str(order.nmId)  # Артикул продукта внутри системы WB
         price = round(float(order.priceWithDisc), 2)  # Стоимость продажи товара
+        warehouse = order.warehouseName
+        warehouse_type = order.warehouseType
 
         # Добавление заказа в список
         list_orders.append(DataWBOrder(client_id=client_id,
@@ -65,7 +67,9 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
                                        posting_number=posting_number,
                                        price=price,
                                        is_cancel=order.isCancel,
-                                       cancel_date=cancel_date))
+                                       cancel_date=cancel_date,
+                                       warehouse=warehouse,
+                                       warehouse_type=warehouse_type))
 
     logger.info(f"Количество записей: {len(list_orders)}")
     db_conn.add_wb_orders(list_orders=list_orders)

@@ -218,6 +218,8 @@ class WBOrders(Base):
     price = Column(Numeric(precision=12, scale=2), nullable=False)
     is_cancel = Column(Boolean, nullable=True)
     cancel_date = Column(Date, nullable=True)
+    warehouse = Column(String(length=255), nullable=True)
+    warehouse_type = Column(String(length=255), nullable=True)
 
     __table_args__ = (
         UniqueConstraint('order_date', 'sku', 'posting_number', name='wb_orders_unique'),
