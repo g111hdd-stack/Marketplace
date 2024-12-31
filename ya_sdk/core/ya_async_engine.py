@@ -17,7 +17,8 @@ class YandexAsyncEngine:
     def __init__(self, api_key: str = ''):
         self._base_url = 'https://api.partner.market.yandex.ru'
         self.__headers = {
-            'Authorization': api_key
+            'Authorization': api_key,
+            'Api-Key': api_key
         }
 
     async def get(self, url: str, params: dict) -> dict:
@@ -73,5 +74,6 @@ class YandexAsyncEngine:
         session = aiohttp.ClientSession()
 
         session.headers["Authorization"] = 'Bearer ' + self.__headers['Authorization']
+        session.headers["Api-Key"] = self.__headers['Api-Key']
 
         return session
