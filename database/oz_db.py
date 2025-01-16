@@ -115,7 +115,7 @@ class OzDbConnection(DbConnection):
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
-    def add_oz_cards_products(self, client_id: str, list_card_product: list[DataOzProductCard]) -> None:
+    def add_oz_cards_products(self, list_card_product: list[DataOzProductCard]) -> None:
         """
             Обновление информации о карточках товаров.
 
@@ -125,7 +125,7 @@ class OzDbConnection(DbConnection):
         """
         for row in list_card_product:
             new = OzCardProduct(sku=row.sku,
-                                client_id=client_id,
+                                client_id=row.client_id,
                                 vendor_code=row.vendor_code,
                                 category=row.category,
                                 brand=row.brand,

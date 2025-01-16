@@ -14,6 +14,7 @@ class Client(Base):
     marketplace = Column(String(length=255), nullable=False)
     name_company = Column(String(length=255), nullable=False)
     entrepreneur = Column(String(length=255), nullable=False)
+    tax_type = Column(String(length=255), nullable=False)
 
 
 class CostPrice(Base):

@@ -93,7 +93,7 @@ class OzonAsyncEngine:
 class OzonPerformanceAsyncEngine(OzonAsyncEngine):
     def __init__(self, client_id: str = '', client_secret: str = ''):
         super().__init__()
-        self._base_url = 'https://performance.ozon.ru'
+        self._base_url = 'https://api-performance.ozon.ru'
         self.__headers = {}
         url = '/api/client/token'
         data = {

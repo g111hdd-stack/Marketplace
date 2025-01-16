@@ -154,7 +154,7 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
             price = round(float(item.old_price), 2)  # Цена товара
             discount_price = round(float(item.price), 2)  # Цена товара со скидкой
 
-            # Сбор информации для каждого артикула WB товара
+            # Сбор информации для каждого артикула Ozon товара
             for sku in [item.sku, item.fbo_sku, item.fbs_sku]:
                 if sku:
                     link = f"https://www.ozon.ru/product/{sku}"  # Ссылка на товар
@@ -168,7 +168,7 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
                                                                discount_price=discount_price))
 
     logger.info(f"Обновление информации о карточках товаров")
-    db_conn.add_oz_cards_products(client_id=client_id, list_card_product=list_card_product)
+    db_conn.add_oz_cards_products(list_card_product=list_card_product)
 
 
 async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, api_key: str,
@@ -476,7 +476,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
     db_conn.add_oz_statistics_adverts(list_statistics_advert=list_statistics_advert)
 
 readiness_check = {}
-check_func = {'cards': False, 'adverts': False, 'stat_cards': False, 'stat_adverts': False}
+check_func = {'cards': True, 'adverts': False, 'stat_cards': False, 'stat_adverts': False}
 
 
 async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterday: datetime.date):
@@ -498,7 +498,7 @@ async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterda
                               client_secret=performance.client_secret,
                               from_date=date_yesterday)
             readiness_check[client.name_company]['adverts'] = True
-            logger.info(f"{client.name_company} Сбор рекламных компаний")
+            logger.info(f"{client.name_company} Сбор рекламных компаний {client.name_company}")
 
         if not readiness_check[client.name_company]['stat_cards']:
             await add_statistics_card_products(db_conn=db_conn,
