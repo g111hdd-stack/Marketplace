@@ -387,9 +387,11 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     col_total_stock_l = col_map["Итого остаток"]["letter"]
 
     no_duplicates = []
+    n = 0
 
     # Формирование данных по дублям
     for enum, (key, val) in enumerate(cat_map.items(), 1):
+        enum -= n
         indexes = val['index_row']
         if len(indexes) > 1:
             new_row = copy(data[min(indexes)])
@@ -409,6 +411,7 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
                     data[idx][pos] = ''
             cat_map[key]['data'] = new_row
         else:
+            n += 1
             no_duplicates.append(key)
 
     for key in no_duplicates:
