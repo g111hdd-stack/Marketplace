@@ -386,6 +386,8 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     col_total_stock_i = col_map["Итого остаток"]["index"] - 1
     col_total_stock_l = col_map["Итого остаток"]["letter"]
 
+    no_duplicates = []
+
     # Формирование данных по дублям
     for enum, (key, val) in enumerate(cat_map.items(), 1):
         indexes = val['index_row']
@@ -407,7 +409,10 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
                     data[idx][pos] = ''
             cat_map[key]['data'] = new_row
         else:
-            cat_map.pop(key)
+            no_duplicates.append(key)
+
+    for key in no_duplicates:
+        cat_map.pop(key)
 
     # Записываем данные в гугл таблицу
     new_worksheet.update(range_name='A1', values=data, value_input_option=ValueInputOption("USER_ENTERED"))
@@ -453,8 +458,8 @@ def main(retries: int = 6) -> None:
         if retries > 0:
             time.sleep(60)
             main(retries=retries - 1)
-    except Exception as e:
-        logger.error(f'{e}')
+    # except Exception as e:
+    #     logger.error(f'{e}')
 
 
 if __name__ == "__main__":
