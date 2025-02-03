@@ -61,16 +61,25 @@ async def add_oz_bonus(db_conn: OzDbConnection, client_id: str, api_key: str) ->
                     break
 
         bonus = 0
+        amount = 0
+        bank_coinvestment = 0
+
         if row.delivery_commission:
             bonus += row.delivery_commission.bonus
+            amount += row.delivery_commission.amount
+            bank_coinvestment += row.delivery_commission.bank_coinvestment or 0
         if row.return_commission:
             bonus -= row.return_commission.bonus
+            amount -= row.return_commission.amount
+            bank_coinvestment -= row.return_commission.bank_coinvestment or 0
 
         list_bonus.append(DataOzBonus(date=from_date,
                                       client_id=client_id,
                                       sku=sku,
                                       vendor_code=vendor_code,
-                                      bonus=bonus))
+                                      bonus=bonus,
+                                      amount=amount,
+                                      bank_coinvestment=bank_coinvestment))
 
     # Агрегирование данных
     aggregate = {}
@@ -82,17 +91,23 @@ async def add_oz_bonus(db_conn: OzDbConnection, client_id: str, api_key: str) ->
             row.vendor_code,
         )
         if key in aggregate:
-            aggregate[key] += row.bonus
+            aggregate[key].append((row.bonus, row.amount, row.bank_coinvestment))
         else:
-            aggregate[key] = row.bonus
+            aggregate[key] = [(row.bonus, row.amount, row.bank_coinvestment)]
     list_bonus = []
-    for key, bonus in aggregate.items():
-        from_date, client_id, sku, vendor_code = key
-        list_bonus.append(DataOzBonus(date=from_date,
+    for key, value in aggregate.items():
+        field_date, client_id, sku, vendor_code = key
+        bonus = round(sum([val[0] for val in value]), 2)
+        amount = round(sum([val[1] for val in value]), 2)
+        bank_coinvestment = round(sum([val[2] for val in value]), 2)
+
+        list_bonus.append(DataOzBonus(date=field_date,
                                       client_id=client_id,
                                       sku=sku,
                                       vendor_code=vendor_code,
-                                      bonus=bonus))
+                                      bonus=bonus,
+                                      amount=amount,
+                                      bank_coinvestment=bank_coinvestment))
 
     logger.info(f'Количество записей: {len(list_bonus)}')
     db_conn.add_oz_bonus_entry(list_bonus=list_bonus)

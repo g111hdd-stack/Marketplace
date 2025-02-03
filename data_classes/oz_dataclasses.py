@@ -112,3 +112,5 @@ class DataOzBonus:
     sku: str
     vendor_code: str
     bonus: float
+    amount: float
+    bank_coinvestment: float

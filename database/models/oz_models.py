@@ -232,6 +232,9 @@ class OzBonus(Base):
     sku = Column(String(length=255), nullable=False)
     vendor_code = Column(String(length=255), nullable=False)
     bonus = Column(Numeric(precision=12, scale=2), nullable=False)
+    amount = Column(Numeric(precision=12, scale=2), nullable=False)
+    bank_coinvestment = Column(Numeric(precision=12, scale=2), nullable=False)
+    proc = Column(Numeric(precision=12, scale=2), nullable=False)
 
     __table_args__ = (
         UniqueConstraint('date', 'sku', 'vendor_code', name='oz_bonus_unique'),

@@ -367,7 +367,11 @@ class OzDbConnection(DbConnection):
                 client_id=row.client_id,
                 sku=row.sku,
                 vendor_code=row.vendor_code,
-                bonus=row.bonus
+                bonus=row.bonus,
+                amount=row.amount,
+                bank_coinvestment=row.bank_coinvestment,
+                proc=round(row.bonus / (row.bonus + row.amount + row.bank_coinvestment),
+                           2) if (row.bonus + row.amount + row.bank_coinvestment) else 0
             ).on_conflict_do_nothing(index_elements=['date', 'sku', 'vendor_code'])
             self.session.execute(stmt)
         self.session.commit()
