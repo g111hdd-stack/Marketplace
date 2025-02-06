@@ -45,6 +45,7 @@ class OzCardProduct(Base):
     link = Column(String(length=255), default=None, nullable=True)
     price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
     discount_price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
+    created_at = Column(Date)
 
 
 class OzStatisticCardProduct(Base):
@@ -237,5 +238,5 @@ class OzBonus(Base):
     proc = Column(Numeric(precision=12, scale=2), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('date', 'sku', 'vendor_code', name='oz_bonus_unique'),
+        UniqueConstraint('date', 'client_id', 'sku', 'vendor_code', name='oz_bonus_unique'),
     )

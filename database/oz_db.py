@@ -131,7 +131,8 @@ class OzDbConnection(DbConnection):
                                 brand=row.brand,
                                 link=row.link,
                                 price=row.price,
-                                discount_price=row.discount_price)
+                                discount_price=row.discount_price,
+                                created_at=row.created_at)
             self.session.merge(new)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
@@ -362,6 +363,10 @@ class OzDbConnection(DbConnection):
                 list_bonus (list[DataOzBonus]): Список данных о бонусах продавца.
         """
         for row in list_bonus:
+            denominator = row.bonus + row.amount + row.bank_coinvestment
+            proc = round(row.bonus / denominator, 2) if denominator and abs(denominator) > 1e-6 else 0
+            proc = min(max(proc, -10 ** 10 + 1), 10 ** 10 - 1)
+
             stmt = insert(OzBonus).values(
                 date=row.date,
                 client_id=row.client_id,
@@ -370,9 +375,8 @@ class OzDbConnection(DbConnection):
                 bonus=row.bonus,
                 amount=row.amount,
                 bank_coinvestment=row.bank_coinvestment,
-                proc=round(row.bonus / (row.bonus + row.amount + row.bank_coinvestment),
-                           2) if (row.bonus + row.amount + row.bank_coinvestment) else 0
-            ).on_conflict_do_nothing(index_elements=['date', 'sku', 'vendor_code'])
+                proc=proc
+            ).on_conflict_do_nothing(index_elements=['date', 'client_id', 'sku', 'vendor_code'])
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")

@@ -85,8 +85,6 @@ class ProductInfoListItem(BaseEntity):
     color_image: str = None
     created_at: datetime = None
     sku: int = None
-    fbo_sku: int = None
-    fbs_sku: int = None
     id_field: int = Field(default=None, alias='id')
     images: Optional[list[str]] = []
     primary_image: str = None
@@ -103,7 +101,6 @@ class ProductInfoListItem(BaseEntity):
     name: str = None
     offer_id: str = None
     old_price: str = None
-    premium_price: str = None
     price: str = None
     price_index: str = None
     price_indexes: Optional[PriceIndexes] = None

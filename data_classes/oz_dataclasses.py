@@ -14,6 +14,7 @@ class DataOzProductCard:
     link: str
     price: float
     discount_price: float
+    created_at: Optional[datetime.date] = None
 
 
 @dataclass

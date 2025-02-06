@@ -12,7 +12,7 @@ class OzonAPIFactory:
         FinanceTransactionListResponse: '/v3/finance/transaction/list',
         PostingFBSGetResponse: '/v3/posting/fbs/get',
         PostingFBOGetResponse: '/v2/posting/fbo/get',
-        ProductListResponse: '/v2/product/list',
+        ProductListResponse: '/v3/product/list',
         ProductInfoListResponse: '/v2/product/info/list',
         ProductsInfoAttributesResponse: '/v3/products/info/attributes',
         AnalyticsDataResponse: '/v1/analytics/data',

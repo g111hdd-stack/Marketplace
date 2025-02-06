@@ -153,19 +153,19 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
 
             price = round(float(item.old_price), 2)  # Цена товара
             discount_price = round(float(item.price), 2)  # Цена товара со скидкой
+            created_at = item.created_at.date()
 
             # Сбор информации для каждого артикула Ozon товара
-            for sku in [item.sku, item.fbo_sku, item.fbs_sku]:
-                if sku:
-                    link = f"https://www.ozon.ru/product/{sku}"  # Ссылка на товар
-                    list_card_product.append(DataOzProductCard(sku=str(sku),
-                                                               client_id=client_id,
-                                                               vendor_code=vendor_code,
-                                                               brand=brand,
-                                                               category=category,
-                                                               link=link,
-                                                               price=price,
-                                                               discount_price=discount_price))
+            link = f"https://www.ozon.ru/product/{item.sku}"  # Ссылка на товар
+            list_card_product.append(DataOzProductCard(sku=str(item.sku),
+                                                       client_id=client_id,
+                                                       vendor_code=vendor_code,
+                                                       brand=brand,
+                                                       category=category,
+                                                       link=link,
+                                                       price=price,
+                                                       discount_price=discount_price,
+                                                       created_at=created_at))
 
     logger.info(f"Обновление информации о карточках товаров")
     db_conn.add_oz_cards_products(list_card_product=list_card_product)

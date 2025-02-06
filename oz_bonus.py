@@ -113,7 +113,7 @@ async def add_oz_bonus(db_conn: OzDbConnection, client_id: str, api_key: str) ->
     db_conn.add_oz_bonus_entry(list_bonus=list_bonus)
 
 
-async def main_oz_services(retries: int = 6) -> None:
+async def main_oz_bonus(retries: int = 6) -> None:
     try:
         db_conn = OzDbConnection()
 
@@ -134,12 +134,12 @@ async def main_oz_services(retries: int = 6) -> None:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
             await asyncio.sleep(10)
-            await main_oz_services(retries=retries - 1)
+            await main_oz_bonus(retries=retries - 1)
     except Exception as e:
         logger.error(f'{e}')
 
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main_oz_services())
+    loop.run_until_complete(main_oz_bonus())
     loop.stop()
