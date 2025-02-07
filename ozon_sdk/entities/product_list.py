@@ -16,7 +16,7 @@ class ProductListItem(BaseEntity):
     is_discounted: bool = None
     offer_id: str = None
     product_id: int = None
-    quants: Optional[ProductListItemQuants] = None
+    quants: Optional[list[ProductListItemQuants]] = []
 
 
 class ProductList(BaseEntity):
