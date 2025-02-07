@@ -64,7 +64,8 @@ async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
     return list_campaigns
 
 
-async def report_generate(client_id: str, api_key: str, campaign_id: str, date_now: date) -> str or None:
+async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCampaigns],
+                          date_now: date) -> str or None:
     date_from = date_now - timedelta(days=7)
     date_to = date_now - timedelta(days=1)
 
@@ -75,8 +76,9 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, date_n
                               'или уточните условия запроса.',
                  'RESOURCE_NOT_FOUND': 'Для такого отчета не удалось найти часть сущностей.'}
     api_user = YandexApi(api_key=api_key)
+    campaign_ids = [int(campaign.campaign_id) for campaign in campaigns]
     answer = await api_user.get_reports_united_marketplace_services_generate(business_id=int(client_id),
-                                                                             campaign_ids=[int(campaign_id)],
+                                                                             campaign_ids=campaign_ids,
                                                                              date_from=date_from.isoformat(),
                                                                              date_to=date_to.isoformat())
     if answer:
@@ -115,17 +117,19 @@ async def report_generate(client_id: str, api_key: str, campaign_id: str, date_n
         logger.error(f"Не получилось отправить запрос")
 
     if link_report is not None:
-        path_file = download_file(url=link_report, file_name=f'{campaign_id}_{date_to}')
+        path_file = download_file(url=link_report, file_name=f'{client_id}_{date_to}')
         return path_file
     else:
         return None
 
 
-async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
+async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaigns]) -> list[DataYaReport]:
+    name_campaigns = {campaign.name: campaign.campaign_id for campaign in campaigns}
     headers_dict = {'client_id': {'ID бизнес-аккаунта': None},
+                    'campaign_name': {'Названия магазинов': None},
                     'posting_number': {'Номер заказа': None},
                     'operation_date': {'Дата оказания услуги': None,
-                                     'Дата и время оказания услуги': None},
+                                       'Дата и время оказания услуги': None},
                     'service': {'Услуга': None},
                     'vendor_code': {'Ваш SKU': None},
                     'cost': {'Стоимость услуги (': None,
@@ -160,11 +164,6 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                    'Расширенный доступ к сервисам',  # new pass
                    'Складская обработка'  # new
                    ]
-
-    if '/' in path_file:
-        campaign_id = path_file.split('/')[-1].split('_')[0]
-    else:
-        campaign_id = path_file.split('\\')[-1].split('_')[0]
 
     try:
         excel_file = pd.ExcelFile(path_file)
@@ -205,6 +204,7 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                                                     row_data[metric][header] = row[column]
 
                             client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v), None))
+                            campaign_name = next((v for v in row_data.get('campaign_name', {}).values() if v), None)
                             posting_number = convert_id(next((v for v in row_data.get('posting_number', {}).values() if v), None))
                             operation_date = next((v for v in row_data.get('operation_date', {}).values() if v), None)
                             cost = next((v for v in row_data.get('cost', {}).values() if v), None)
@@ -216,7 +216,7 @@ async def add_yandex_report_entry(path_file: str) -> list[DataYaReport]:
                             cost = round(float(cost), 2)
 
                             entry = DataYaReport(client_id=client_id,
-                                                 campaign_id=campaign_id,
+                                                 campaign_id=name_campaigns[campaign_name],
                                                  date=operation_date,
                                                  posting_number=posting_number,
                                                  operation_type=operation_type,
@@ -278,20 +278,25 @@ async def main_yandex_report(retries: int = 6) -> None:
             list_campaigns = await get_campaign_ids(api_key=api_key)
             db_conn.add_ya_campaigns(list_campaigns=list_campaigns)
 
+            client_dict = {}
+            for campaign in list_campaigns:
+                client_dict.setdefault(campaign.client_id, [])
+                client_dict[campaign.client_id].append(campaign)
+
             date_now = date.today()
 
-            for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
+            for client_id, campaigns in client_dict.items():
 
-                client = db_conn.get_client(client_id=campaign.client_id)
+                client = db_conn.get_client(client_id=client_id)
 
                 logger.info(f"За дату {date_now - timedelta(days=1)}")
-                logger.info(f"Добавление в базу данных компании '{client.name_company}' магазина '{campaign.name}'")
-                path_file = await report_generate(client_id=client.client_id,
-                                                  campaign_id=campaign.campaign_id,
+                logger.info(f"Добавление в базу данных компании '{client.name_company}'")
+                path_file = await report_generate(client_id=client_id,
+                                                  campaigns=campaigns,
                                                   api_key=client.api_key,
                                                   date_now=date_now)
                 if path_file is not None:
-                    list_reports = await add_yandex_report_entry(path_file=path_file)
+                    list_reports = await add_yandex_report_entry(path_file=path_file, campaigns=campaigns)
                     db_conn.add_ya_report(list_reports=list_reports)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
