@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint
 
 from .general_models import Base
 
@@ -17,6 +17,10 @@ class SbMain(Base):
     sku = Column(String(length=255), nullable=False)
     sale = Column(Numeric(precision=12, scale=2), nullable=False)
     quantities = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('accrual_date', 'type_of_transaction', 'posting_number', 'sku', name='sb_main_table_unique'),
+    )
 
 
 class SbOrders(Base):

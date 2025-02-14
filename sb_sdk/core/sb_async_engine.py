@@ -46,6 +46,9 @@ class SberAsyncEngine:
         async with await self._get_session() as session:
             while retry != 0:
                 async with session.post(url, json=params) as response:
+                    # r = await response.json()
+                    # print(r)
+                    # print(response.status)
                     if response.status != 200:
                         logger.info(f"Получен ответ от {url} ({response.status})")
                         logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")

@@ -7,6 +7,7 @@ class ProductsInfoAttributesFilter(BaseRequest):
     """Фильтр по товарам."""
     offer_id: Optional[list[str]] = []
     product_id: Optional[list[str]] = []
+    sku: Optional[list[str]] = []
     visibility: Optional[str] = None
 
 

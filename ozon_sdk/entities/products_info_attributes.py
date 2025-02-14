@@ -22,23 +22,18 @@ class ProductsInfoAttributesAttributes(BaseEntity):
     attributes: Optional[list[ProductsInfoAttribute]] = []
 
 
-class ProductsInfoAttributesImage(BaseEntity):
-    """Массив ссылок на изображения товара."""
-    default: bool = None
-    file_name: str = None
-    index: int = None
+class ProductsInfoAttributesModelInfo(BaseEntity):
+    """Информация о модели."""
+    model_id: int = None
+    count: int = None
 
-
-class ProductsInfoAttributesImage360(BaseEntity):
-    """Массив изображений 360."""
-    file_name: str = None
-    index: int = None
+    class Config:
+        protected_namespaces = ()
 
 
 class ProductsInfoAttributesPDF(BaseEntity):
     """Массив PDF-файлов."""
     file_name: str = None
-    index: int = None
     name: str = None
 
 
@@ -46,7 +41,6 @@ class ProductsInfoAttributes(BaseEntity):
     """Результаты запроса."""
     attributes: Optional[list[ProductsInfoAttribute]] = []
     barcode: str = None
-    category_id: int = None
     description_category_id: int = None
     color_image: str = None
     complex_attributes: Optional[list[ProductsInfoAttributesAttributes]] = []
@@ -54,12 +48,16 @@ class ProductsInfoAttributes(BaseEntity):
     dimension_unit: str = None
     height: int = None
     id_field: int = Field(default=None, alias='id')
-    image_group_id: str = None
-    images: Optional[list[ProductsInfoAttributesImage]] = []
-    images360: Optional[list[ProductsInfoAttributesImage360]] = []
+    images: Optional[list[str]] = []
+    model_info: Optional[ProductsInfoAttributesModelInfo] = None
     name: str = None
     offer_id: str = None
+    primary_image: str = None
+    type_id: int = None
     pdf_list: Optional[list[ProductsInfoAttributesPDF]] = []
     weight: int = None
     weight_unit: str = None
     width: int = None
+
+    class Config:
+        protected_namespaces = ()

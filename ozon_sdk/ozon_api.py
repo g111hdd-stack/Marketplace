@@ -190,8 +190,8 @@ class OzonApi:
         return answer
 
     async def get_products_info_attributes(self, offer_id: list[str] = None, product_id: list[str] = None,
-                                           visibility: str = 'ALL', last_id: str = None, limit: int = 100,
-                                           sort_by: str = None, sort_dir: str = None) \
+                                           sku: list[str] = None, visibility: str = 'ALL', last_id: str = None,
+                                           limit: int = 100, sort_by: str = None, sort_dir: str = None) \
             -> ProductsInfoAttributesResponse:
         """
             Получаем описание характеристик товара.
@@ -199,6 +199,7 @@ class OzonApi:
             Args:
                 offer_id (list[str], optional): Список артикулов товаров в системе продавца.
                 product_id (list[str], optional): Список id товаров в системе Ozon.
+                sku (list[str], optional): Список sku товаров в системе Ozon.
                 visibility (str, optional): Фильтр по видимости товара.. Default ALL.
                 last_id (str, optional): Идентификатор последнего значения на странице.
                 limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.
@@ -207,6 +208,7 @@ class OzonApi:
         """
         request = ProductsInfoAttributesRequest(filter=ProductsInfoAttributesFilter(offer_id=offer_id,
                                                                                     product_id=product_id,
+                                                                                    sku=sku,
                                                                                     visibility=visibility),
                                                 last_id=last_id,
                                                 limit=limit,
