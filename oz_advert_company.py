@@ -138,7 +138,7 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
                                                                  limit=1000)
 
         # Обработка полученных результатов
-        for item in answer.result.items:
+        for item in answer.items:
             vendor_code = item.offer_id  # Артикул товара в системе продавца
             brand = None
             category = None
@@ -151,21 +151,26 @@ async def add_card_products(db_conn: OzDbConnection, client_id: str, api_key: st
                         elif attribute.attribute_id == 85:
                             brand = attribute.values[0].value  # Брэнд товара
 
-            price = round(float(item.old_price), 2)  # Цена товара
-            discount_price = round(float(item.price), 2)  # Цена товара со скидкой
-            created_at = item.created_at.date()
+            discount_price = round(float(item.price), 2)
 
-            # Сбор информации для каждого артикула Ozon товара
-            link = f"https://www.ozon.ru/product/{item.sku}"  # Ссылка на товар
-            list_card_product.append(DataOzProductCard(sku=str(item.sku),
-                                                       client_id=client_id,
-                                                       vendor_code=vendor_code,
-                                                       brand=brand,
-                                                       category=category,
-                                                       link=link,
-                                                       price=price,
-                                                       discount_price=discount_price,
-                                                       created_at=created_at))
+            if item.old_price:
+                price = round(float(item.old_price), 2)
+            else:
+                price = discount_price
+
+            for source in item.sources:
+                # Сбор информации для каждого артикула Ozon товара
+                link = f"https://www.ozon.ru/product/{source.sku}"  # Ссылка на товар
+                created_at = source.created_at.date()
+                list_card_product.append(DataOzProductCard(sku=str(source.sku),
+                                                           client_id=client_id,
+                                                           vendor_code=vendor_code,
+                                                           brand=brand,
+                                                           category=category,
+                                                           link=link,
+                                                           price=price,
+                                                           discount_price=discount_price,
+                                                           created_at=created_at))
 
     logger.info(f"Обновление информации о карточках товаров")
     db_conn.add_oz_cards_products(list_card_product=list_card_product)

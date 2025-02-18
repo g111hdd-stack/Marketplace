@@ -42,6 +42,9 @@ class ProductInfoListModelInfo(BaseEntity):
     count: int = None
     model_id: int = None
 
+    class Config:
+        protected_namespaces = ()
+
 
 class ProductInfoListItemStatus(BaseEntity):
     """Описание состояния товара."""
@@ -88,7 +91,7 @@ class ProductInfoListVisibilityDetails(BaseEntity):
 class ProductInfoListItem(BaseEntity):
     """Информация о товаре."""
     barcodes: Optional[list[str]] = []
-    color_image: str = None
+    color_image: Optional[list[str]] = []
     commissions: Optional[list[ProductInfoListCommission]] = []
     created_at: datetime = None
     currency_code: str = None
@@ -113,7 +116,7 @@ class ProductInfoListItem(BaseEntity):
     old_price: str = None
     price: str = None
     price_indexes: Optional[PriceIndexes] = None
-    primary_image: str = None
+    primary_image: Optional[list[str]] = []
     sources: Optional[list[ProductInfoListSource]] = []
     statuses: Optional[ProductInfoListItemStatus] = None
     stocks: Optional[ProductInfoListItemStocks] = None
@@ -122,3 +125,6 @@ class ProductInfoListItem(BaseEntity):
     vat: str = None
     visibility_details: Optional[ProductInfoListVisibilityDetails] = None
     volume_weight: float = None
+
+    class Config:
+        protected_namespaces = ()
