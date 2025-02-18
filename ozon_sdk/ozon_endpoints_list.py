@@ -13,7 +13,7 @@ class OzonAPIFactory:
         PostingFBSGetResponse: '/v3/posting/fbs/get',
         PostingFBOGetResponse: '/v2/posting/fbo/get',
         ProductListResponse: '/v3/product/list',
-        ProductInfoListResponse: '/v2/product/info/list',
+        ProductInfoListResponse: '/v3/product/info/list',
         ProductsInfoAttributesResponse: '/v4/product/info/attributes',
         AnalyticsDataResponse: '/v1/analytics/data',
         PostingFBOListResponse: '/v2/posting/fbo/list',
