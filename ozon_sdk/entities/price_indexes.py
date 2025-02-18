@@ -12,7 +12,7 @@ class PriceIndexesData(BaseEntity):
 
 class PriceIndexes(BaseEntity):
     """Ценовые индексы товара."""
+    color_index: str = None
     external_index_data: Optional[PriceIndexesData] = None
     ozon_index_data: Optional[PriceIndexesData] = None
-    price_index: str = None
     self_marketplaces_index_data: Optional[PriceIndexesData] = None

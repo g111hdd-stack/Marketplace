@@ -1,9 +1,9 @@
 from typing import Optional
 
 from .base import BaseResponse
-from ..entities import ProductInfoList
+from ..entities import ProductInfoListItem
 
 
 class ProductInfoListResponse(BaseResponse):
     """Получить список товаров по идентификаторам."""
-    result: Optional[ProductInfoList] = None
+    items: Optional[list[ProductInfoListItem]] = []

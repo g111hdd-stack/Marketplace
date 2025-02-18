@@ -6,114 +6,119 @@ from .base import BaseEntity
 from .price_indexes import PriceIndexes
 
 
-class ProductInfoListItemDiscountedStocks(BaseEntity):
-    """Остатки уценённого товара на складе Ozon."""
-    coming: int = None
-    present: int = None
-    reserved: int = None
+class ProductInfoListCommission(BaseEntity):
+    delivery_amount: float = None
+    percent: float = None
+    return_amount: float = None
+    sale_schema: str = None
+    value: float = None
 
 
-class ItemErrorOptionalDescriptionElements(BaseEntity):
-    """Дополнительные поля для описания ошибки."""
-    pass
+class ItemErrorTextsParam(BaseEntity):
+    name: str = None
+    value: str = None
+
+
+class ItemErrorTexts(BaseEntity):
+    attribute_name: str = None
+    description: str = None
+    hint_code: str = None
+    message: str = None
+    params: Optional[list[ItemErrorTextsParam]] = []
+    short_description: str = None
 
 
 class ItemError(BaseEntity):
     """Ошибки при загрузке товаров."""
-    code: str = None
-    state: str = None
-    level: str = None
-    description: str = None
-    field: str = None
     attribute_id: int = None
-    attribute_name: str = None
-    optional_description_elements: Optional[ItemErrorOptionalDescriptionElements] = None
+    code: str = None
+    field: str = None
+    level: str = None
+    state: str = None
+    texts: Optional[ItemErrorTexts] = None
+
+
+class ProductInfoListModelInfo(BaseEntity):
+    count: int = None
+    model_id: int = None
 
 
 class ProductInfoListItemStatus(BaseEntity):
     """Описание состояния товара."""
-    state: str = None
-    state_failed: str = None
-    moderate_status: str = None
-    decline_reasons: Optional[list[str]] = []
-    validation_state: str = None
-    state_name: str = None
-    state_description: str = None
-    is_failed: bool = None
     is_created: bool = None
+    moderate_status: str = None
+    status: str = None
+    status_description: str = None
+    status_failed: str = None
+    state_name: str = None
     state_tooltip: str = None
-    item_errors: Optional[list[ItemError]] = []
     state_updated_at: datetime = None
+    validation_state: str = None
 
 
 class ProductInfoListSource(BaseEntity):
     """Информация об источниках схожих предложений."""
-    is_enabled: bool = None
+    created_at: datetime = None
+    quant_code: str = None
+    shipment_type: str = None
     sku: int = None
+    source: str = None
+
+
+class ProductInfoListItemStock(BaseEntity):
+    """Информация об остатках товара."""
+    sku: int = None
+    present: int = None
+    reserved: int = None
     source: str = None
 
 
 class ProductInfoListItemStocks(BaseEntity):
     """Информация об остатках товара."""
-    coming: int = None
-    present: int = None
-    reserved: int = None
-
-
-class VisibilityDetailsReasons(BaseEntity):
-    """Причина, почему товар скрыт."""
-    pass
+    has_stock: bool = None
+    stocks: Optional[list[ProductInfoListItemStock]] = []
 
 
 class ProductInfoListVisibilityDetails(BaseEntity):
     """Настройки видимости товара."""
-    active_product: bool = None
     has_price: bool = None
     has_stock: bool = None
-    reasons: Optional[VisibilityDetailsReasons] = None
 
 
 class ProductInfoListItem(BaseEntity):
     """Информация о товаре."""
-    is_archived: bool = None
-    is_autoarchived: bool = None
-    barcode: str = None
     barcodes: Optional[list[str]] = []
-    buybox_price: str = None
-    description_category_id: int = None
-    type_id: int = None
     color_image: str = None
+    commissions: Optional[list[ProductInfoListCommission]] = []
     created_at: datetime = None
-    sku: int = None
+    currency_code: str = None
+    description_category_id: int = None
+    discounted_fbo_stocks: int = None
+    errors: Optional[list[ItemError]] = []
+    has_discounted_fbo_item: bool = None
     id_field: int = Field(default=None, alias='id')
     images: Optional[list[str]] = []
-    primary_image: str = None
     images360: Optional[list[str]] = None
-    has_discounted_item: bool = None
+    is_archived: bool = None
+    is_autoarchived: bool = None
     is_discounted: bool = None
-    category_id: int = None
-    discounted_stocks: Optional[ProductInfoListItemDiscountedStocks] = None
     is_kgt: bool = None
-    currency_code: str = None
+    is_prepayment_allowed: bool = None
+    is_super: bool = None
     marketing_price: str = None
-    min_ozon_price: str = None
     min_price: str = None
+    model_info: Optional[ProductInfoListModelInfo] = None
     name: str = None
     offer_id: str = None
     old_price: str = None
     price: str = None
-    price_index: str = None
     price_indexes: Optional[PriceIndexes] = None
-    recommended_price: str = None
-    status: Optional[ProductInfoListItemStatus] = None
+    primary_image: str = None
     sources: Optional[list[ProductInfoListSource]] = []
+    statuses: Optional[ProductInfoListItemStatus] = None
     stocks: Optional[ProductInfoListItemStocks] = None
+    type_id: int = None
     updated_at: datetime = None
     vat: str = None
     visibility_details: Optional[ProductInfoListVisibilityDetails] = None
-    visible: bool = None
-
-
-class ProductInfoList(BaseEntity):
-    """Результаты запроса."""
-    items: Optional[list[ProductInfoListItem]] = []
+    volume_weight: float = None
