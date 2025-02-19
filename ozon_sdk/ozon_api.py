@@ -390,7 +390,7 @@ class OzonApi:
         return answer
 
     async def get_product_info_stocks(self, offer_id: list[str] = None, product_id: list[str] = None,
-                                      visibility: str = 'ALL', last_id: str = None,
+                                      visibility: str = 'ALL', cursor: str = None,
                                       limit: int = 100) -> ProductInfoStocksResponse:
         """
             Получение остатков товаров на складе.
@@ -427,13 +427,13 @@ class OzonApi:
                 offer_id (list[str], optional): Список артикулов товаров в системе продавца.
                 product_id (list[str], optional): Список id товаров из системы Ozon.
                 visibility (str, optional): Фильтр по видимости товара.
-                last_id (str, optional): Идентификатор последнего значения на странице.
+                cursor (str, optional): Идентификатор последнего значения на странице.
                 limit (int, optional): Количество значений на странице. Минимум — 1, максимум — 1000.
         """
         request = ProductInfoStocksRequest(filter=ProductInfoStocksFilter(offer_id=offer_id,
                                                                           product_id=product_id,
                                                                           visibility=visibility),
-                                           last_id=last_id,
+                                           cursor=cursor,
                                            limit=limit)
         answer: ProductInfoStocksResponse = await self._product_info_stocks_api.post(request)
         return answer

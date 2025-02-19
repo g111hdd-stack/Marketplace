@@ -47,7 +47,7 @@ def process_file(path_file):
 
                 month_date = row_data.get('Месяц', None)
                 year_date = row_data.get('Год', None)
-                vendor_code = row_data.get('Артикул', None)
+                vendor_code = str(row_data.get('Артикул', None))
                 cost = row_data.get('Себес', None)
                 if month_date:
                     month_date = int(month_date)
@@ -64,7 +64,8 @@ def process_file(path_file):
                 key = (month_date, year_date, vendor_code)
                 if key not in data.keys():
                     data[key] = cost
-            except Exception:
+            except Exception as e:
+                print(e)
                 continue
         for row, cost in data.items():
             result_data.append(DataCostPrice(month_date=row[0],

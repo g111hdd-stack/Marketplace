@@ -1,9 +1,11 @@
 from typing import Optional
 
 from .base import BaseResponse
-from ..entities import ProductInfoStocks
+from ..entities import ProductInfoStocksItem
 
 
 class ProductInfoStocksResponse(BaseResponse):
     """Получить остатки на складах."""
-    result: Optional[ProductInfoStocks] = None
+    cursor: str = None
+    items: Optional[list[ProductInfoStocksItem]] = []
+    total: int = None

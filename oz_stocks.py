@@ -35,13 +35,13 @@ async def get_stocks(db_conn: OzDbConnection, client_id: str, api_key: str) -> N
     visibility_params = ['ALL', 'ARCHIVED']
 
     for visibility in visibility_params:
-        last_id = None
+        cursor = None
         total = 1000
 
         while total >= 1000:
-            answer = await api_user.get_product_info_stocks(limit=1000, last_id=last_id, visibility=visibility)
+            answer = await api_user.get_product_info_stocks(limit=1000, cursor=cursor, visibility=visibility)
 
-            for item in answer.result.items:
+            for item in answer.items:
                 for stock in item.stocks:
                     if stock.type in ['fbo']:
                         if stock.reserved or stock.present:
@@ -55,26 +55,13 @@ async def get_stocks(db_conn: OzDbConnection, client_id: str, api_key: str) -> N
                             product_ids[str(item.product_id)] = None
                             list_stocks.append(DataOzStock(date=datetime.today().date(),
                                                            client_id=client_id,
-                                                           sku=str(item.product_id),
+                                                           sku=str(stock.sku),
                                                            vendor_code=vendor_code,
                                                            size=size,
                                                            quantity=stock.present,
                                                            reserved=stock.reserved))
-            total = answer.result.total
-            last_id = answer.result.last_id
-
-    list_product_ids = list(product_ids.keys())
-    for ids in [list_product_ids[i:i + 1000] for i in range(0, len(list_product_ids), 1000)]:
-        answer_products = await api_user.get_product_info_list(product_id=ids)
-        for item in answer_products.result.items:
-            product_ids[str(item.id_field)] = item
-
-    for row in list_stocks:
-        item = product_ids.get(row.sku)
-        if item:
-            row.sku = item.sku
-            row.quantity += item.discounted_stocks.present
-            row.reserved += item.discounted_stocks.reserved
+            total = answer.total
+            cursor = answer.cursor
 
     logger.info(f"Количсетво строк: {len(list_stocks)}")
     db_conn.add_oz_stock_entry(list_stocks=list_stocks)
