@@ -149,6 +149,9 @@ class DataWBOrder:
     cancel_date: datetime.date
     warehouse: str
     warehouse_type: str
+    country: str
+    oblast: str
+    region: str
 
 
 @dataclass

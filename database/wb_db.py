@@ -84,6 +84,18 @@ class WBDbConnection(DbConnection):
         return result
 
     @retry_on_exception()
+    def get_wb_stocks_ratio(self) -> list:
+        """
+            Получает данные из wb_stocks_ratio.
+
+            Returns:
+                List[tuple]: Список данных по остаткам на складах.
+        """
+        query = text("SELECT * FROM wb_stocks_ratio;")
+        result = self.session.execute(query).fetchall()
+        return result
+
+    @retry_on_exception()
     def add_wb_operation(self, list_operations: list[DataOperation]) -> None:
         """
             Добавление в базу данных записи об операциях с товарами.
@@ -383,7 +395,10 @@ class WBDbConnection(DbConnection):
                 is_cancel=row.is_cancel,
                 cancel_date=row.cancel_date,
                 warehouse=row.warehouse,
-                warehouse_type=row.warehouse_type
+                warehouse_type=row.warehouse_type,
+                country=row.country,
+                oblast=row.oblast,
+                region=row.region
             ).on_conflict_do_update(
                 index_elements=['order_date', 'sku', 'posting_number'],
                 set_={'vendor_code': row.vendor_code,
@@ -393,7 +408,10 @@ class WBDbConnection(DbConnection):
                       'is_cancel': row.is_cancel,
                       'cancel_date': row.cancel_date,
                       'warehouse': row.warehouse,
-                      'warehouse_type': row.warehouse_type}
+                      'warehouse_type': row.warehouse_type,
+                      'country': row.country,
+                      'oblast': row.oblast,
+                      'region': row.region}
             )
             self.session.execute(stmt)
         self.session.commit()
