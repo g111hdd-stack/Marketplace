@@ -108,10 +108,17 @@ class DbConnection:
 
             Returns:
                 dict: Словарь артикул: ссылка на товар.
-        """
-        result = (self.session.query(WBCardProduct.vendor_code, f.min(WBCardProduct.link).label('link')).group_by(
-            WBCardProduct.vendor_code).all())
-        return {row.vendor_code.lower().strip(): row.link for row in result}
+        # """
+        # result = (self.session.query(WBCardProduct.vendor_code, f.min(WBCardProduct.link).label('link'))
+        #           .filter(WBCardProduct.is_work.is_(True)).group_by(WBCardProduct.vendor_code).all())
+        result = self.session.query(WBCardProduct.vendor_code,
+                                    WBCardProduct.link).filter(WBCardProduct.is_work.is_(True)).all()
+        final = {}
+        for row in result:
+            vendor = row.vendor_code.lower().strip()
+            final.setdefault(vendor, [])
+            final[vendor].append(row.link)
+        return final
 
     @retry_on_exception()
     def get_vendors(self) -> list[str]:

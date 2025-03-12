@@ -2,7 +2,7 @@ import logging
 
 from datetime import date
 
-from sqlalchemy import or_, text, select
+from sqlalchemy import or_, text, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from .models import *
@@ -156,13 +156,17 @@ class WBDbConnection(DbConnection):
             Args:
                 list_card_product (list[DataWBCardProduct]): Список данных о карточках товаров.
         """
+        self.session.execute(update(WBCardProduct)
+                             .where(WBCardProduct.client_id == list_card_product[0].client_id).values(is_work=False))
+
         for row in list_card_product:
             new = WBCardProduct(sku=row.sku,
                                 client_id=row.client_id,
                                 vendor_code=row.vendor_code,
                                 link=row.link,
                                 price=row.price,
-                                discount_price=row.discount_price)
+                                discount_price=row.discount_price,
+                                is_work=True)
 
             self.session.merge(new)
         self.session.commit()

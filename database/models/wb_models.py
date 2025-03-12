@@ -34,6 +34,7 @@ class WBCardProduct(Base):
     link = Column(String(length=255), default=None, nullable=True)
     price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
     discount_price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
+    is_work = Column(Boolean, default=None, nullable=True)
 
 
 class WBStatisticCardProduct(Base):

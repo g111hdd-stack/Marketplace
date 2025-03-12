@@ -4,6 +4,7 @@ from copy import copy
 
 import gspread
 import logging
+import requests
 
 from contextlib import suppress
 from datetime import date, timedelta
@@ -232,7 +233,29 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
     # Получаем данные из БД
     orders = db_conn.get_orders(from_date=from_date)
     vendors_in_database = db_conn.get_vendors()
-    links = db_conn.get_link_wb_card_product()
+    all_links = db_conn.get_link_wb_card_product()
+    links = {}
+    for vendor, list_links in all_links.items():
+        if len(list_links) == 1:
+            links[vendor] = list_links[0]
+        else:
+            for url in list_links:
+                try:
+                    check_url = f"https://card.wb.ru/cards/detail?dest=-1029256&nm={url.split('/')[-2]}"
+                    response = requests.get(check_url, timeout=5)
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        if len(data.get('data', {}).get('products', [])):
+                            links[vendor] = url
+                            break
+                    else:
+                        continue
+                except requests.exceptions.RequestException as e:
+                    continue
+            else:
+                if not links.get(vendor):
+                    links[vendor] = list_links[0]
 
     # Задаем имена шаблонного листа и создаваемого
     sheet_name = 'Шаблон'
