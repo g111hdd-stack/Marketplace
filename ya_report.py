@@ -66,7 +66,7 @@ async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
 
 async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCampaigns],
                           date_now: date) -> str or None:
-    date_from = date_now - timedelta(days=7)
+    date_from = date_now - timedelta(days=10)
     date_to = date_now - timedelta(days=1)
 
     report_id = None
@@ -201,7 +201,9 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                         if header == 'Стоимость услуги (':
                                             for column in df.columns:
                                                 if header in column:
-                                                    row_data[metric][header] = row[column]
+                                                    delta = row['Unnamed: 46']
+                                                    delta = float(delta) if delta else 0
+                                                    row_data[metric][header] = float(row[column]) + delta
 
                             client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v), None))
                             campaign_name = next((v for v in row_data.get('campaign_name', {}).values() if v), None)
@@ -255,6 +257,7 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                             vendor_code=vendor_code,
                                             service=service,
                                             cost=cost))
+        logger.info(f'Количество записей: {len(result_data)}')
         return result_data
     except Exception as e:
         logger.error(f'Ошибка при чтении файла {path_file}: {e}')
@@ -264,7 +267,8 @@ async def main_yandex_report(retries: int = 6) -> None:
     """
         Основная функция для обновления записей в базе данных.
 
-        Получает список клиентов из базы данных, затем для каждого клиента добавляет записи за вчерашний день в таблицу `ya_report`.
+        Получает список клиентов из базы данных,
+        затем для каждого клиента добавляет записи за вчерашний день в таблицу `ya_report`.
     """
     try:
         db_conn = YaDbConnection()

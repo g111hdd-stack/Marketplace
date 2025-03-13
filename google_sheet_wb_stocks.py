@@ -675,6 +675,13 @@ def wb_stocks_ratio_buyer(db_conn):
 
     flag = False
 
+    len_alerts_temp = len(alerts_temp)
+    count_good = 0
+    count_normal = 0
+    count_bad = 0
+
+    request_telegram(f"*Отчёт за {date.today().strftime('%d.%m.%Y')}*")
+
     for d in data:
         key = d[:3]
 
@@ -691,29 +698,43 @@ def wb_stocks_ratio_buyer(db_conn):
             color_1 = check(ratio=ratio)
             color_2 = check(local=local)
             if color_1 == "🟢" and color_2 == "🟢":
+                count_good += 1
                 continue
-
-            if not flag:
-                request_telegram(f"*Отчёт за {date.today().strftime('%d.%m.%Y')}*")
+            elif color_1 == "🔴" or color_2 == "🔴":
+                count_bad += 1
+            else:
+                count_normal += 1
 
             message = f"*ИП:* `{key[0]}`\n" \
                       f"*Артикул:* `{key[1]}`\n" \
                       f"*Регион:* `{key[2]}`\n" \
+                      f"\n" \
+                      f"*Заказы(30дней):* {d[3]}\n" \
+                      f"*Остаток на складах:* {d[17]}\n" \
+                      f"*Локально\\Не локально:* {d[15]}\\{d[16]}\n" \
                       f"\n" \
                       f"{check(ratio=ratio)} *Коэфициент:* {ratio}\n" \
                       f"{check(ratio=ratio)} *Запас в днях:* {stock}\n" \
                       f"{check(local=local)} *Доля локальных:* {local}%\n"
 
             request_telegram(message)
-            flag = True
     else:
+        sub_text = ""
         if alerts_temp:
-            print("Ушли из отчёта:")
+            sub_text = "\nУшли из отчёта:\n"
             for a in alerts_temp:
-                print(a)
-        if flag:
-            text = f"*Подробнее в* [Google Таблице]({LINK})"
-            request_telegram(text)
+                sub_text += f"{a}\n"
+
+        text = f"*Отслеживается:* {len_alerts_temp}" \
+               f"\n" \
+               f"*Из них:*\n" \
+               f"🟢 {count_good}\n" \
+               f"🟠 {count_normal}\n" \
+               f"🔴 {count_bad}\n" \
+               f"{sub_text}" \
+               f"\n" \
+               f"*Подробнее в* [Google Таблице]({LINK})"
+        request_telegram(text)
 
 
 def main(retries: int = 6) -> None:

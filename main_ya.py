@@ -43,7 +43,7 @@ async def get_orders(api_key: str, campaign_id: str, updated_at_from: str, updat
             for order in answer_orders.orders:
                 list_orders.append(order.id_field)
 
-        if answer_orders.pager.pagesCount <= page:
+        if answer_orders.pager is None or answer_orders.pager.pagesCount <= page:
             break
 
         page += 1
@@ -152,7 +152,7 @@ async def add_yandex_main_entry(db_conn: YaDbConnection, client_id: str, campaig
             api_key (str): API KEY кабинета.
             date_now (datetime): Дата, для которой добавляются записи.
     """
-    start = date_now - timedelta(days=1)
+    start = date_now - timedelta(days=10)
     end = date_now - timedelta(microseconds=1)
 
     logger.info(f"За период с <{start}> до <{end}>")
@@ -170,7 +170,8 @@ async def main_func_yandex(retries: int = 6) -> None:
     """
         Основная функция для обновления записей в базе данных.
 
-        Получает список клиентов из базы данных, затем для каждого клиента добавляет записи за вчерашний день в таблицу `ya_main_table`.
+        Получает список клиентов из базы данных,
+        затем для каждого клиента добавляет записи за вчерашний день в таблицу `ya_main_table`.
     """
     try:
         db_conn = YaDbConnection()
