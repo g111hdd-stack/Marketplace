@@ -1,17 +1,17 @@
 import os
 import time
+import gspread
 import logging
 import requests
-import gspread
-
 import pandas as pd
+
+from datetime import date, datetime
 from gspread.utils import ValueInputOption
 from sqlalchemy.exc import OperationalError
-from datetime import date, datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import TOKEN, CHAT_ID, LINK
 from database import WBDbConnection
+from config import TOKEN, CHAT_ID, LINK
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
@@ -40,11 +40,11 @@ URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
 
 def check(ratio: float = None, local: float = None):
-    if ratio:
+    if ratio is not None:
         val = ratio
         bad = 1.01
         good = 1.51
-    elif local:
+    elif local is not None:
         val = local
         bad = 50.01
         good = 70.01
@@ -713,9 +713,9 @@ def wb_stocks_ratio_buyer(db_conn):
                       f"*Остаток на складах:* {d[17]}\n" \
                       f"*Локально\\Не локально:* {d[15]}\\{d[16]}\n" \
                       f"\n" \
-                      f"{check(ratio=ratio)} *Коэфициент:* {ratio}\n" \
-                      f"{check(ratio=ratio)} *Запас в днях:* {stock}\n" \
-                      f"{check(local=local)} *Доля локальных:* {local}%\n"
+                      f"{color_1} *Коэфициент:* {ratio}\n" \
+                      f"{color_1} *Запас в днях:* {stock}\n" \
+                      f"{color_2} *Доля локальных:* {local}%\n"
 
             request_telegram(message)
     else:

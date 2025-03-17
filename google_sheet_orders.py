@@ -328,7 +328,8 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
                 row.append(market)
 
             # Добавляем обязательные заголовки
-            row += ['Итого', 'Оборачиваемость', 'Итого остаток', 'Комментарий', 'Кол-во', 'Дата прихода']
+            row += ['Итого', 'Оборачиваемость', 'Итого остаток',
+                    'Комментарий', 'Кол-во', 'Дата прихода', 'Дней до прихода']
 
             # Формируем словарь заголовков с цифровыми и буквенными индексами
             for j, val in enumerate(row, 1):
@@ -384,6 +385,10 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
             row.append(next(iter(comments[i - 2:i - 1]), ''))
             row.append(next(iter(counts[i - 2:i - 1]), ''))
             row.append(next(iter(delivery_dates[i - 2:i - 1]), ''))
+            cell_date = f"ИНДЕКС({column_to_letter(len(row))}:{column_to_letter(len(row))}; СТРОКА())"
+            row.append(
+                f"""=ЕСЛИ(ИЛИ({cell_date}=""; НЕ(ЕЧИСЛО({cell_date}))); ""; ЕСЛИ({cell_date}<СЕГОДНЯ();"""
+                f""""Дата прошла"; РАЗНДАТ(СЕГОДНЯ(); {cell_date}; "D")))""")
 
         data.append(row)
 
@@ -484,8 +489,8 @@ def main(retries: int = 6) -> None:
         if retries > 0:
             time.sleep(60)
             main(retries=retries - 1)
-    # except Exception as e:
-    #     logger.error(f'{e}')
+    except Exception as e:
+        logger.error(f'{e}')
 
 
 if __name__ == "__main__":
