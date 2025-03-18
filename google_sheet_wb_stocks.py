@@ -268,10 +268,9 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
                                                                                "endColumnIndex": idx + 1}],
                                                                    "booleanRule": {"condition": {
                                                                        "type": "NUMBER_BETWEEN",
-                                                                       "values": [{
-                                                                           "userEnteredValue": "1,01" if val == 'Коэф.' else "30,01"},
-                                                                           {
-                                                                               "userEnteredValue": "1,51" if val == 'Коэф.' else "45,01"}]},
+                                                                       "values": [
+                                                                           {"userEnteredValue": "1,01" if val == 'Коэф.' else "30,01"},
+                                                                           {"userEnteredValue": "1,51" if val == 'Коэф.' else "45,01"}]},
                                                                        "format": {"backgroundColor": COLOR_NORMAL}}}}})
 
         all_requests.append({"addConditionalFormatRule": {"rule": {"ranges": [{"sheetId": worksheet.id,
@@ -672,8 +671,6 @@ def wb_stocks_ratio_buyer(db_conn):
         worksheet.delete_rows(len(data) + 1, worksheet.row_count)
     except Exception as e:
         print(e)
-
-    flag = False
 
     len_alerts_temp = len(alerts_temp)
     count_good = 0
