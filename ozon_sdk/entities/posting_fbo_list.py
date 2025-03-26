@@ -19,7 +19,6 @@ class PostingFBOListAnalyticsData(BaseEntity):
     is_legal: bool = None
     is_premium: bool = None
     payment_type_group_name: str = None
-    region: str = None
     warehouse: str = None
     warehouse_id: int = None
 

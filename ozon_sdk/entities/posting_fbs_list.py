@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from .picking import Picking
-from .services import Services
 from .base import BaseEntity
 
 
@@ -85,7 +84,6 @@ class PostingFBSListFinancialDataProduct(BaseEntity):
     commission_amount: float = None
     commission_percent: float = None
     commissions_currency_code: str = None
-    item_services: Optional[Services] = None
     old_price: float = None
     payout: float = None
     picking: Optional[Picking] = None
@@ -100,7 +98,6 @@ class PostingFBSListFinancialData(BaseEntity):
     """Данные о стоимости товара, размере скидки, выплате и комиссии."""
     cluster_from: str = None
     cluster_to: str = None
-    posting_services: Optional[Services] = None
     products: list[PostingFBSListFinancialDataProduct] = []
 
 

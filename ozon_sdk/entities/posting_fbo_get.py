@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from .picking import Picking
-from .services import Services
 from .base import BaseEntity
 
 
@@ -19,7 +18,6 @@ class PostingFBOGetAnalyticsData(BaseEntity):
     is_legal: bool = None
     is_premium: bool = None
     payment_type_group_name: str = None
-    region: str = None
     warehouse_id: int = None
     warehouse_name: str = None
 
@@ -30,7 +28,6 @@ class PostingFBOGetFinancialDataProduct(BaseEntity):
     commission_amount: float = None
     commission_percent: int = None
     commissions_currency_code: str = None
-    item_services: Optional[Services] = None
     old_price: float = None
     payout: float = None
     picking: Optional[Picking] = None
@@ -43,7 +40,6 @@ class PostingFBOGetFinancialDataProduct(BaseEntity):
 
 class PostingFBOGetFinancialData(BaseEntity):
     """Финансовые данные."""
-    posting_services: Optional[Services] = None
     cluster_from: str = None
     cluster_to: str = None
     products: list[PostingFBOGetFinancialDataProduct] = []
