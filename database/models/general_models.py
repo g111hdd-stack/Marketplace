@@ -1,5 +1,6 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, String, MetaData, Integer, Identity, Numeric, UniqueConstraint, ForeignKey, Date
+from sqlalchemy import PrimaryKeyConstraint, UniqueConstraint
+from sqlalchemy import Column, String, MetaData, Integer, Identity, Numeric, ForeignKey, Date
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
@@ -84,4 +85,32 @@ class ExchangeRate(Base):
 
     __table_args__ = (
         UniqueConstraint('date', 'currency', name='exchange_rate_unique'),
+    )
+
+
+class Supplies(Base):
+    """Модель таблицы supplies."""
+    __tablename__ = 'supplies'
+
+    date = Column(Date, nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    supplies = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        PrimaryKeyConstraint('date', 'vendor_code'),
+    )
+
+
+class SalesPlan(Base):
+    """Модель таблицы sales_plan."""
+    __tablename__ = 'sales_plan'
+
+    date = Column(Date, nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    quantity_plan = Column(Integer, nullable=False)
+    price_plan = Column(Numeric(precision=12, scale=2), nullable=False)
+    profit_proc = Column(Numeric(precision=12, scale=4), nullable=False)
+
+    __table_args__ = (
+        PrimaryKeyConstraint('date', 'vendor_code'),
     )
