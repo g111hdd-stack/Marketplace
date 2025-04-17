@@ -2,6 +2,7 @@ import os
 import time
 import gspread
 import logging
+import warnings
 import requests
 import pandas as pd
 
@@ -12,6 +13,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 from database import WBDbConnection
 from config import TOKEN, CHAT_ID, LINK
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
