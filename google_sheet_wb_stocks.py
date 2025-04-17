@@ -596,9 +596,10 @@ def format_sheet2(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet
 
 
 def wb_stocks_ratio_buyer(db_conn):
-    engine = db_conn.engine
     query = """SELECT * FROM wb_stocks_ratio_buyer"""
-    df = pd.read_sql(query, engine)
+    with db_conn.engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+
     df = df.astype(str)
 
     sheet_name = 'Коэффициенты WB по складу покупателя'
