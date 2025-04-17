@@ -596,9 +596,13 @@ def format_sheet2(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet
 
 
 def wb_stocks_ratio_buyer(db_conn):
+    conn = db_conn.engine.raw_connection()
     query = """SELECT * FROM wb_stocks_ratio_buyer"""
-    with db_conn.engine.raw_connection() as raw_conn:
-        df = pd.read_sql(query, raw_conn)
+
+    try:
+        df = pd.read_sql(query, conn)
+    finally:
+        conn.close()
 
     df = df.astype(str)
 
