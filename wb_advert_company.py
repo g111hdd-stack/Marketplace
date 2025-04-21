@@ -244,9 +244,14 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
     new_uuid = str(uuid.uuid4())
 
     # Создание отчёта статистики КТ
-    answer_report = await api_user.get_mm_report_downloads(uuid=new_uuid,
-                                                           start_date=start_date.isoformat(),
-                                                           end_date=end_date.isoformat())
+    try:
+        answer_report = await api_user.get_mm_report_downloads(uuid=new_uuid,
+                                                               start_date=start_date.isoformat(),
+                                                               end_date=end_date.isoformat())
+    except Exception as e:
+        logger.info(f"Отсутствует подписка на Джем{e}")
+        return
+
     if not answer_report.error:
         await asyncio.sleep(5)
 
