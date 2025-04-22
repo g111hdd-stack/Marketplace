@@ -202,7 +202,6 @@ async def main_oz_services(retries: int = 6) -> None:
                                       date_now=date_now)
             except ClientError as e:
                 logger.error(f'{e}')
-                continue
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

@@ -7,6 +7,7 @@ from datetime import timedelta, date
 
 from sqlalchemy.exc import OperationalError
 
+from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from data_classes import DataWBOrder
 from database import WBDbConnection
@@ -90,11 +91,14 @@ async def main_orders_wb(retries: int = 6) -> None:
         date_now = date.today()
 
         for client in clients:
-            logger.info(f"Добавление в базу данных компании {client.name_company}")
-            await add_wb_orders_entry(db_conn=db_conn,
-                                      client_id=client.client_id,
-                                      api_key=client.api_key,
-                                      date_now=date_now)
+            try:
+                logger.info(f"Добавление в базу данных компании {client.name_company}")
+                await add_wb_orders_entry(db_conn=db_conn,
+                                          client_id=client.client_id,
+                                          api_key=client.api_key,
+                                          date_now=date_now)
+            except ClientError as e:
+                logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

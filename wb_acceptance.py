@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.exc import OperationalError
 
+from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 from data_classes import DataWBAcceptance
@@ -85,13 +86,16 @@ async def main_wb_acceptance(retries: int = 6) -> None:
         to_date = date_now - timedelta(microseconds=1)
 
         for client in clients:
-            logger.info(f'Сбор информации о приёмке товара маназина {client.name_company} '
-                        f'за дату {from_date.date().isoformat()}')
-            await add_acceptance(db_conn=db_conn,
-                                 client_id=client.client_id,
-                                 api_key=client.api_key,
-                                 from_date=from_date.isoformat(),
-                                 to_date=to_date.isoformat())
+            try:
+                logger.info(f'Сбор информации о приёмке товара маназина {client.name_company} '
+                            f'за дату {from_date.date().isoformat()}')
+                await add_acceptance(db_conn=db_conn,
+                                     client_id=client.client_id,
+                                     api_key=client.api_key,
+                                     from_date=from_date.isoformat(),
+                                     to_date=to_date.isoformat())
+            except ClientError as e:
+                logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

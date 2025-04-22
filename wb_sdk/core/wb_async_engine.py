@@ -3,6 +3,7 @@ import aiohttp
 import logging
 
 from config import PROXY
+from wb_sdk.errors import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ class WBAsyncEngine:
                         params = {k: v for k, v in params.items() if v is not None}
                     async with session.get(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
                                            timeout=120) as response:
+                        if response.status in [404, 403]:
+                            raise ClientError
                         if response.status not in [200, 201, 204]:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
@@ -54,6 +57,8 @@ class WBAsyncEngine:
                 try:
                     async with session.post(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
                                             timeout=120) as response:
+                        if response.status in [404, 403]:
+                            raise ClientError
                         if response.content_type != 'application/json':
                             logger.info(f"Получен ответ от {url} (html)")
                             logger.error(f"Попытка повторного запроса.")

@@ -7,6 +7,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import OperationalError
 
+from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 from data_classes import DataWBStock
@@ -109,10 +110,13 @@ async def main_wb_stock(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         for client in clients:
-            logger.info(f'Сбор информации о остатках на складах {client.name_company}')
-            await get_stocks(db_conn=db_conn,
-                             client_id=client.client_id,
-                             api_key=client.api_key)
+            try:
+                logger.info(f'Сбор информации о остатках на складах {client.name_company}')
+                await get_stocks(db_conn=db_conn,
+                                 client_id=client.client_id,
+                                 api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

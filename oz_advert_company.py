@@ -225,7 +225,7 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
             sku = product.dimensions[0].id_field  # Артикул товара
             field_date = datetime.strptime(product.dimensions[1].id_field, '%Y-%m-%d').date()
 
-            # Фильтруем только те товары что есть в БД
+            # Фильтруем только те товары, что есть в БД
             if sku not in list_sku:
                 answer_info = await api_user.get_product_info_discounted(discounted_skus=[sku])
                 for info in answer_info.items:

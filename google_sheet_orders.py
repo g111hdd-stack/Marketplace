@@ -87,7 +87,7 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
     col_total_i = col_map["Итого"]["index"]
     col_total_stock_i = col_map["Итого остаток"]["index"]
 
-    # Форматируем заголовки задаём цвет и выравниваем по середине
+    # Форматируем заголовки задаём цвет и выравниваем посередине
     all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                   "startRowIndex": 0,
                                                   "endRowIndex": 2,

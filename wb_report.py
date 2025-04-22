@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy.exc import OperationalError
 
+from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 from data_classes import DataWBReport
@@ -123,13 +124,16 @@ async def main_wb_report(retries: int = 6) -> None:
         date_to = date_now - timedelta(microseconds=1)
 
         for client in clients:
-            logger.info(f"Получение отчёта для {client.name_company} за период от {date_from.date().isoformat()} "
-                        f"до {date_to.date().isoformat()}")
-            await get_report(db_conn=db_conn,
-                             client_id=client.client_id,
-                             api_key=client.api_key,
-                             date_from=date_from,
-                             date_to=date_to)
+            try:
+                logger.info(f"Получение отчёта для {client.name_company} за период от {date_from.date().isoformat()} "
+                            f"до {date_to.date().isoformat()}")
+                await get_report(db_conn=db_conn,
+                                 client_id=client.client_id,
+                                 api_key=client.api_key,
+                                 date_from=date_from,
+                                 date_to=date_to)
+            except ClientError as e:
+                logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

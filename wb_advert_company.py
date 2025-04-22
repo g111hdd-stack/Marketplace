@@ -10,6 +10,7 @@ import nest_asyncio
 from datetime import datetime, timedelta
 from sqlalchemy.exc import OperationalError
 
+from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
 from data_classes import DataWBAdvert, DataWBCardProduct, DataWBStatisticAdvert, DataWBStatisticCardProduct
@@ -296,23 +297,36 @@ async def main_wb_advert(retries: int = 6) -> None:
         from_date = date_now - timedelta(days=1)
 
         for client in clients:
-            logger.info(f"Сбор карточек товаров {client.name_company}")
-            await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            try:
+                logger.info(f"Сбор карточек товаров {client.name_company}")
+                await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
 
-            logger.info(f"Сбор рекламных компаний {client.name_company}")
-            await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            try:
+                logger.info(f"Сбор рекламных компаний {client.name_company}")
+                await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
 
-            logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
-            await get_statistic_card_product(db_conn=db_conn,
-                                             client_id=client.client_id,
-                                             api_key=client.api_key,
-                                             from_date=from_date)
+            try:
+                logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
+                await get_statistic_card_product(db_conn=db_conn,
+                                                 client_id=client.client_id,
+                                                 api_key=client.api_key,
+                                                 from_date=from_date)
+            except ClientError as e:
+                logger.error(f'{e}')
 
-            logger.info(f"Статистика рекламы {client.name_company}")
-            await add_statistic_adverts(db_conn=db_conn,
-                                        client_id=client.client_id,
-                                        api_key=client.api_key,
-                                        from_date=from_date)
+            try:
+                logger.info(f"Статистика рекламы {client.name_company}")
+                await add_statistic_adverts(db_conn=db_conn,
+                                            client_id=client.client_id,
+                                            api_key=client.api_key,
+                                            from_date=from_date)
+            except ClientError as e:
+                logger.error(f'{e}')
+
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

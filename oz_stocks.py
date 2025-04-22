@@ -7,6 +7,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import OperationalError
 
+from ozon_sdk.errors import ClientError
 from ozon_sdk.ozon_api import OzonApi
 from database import OzDbConnection
 from data_classes import DataOzStock
@@ -76,10 +77,13 @@ async def main_oz_stock(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="Ozon")
 
         for client in clients:
-            logger.info(f'Сбор информации о остатках на складах {client.name_company}')
-            await get_stocks(db_conn=db_conn,
-                             client_id=client.client_id,
-                             api_key=client.api_key)
+            try:
+                logger.info(f'Сбор информации о остатках на складах {client.name_company}')
+                await get_stocks(db_conn=db_conn,
+                                 client_id=client.client_id,
+                                 api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

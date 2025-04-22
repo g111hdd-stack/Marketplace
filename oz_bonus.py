@@ -129,7 +129,6 @@ async def main_oz_bonus(retries: int = 6) -> None:
                                    api_key=client.api_key)
             except ClientError as e:
                 logger.error(f'{e}')
-                continue
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
