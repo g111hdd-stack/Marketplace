@@ -12,6 +12,9 @@ from gspread.utils import ValueInputOption
 from sqlalchemy.exc import OperationalError
 from oauth2client.service_account import ServiceAccountCredentials
 
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
 from database import DbConnection
 
 # Настройка
@@ -39,6 +42,32 @@ def column_to_letter(column: int):
         column, remainder = divmod(column - 1, 26)
         letters.append(chr(65 + remainder))
     return "".join(letters[::-1])
+
+
+def get_column_cell_colors(spreadsheet_id: str, sheet_name: str, column_letter: str = 'A') -> dict:
+    """Получение цветов ячеек из шаблона."""
+    creds = Credentials.from_service_account_file(PATH_JSON, scopes=SCOPE)
+    service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+
+    range_ = f"{sheet_name}!{column_letter}2:{column_letter}1000"
+
+    response = service.spreadsheets().get(
+        spreadsheetId=spreadsheet_id,
+        ranges=[range_],
+        includeGridData=True
+    ).execute()
+
+    result = {'Остальное': {'red': 0.878, 'green': 0.878, 'blue': 0.878}}
+    rows = response['sheets'][0]['data'][0].get('rowData', [])
+
+    for row in rows:
+        cell_data = row.get('values', [{}])[0]
+        value = cell_data.get('formattedValue')
+        color = cell_data.get('effectiveFormat', {}).get('backgroundColor')
+        if value is not None and color is not None:
+            result[value] = color
+
+    return result
 
 
 def reorder_sheets(spreadsheet: gspread.Spreadsheet, pattern_name: str) -> None:
@@ -82,6 +111,8 @@ def hide_and_rename_existing_sheet(spreadsheet: gspread.Spreadsheet, worksheet_n
 
 def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet, data: list, col_map: dict,
                  cat_map: dict, marketplaces: list) -> None:
+    vendor_colors = get_column_cell_colors(spreadsheet_id=spreadsheet.id, sheet_name='Шаблон')
+
     all_requests = []  # Список запросов на форматирование
 
     col_total_i = col_map["Итого"]["index"]
@@ -204,6 +235,19 @@ def format_sheet(worksheet: gspread.Worksheet, spreadsheet: gspread.Spreadsheet,
     all_requests.append({"updateSheetProperties": {"properties": {"sheetId": worksheet.id,
                                                                   "tabColor": TAB_COLOR_NEW_SHEET},
                                                    "fields": "tabColor"}})
+
+    # Задаём цвет ячейкам с артикулами
+    for idx, row in enumerate(data):
+        color = vendor_colors.get(row[0])
+        if color:
+            end_col = len(data[1]) if len(row) == 1 else 1
+            all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+                                                          "startRowIndex": idx,
+                                                          "endRowIndex": idx + 1,
+                                                          "startColumnIndex": 0,
+                                                          "endColumnIndex": end_col},
+                                                "cell": {"userEnteredFormat": {"backgroundColor": color}},
+                                                "fields": "userEnteredFormat.backgroundColor"}})
 
     # Добавляем новые строки для дублей и группируем
     for enum, (key, val) in enumerate(sorted(cat_map.items(), key=lambda x: x[0])):
