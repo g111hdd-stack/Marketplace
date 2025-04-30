@@ -64,7 +64,7 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
             date_now (datetime): Дата.
     """
     start = date_now - timedelta(days=1)
-    end = date_now - timedelta(microseconds=1)
+    end = datetime.now(tz=timezone(timedelta(hours=3)))
 
     logger.info(f"За период с <{start}> до <{end}>")
 
@@ -123,7 +123,7 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
 
         page_token = answer.result.paging.nextPageToken
 
-    logger.info(f"Количество записей: {len(list_orders)}")
+    logger.info(f"Количество записей: {len(list_operation)}")
     db_conn.add_ya_orders(list_orders=list_operation)
 
 
