@@ -80,6 +80,7 @@ class YaOrders(Base):
     rejected = (Column(Integer, nullable=False))
     returned = (Column(Integer, nullable=False))
     price = Column(Numeric(precision=12, scale=2), nullable=False)
+    bonus = Column(Numeric(precision=12, scale=2), nullable=False)
     status = Column(String(length=255), nullable=False)
     update_date = Column(Date, nullable=False)
 

@@ -114,6 +114,7 @@ class YaDbConnection(DbConnection):
                 rejected=row.rejected,
                 returned=row.returned,
                 price=row.price,
+                bonus=row.bonus,
                 status=row.status,
                 update_date=row.update_date
             ).on_conflict_do_update(
@@ -121,6 +122,7 @@ class YaDbConnection(DbConnection):
                                 'sku',
                                 'posting_number'],
                 set_={'price': row.price,
+                      'bonus': row.bonus,
                       'quantities': row.quantities,
                       'rejected': row.rejected,
                       'returned': row.returned,

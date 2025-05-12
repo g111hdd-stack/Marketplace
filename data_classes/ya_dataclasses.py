@@ -32,6 +32,7 @@ class DataYaOrder:
     posting_number: str
     delivery_schema: str
     price: float
+    bonus: float
     quantities: int
     rejected: int
     returned: int

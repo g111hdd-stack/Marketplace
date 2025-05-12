@@ -104,7 +104,9 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
                 rejected = sum([detail.itemCount for detail in item.details if detail.itemStatus == 'REJECTED'])
                 returned = sum([detail.itemCount for detail in item.details if detail.itemStatus == 'RETURNED'])
                 sku = str(item.marketSku)
-                price = round(sum([price.total for price in item.prices]) / quantities, 2)
+                # price = round(sum([price.total for price in item.prices]) / quantities, 2)
+                price = round(sum([price.costPerItem for price in item.prices]), 2)
+                bonus = round(sum([price.costPerItem for price in item.prices if price.type != 'BUYER']), 2)
                 list_operation.append(DataYaOrder(client_id=client_id,
                                                   order_date=order_date,
                                                   sku=sku,
@@ -112,6 +114,7 @@ async def add_yandex_orders_entry(db_conn: YaDbConnection, client_id: str, campa
                                                   posting_number=posting_number,
                                                   delivery_schema=campaign_id,
                                                   price=price,
+                                                  bonus=bonus,
                                                   quantities=quantities,
                                                   rejected=rejected,
                                                   returned=returned,
