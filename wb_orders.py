@@ -30,7 +30,7 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
                 Формат: YYYY-MM-DDTHH:mm:ss.sssZ.
                 Пример: 2019-11-25T10:43:06.51Z.
     """
-    date_from = date_now - timedelta(days=10)
+    date_from = date_now - timedelta(days=20)
     logger.info(f"За дату {date_now - timedelta(days=1)}")
 
     list_orders = []
@@ -43,9 +43,6 @@ async def add_wb_orders_entry(db_conn: WBDbConnection, client_id: str, api_key: 
 
     # Обработка полученных результатов
     for order in answer_orders.result:
-        if order.orderType != "Клиентский":
-            continue
-
         order_date = order.date.date()  # Дата заказа
         cancel_date = order.cancelDate.date()  # Дата отмены
 

@@ -8,6 +8,7 @@ class SupplierSales(BaseEntity):
     date: datetime = None
     lastChangeDate: datetime = None
     warehouseName: str = None
+    warehouseType: str = None
     countryName: str = None
     oblastOkrugName: str = None
     regionName: str = None
@@ -29,7 +30,6 @@ class SupplierSales(BaseEntity):
     finishedPrice: float = None
     priceWithDisc: float = None
     saleID: str = None
-    orderType: str = None
     sticker: str = None
     gNumber: str = None
     srid: str = None

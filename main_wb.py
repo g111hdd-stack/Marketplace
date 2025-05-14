@@ -42,9 +42,6 @@ async def add_wb_main_entry(db_conn: WBDbConnection, client_id: str, api_key: st
 
     # Обработка полученных результатов
     for operation in answer_sales.result:
-        if operation.orderType != "Клиентский":
-            continue
-
         # Извлечение информации о доставке и отправлении
         accrual_date = operation.date.date()  # Дата принятия учёта
         if accrual_date > end.date():

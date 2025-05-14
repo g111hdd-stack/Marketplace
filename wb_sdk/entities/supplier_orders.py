@@ -29,7 +29,6 @@ class SupplierOrders(BaseEntity):
     priceWithDisc: float = None
     isCancel: bool = None
     cancelDate: datetime = None
-    orderType: str = None
     sticker: str = None
     gNumber: str = None
     srid: str = None
