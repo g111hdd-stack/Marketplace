@@ -5,3 +5,7 @@ from .reports_info_request import *
 from .reports_united_marketplace_services_generate_request import *
 from .campaigns_offers_stocks_request import *
 from .warehouses_request import *
+from .reports_boost_consolidated_generate_request import *
+from .reports_shows_boost_generate_request import *
+from .reports_shelf_statistics_generate_request import *
+from .businesses_offer_mappings_request import *

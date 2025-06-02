@@ -226,8 +226,8 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                                  service=service,
                                                  cost=cost)
                             result_data.append(entry)
-                        except Exception:
-                            continue
+                        except Exception as e:
+                            logger.error(f'Ошибка при чтении листа {sheet} строки {idx}: {e}')
             else:
                 logger.error(f'Лист "{sheet}" не найден в файле.')
 

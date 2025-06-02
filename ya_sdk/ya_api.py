@@ -18,8 +18,15 @@ class YandexApi:
         self._reports_info_api = self._api_factory.get_api(ReportsInfoResponse)
         self._reports_united_marketplace_services_generate_api = self._api_factory.get_api(
             ReportsUnitedMarketplaceServicesGenerateResponse)
+        self._reports_shows_boost_generate_api = self._api_factory.get_api(
+            ReportsShowsBoostGenerateResponse)
+        self._reports_boost_consolidated_generate_api = self._api_factory.get_api(
+            ReportsBoostConsolidatedGenerateResponse)
+        self._reports_shelf_statistics_generate_api = self._api_factory.get_api(
+            ReportsShelfStatisticsGenerateResponse)
         self._campaigns_offers_stocks_api = self._api_factory.get_api(CampaignsOffersStocksResponse)
         self._warehouses_api = self._api_factory.get_api(WarehousesResponse)
+        self._businesses_offer_mappings_api = self._api_factory.get_api(BusinessesOfferMappingsResponse)
 
     async def get_campaigns(self, page: int = 1, page_size: int = None) -> CampaignsResponse:
         request = CampaignsRequest(page=page, pageSize=page_size)
@@ -88,7 +95,8 @@ class YandexApi:
                                                hasCis=has_cis)
         answer: CampaignsStatsOrdersResponse = await self._campaigns_stats_orders_api.post(body=body,
                                                                                            query=query,
-                                                                                           format_dict={'campaignId': campaign_id})
+                                                                                           format_dict={
+                                                                                               'campaignId': campaign_id})
 
         return answer
 
@@ -106,7 +114,7 @@ class YandexApi:
                                                                placement_programs: list[str] = None,
                                                                inns: list[str] = None,
                                                                format_field: str = 'FILE',
-                                                               language: str = 'RU')\
+                                                               language: str = 'RU') \
             -> ReportsUnitedMarketplaceServicesGenerateResponse:
         if placement_programs is None:
             placement_programs = ["FBS", "FBY", "DBS"]
@@ -129,6 +137,73 @@ class YandexApi:
 
         return answer
 
+    async def get_reports_shows_boost_generate(self,
+                                               business_id: int,
+                                               attribution_type: str,
+                                               date_from: str,
+                                               date_to: str,
+                                               format_field: str = 'FILE') -> ReportsShowsBoostGenerateResponse:
+        query = ReportsShowsBoostGenerateQueryRequest(format_field=format_field)
+        body = ReportsShowsBoostGenerateBodyRequest(businessId=business_id,
+                                                    attributionType=attribution_type,
+                                                    dateFrom=date_from,
+                                                    dateTo=date_to)
+        answer: ReportsShowsBoostGenerateResponse = await self._reports_shows_boost_generate_api.post(body=body,
+                                                                                                      query=query)
+        return answer
+
+    async def get_reports_boost_consolidated_generate(self,
+                                                      business_id: int,
+                                                      date_from: str = None,
+                                                      date_to: str = None,
+                                                      format_field: str = 'FILE') \
+            -> ReportsBoostConsolidatedGenerateResponse:
+        query = ReportsBoostConsolidatedGenerateQueryRequest(format_field=format_field)
+        body = ReportsBoostConsolidatedGenerateBodyRequest(businessId=business_id,
+                                                           dateFrom=date_from,
+                                                           dateTo=date_to)
+        answer: ReportsBoostConsolidatedGenerateResponse = await self._reports_boost_consolidated_generate_api.post(
+            body=body, query=query)
+        return answer
+
+    async def get_businesses_offer_mappings(self,
+                                            business_id: str,
+                                            card_statuses: list[str] = None,
+                                            category_ids: list[int] = None,
+                                            offer_ids: list[str] = None,
+                                            tags: list[str] = None,
+                                            vendor_names: list[str] = None,
+                                            archived: bool = False,
+                                            language: str = 'RU',
+                                            page_token: str = None,
+                                            limit: int = 100) -> BusinessesOfferMappingsResponse:
+        query = BusinessesOfferMappingsQueryRequest(language=language, page_token=page_token, limit=limit)
+        body = BusinessesOfferMappingsBodyRequest(archived=archived,
+                                                  cardStatuses=card_statuses,
+                                                  categoryIds=category_ids,
+                                                  offerIds=offer_ids,
+                                                  tags=tags,
+                                                  vendorNames=vendor_names)
+        answer: BusinessesOfferMappingsResponse = await self._businesses_offer_mappings_api.post(
+            body=body, query=query, format_dict={'businessId': business_id})
+        return answer
+
+    async def get_reports_shelf_statistics_generate(self,
+                                                    business_id: int,
+                                                    attribution_type: str,
+                                                    date_from: str = None,
+                                                    date_to: str = None,
+                                                    format_field: str = 'FILE') \
+            -> ReportsShelfStatisticsGenerateResponse:
+        query = ReportsShelfStatisticsGenerateQueryRequest(format_field=format_field)
+        body = ReportsShelfStatisticsGenerateBodyRequest(businessId=business_id,
+                                                         attributionType=attribution_type,
+                                                         dateFrom=date_from,
+                                                         dateTo=date_to)
+        answer: ReportsShelfStatisticsGenerateResponse = await self._reports_shelf_statistics_generate_api.post(
+            body=body, query=query)
+        return answer
+
     async def get_reports_info(self, report_id: str) -> ReportsInfoResponse:
         request = ReportsInfoRequest()
         answer: ReportsInfoResponse = await self._reports_info_api.get(request, format_dict={'reportId': report_id})
@@ -149,7 +224,8 @@ class YandexApi:
                                                 withTurnover=with_turnover)
         answer: CampaignsOffersStocksResponse = await self._campaigns_offers_stocks_api.post(body=body,
                                                                                              query=query,
-                                                                                             format_dict={'campaignId': campaign_id})
+                                                                                             format_dict={
+                                                                                                 'campaignId': campaign_id})
 
         return answer
 

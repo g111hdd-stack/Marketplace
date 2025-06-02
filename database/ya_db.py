@@ -95,6 +95,192 @@ class YaDbConnection(DbConnection):
         logger.info(f"Успешное добавление в базу")
 
     @retry_on_exception()
+    def add_ya_report_shows(self, list_reports: list[DataYaReportShows]) -> None:
+        """
+            Добавление в базу данных записи по бусту показов.
+
+            Args:
+                list_reports (list[DataYaReportShows]): Список данных об операциях.
+        """
+        for row in list_reports:
+            stmt = insert(YaReportShows).values(
+                client_id=row.client_id,
+                date=row.date,
+                vendor_code=row.vendor_code,
+                name_product=row.name_product,
+                shows=row.shows,
+                clicks=row.clicks,
+                add_to_card=row.add_to_card,
+                orders_count=row.orders_count,
+                cpm=row.cpm,
+                cost=row.cost,
+                orders_sum=row.orders_sum,
+                advert_id=row.advert_id,
+                name_advert=row.name_advert
+            ).on_conflict_do_update(
+                index_elements=['client_id',
+                                'date',
+                                'vendor_code',
+                                'advert_id'
+                                ],
+                set_={'name_product': row.name_product,
+                      'shows': row.shows,
+                      'clicks': row.clicks,
+                      'add_to_card': row.add_to_card,
+                      'orders_count': row.orders_count,
+                      'cpm': row.cpm,
+                      'cost': row.cost,
+                      'orders_sum': row.orders_sum,
+                      'name_advert': row.name_advert}
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_report_consolidated(self, list_reports: list[DataYaReportConsolidated]) -> None:
+        """
+            Добавление в базу данных записи по бусту продаж.
+
+            Args:
+                list_reports (list[DataYaReportСonsolidated]): Список данных об операциях.
+        """
+        for row in list_reports:
+            stmt = insert(YaReportConsolidated).values(
+                client_id=row.client_id,
+                date=row.date,
+                vendor_code=row.vendor_code,
+                name_product=row.name_product,
+                boost_shows=row.boost_shows,
+                total_shows=row.total_shows,
+                boost_clicks=row.boost_clicks,
+                total_clicks=row.total_clicks,
+                boost_add_to_card=row.boost_add_to_card,
+                total_add_to_card=row.total_add_to_card,
+                boost_orders_count=row.boost_orders_count,
+                total_orders_count=row.total_orders_count,
+                boost_orders_delivered_count=row.boost_orders_delivered_count,
+                total_orders_delivered_count=row.total_orders_delivered_count,
+                cost=row.cost,
+                bonus_cost=row.bonus_cost,
+                average_cost=row.average_cost,
+                boost_revenue_ratio_cost=row.boost_cost_ratio_revenue,
+                boost_orders_delivered_sum=row.boost_orders_delivered_sum,
+                total_orders_delivered_sum=row.total_orders_delivered_sum,
+                revenue_ratio_boost_total=row.boost_revenue_ratio_total,
+                advert_id=row.advert_id,
+                name_advert=row.name_advert
+            ).on_conflict_do_update(
+                index_elements=['client_id', 'date', 'vendor_code', 'advert_id'],
+                set_={
+                    'name_product': row.name_product,
+                    'boost_shows': row.boost_shows,
+                    'total_shows': row.total_shows,
+                    'boost_clicks': row.boost_clicks,
+                    'total_clicks': row.total_clicks,
+                    'boost_add_to_card': row.boost_add_to_card,
+                    'total_add_to_card': row.total_add_to_card,
+                    'boost_orders_count': row.boost_orders_count,
+                    'total_orders_count': row.total_orders_count,
+                    'boost_orders_delivered_count': row.boost_orders_delivered_count,
+                    'total_orders_delivered_count': row.total_orders_delivered_count,
+                    'cost': row.cost,
+                    'bonus_cost': row.bonus_cost,
+                    'average_cost': row.average_cost,
+                    'boost_revenue_ratio_cost': row.boost_cost_ratio_revenue,
+                    'boost_orders_delivered_sum': row.boost_orders_delivered_sum,
+                    'total_orders_delivered_sum': row.total_orders_delivered_sum,
+                    'revenue_ratio_boost_total': row.boost_revenue_ratio_total,
+                    'name_advert': row.name_advert
+                }
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_report_shelf(self, list_reports: list[DataYaReportShelf]) -> None:
+        """
+            Добавление в базу данных записи по бусту продаж.
+
+            Args:
+                list_reports (list[DataYaReportShelf]): Список данных об операциях.
+        """
+        for row in list_reports:
+            stmt = insert(YaReportShelf).values(
+                client_id=row.client_id,
+                date=row.date,
+                advert_id=row.advert_id,
+                name_advert=row.name_advert,
+                category=row.category,
+                shows=row.shows,
+                coverage=row.coverage,
+                clicks=row.clicks,
+                ctr=row.ctr,
+                shows_frequency=row.shows_frequency,
+                add_to_card=row.add_to_card,
+                orders_count=row.orders_count,
+                orders_conversion=row.orders_conversion,
+                order_sum=row.order_sum,
+                cpo=row.cpo,
+                average_cost_per_mille=row.average_cost_per_mille,
+                cost=row.cost,
+                cpm=row.cpm,
+                cost_ratio_revenue=row.cost_ratio_revenue
+            ).on_conflict_do_update(
+                index_elements=['client_id', 'date', 'advert_id', 'category'],
+                set_={
+                    'name_advert': row.name_advert,
+                    'shows': row.shows,
+                    'coverage': row.coverage,
+                    'clicks': row.clicks,
+                    'ctr': row.ctr,
+                    'shows_frequency': row.shows_frequency,
+                    'add_to_card': row.add_to_card,
+                    'orders_count': row.orders_count,
+                    'orders_conversion': row.orders_conversion,
+                    'order_sum': row.order_sum,
+                    'cpo': row.cpo,
+                    'average_cost_per_mille': row.average_cost_per_mille,
+                    'cost': row.cost,
+                    'cpm': row.cpm,
+                    'cost_ratio_revenue': row.cost_ratio_revenue
+                }
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_report_advert_cost(self, list_reports: list[DataYaAdvertCost]) -> None:
+        """
+            Добавление в базу данных записи по РК.
+
+            Args:
+                list_reports (list[DataYaAdvertCost]): Список данных об операциях.
+        """
+        for row in list_reports:
+            stmt = insert(YaAdvertCost).values(
+                client_id=row.client_id,
+                date=row.date,
+                advert_id=row.advert_id,
+                name_advert=row.name_advert,
+                type_advert=row.type_advert,
+                cost=row.cost,
+                bonus_deducted=row.bonus_deducted
+            ).on_conflict_do_update(
+                index_elements=['client_id', 'date', 'advert_id', 'type_advert'],
+                set_={
+                    'name_advert': row.name_advert,
+                    'cost': row.cost,
+                    'bonus_deducted': row.bonus_deducted
+                }
+            )
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
     def add_ya_orders(self, list_orders: list[DataYaOrder]) -> None:
         """
             Добавление в базу данных записи о заказах.
@@ -155,5 +341,27 @@ class YaDbConnection(DbConnection):
             ).on_conflict_do_nothing(
                 index_elements=['client_id', 'date', 'campaign_id', 'vendor_code', 'size', 'warehouse', 'type'])
             self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_ya_cards_products(self, list_card_product: list[DataYaCardProduct]) -> None:
+        """
+            Обновление информации о карточках товаров.
+
+            Args:
+                list_card_product (list[DataYaCardProduct]): Список данных о карточках товаров.
+        """
+        for row in list_card_product:
+            new = YaCardProduct(sku=row.sku,
+                                client_id=row.client_id,
+                                vendor_code=row.vendor_code,
+                                link=row.link,
+                                category=row.category,
+                                price=row.price,
+                                discount_price=row.discount_price,
+                                archived=row.archived)
+
+            self.session.merge(new)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")

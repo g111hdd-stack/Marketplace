@@ -2,6 +2,6 @@ from .base import BaseEntity
 
 
 class GenerateReportDTO(BaseEntity):
-    """Отчет по стоимости услуг."""
+    """Отчет."""
     reportId: str = None
     estimatedGenerationTime: int = None
