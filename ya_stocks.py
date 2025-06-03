@@ -7,6 +7,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import OperationalError
 
+from ya_sdk.errors import ClientError
 from ya_sdk.ya_api import YandexApi
 from database import YaDbConnection
 from data_classes import DataYaCampaigns, DataYaStock
@@ -82,54 +83,7 @@ async def get_stocks(db_conn: YaDbConnection, client_id: str, campaign_id: str, 
 
             page_token = answer.result.paging.nextPageToken
 
-    # # Агрегирование данных
-    # aggregate = {}
-    # for row in list_stocks:
-    #     key = (
-    #         row.date,
-    #         row.client_id,
-    #         row.sku,
-    #         row.size,
-    #         row.warehouse
-    #     )
-    #     if key in aggregate:
-    #         aggregate[key].append((row.quantity_warehouse,
-    #                                row.quantity_to_client,
-    #                                row.quantity_from_client,
-    #                                row.vendor_code,
-    #                                row.category,
-    #                                row.subject))
-    #     else:
-    #         aggregate[key] = [(row.quantity_warehouse,
-    #                            row.quantity_to_client,
-    #                            row.quantity_from_client,
-    #                            row.vendor_code,
-    #                            row.category,
-    #                            row.subject)]
-    #
-    # list_stocks = []
-    # for key, value in aggregate.items():
-    #     date, client_id, sku, size, warehouse = key
-    #     quantity_warehouse = sum([val[0] for val in value])
-    #     quantity_to_client = sum([val[1] for val in value])
-    #     quantity_from_client = sum([val[2] for val in value])
-    #     vendor_code = value[0][3]
-    #     category = value[0][4]
-    #     subject = value[0][5]
-    #     list_stocks.append(DataWBStock(
-    #         date=date,
-    #         client_id=client_id,
-    #         sku=sku,
-    #         vendor_code=vendor_code,
-    #         size=size,
-    #         category=category,
-    #         subject=subject,
-    #         warehouse=warehouse,
-    #         quantity_warehouse=quantity_warehouse,
-    #         quantity_to_client=quantity_to_client,
-    #         quantity_from_client=quantity_from_client)
-    #     )
-    logger.info(f"Количсетво строк: {len(list_stocks)}")
+    logger.info(f"Количество записей: {len(list_stocks)}")
     db_conn.add_ya_stock_entry(list_stocks=list_stocks)
 
 
@@ -149,11 +103,14 @@ async def main_wb_stock(retries: int = 6) -> None:
             for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
                 client = db_conn.get_client(client_id=campaign.client_id)
                 logger.info(f"Добавление в базу данных компании '{client.name_company}' магазина '{campaign.name}'")
-                await get_stocks(db_conn=db_conn,
-                                 client_id=client.client_id,
-                                 campaign_id=campaign.campaign_id,
-                                 api_key=client.api_key,
-                                 warehouses=warehouses)
+                try:
+                    await get_stocks(db_conn=db_conn,
+                                     client_id=client.client_id,
+                                     campaign_id=campaign.campaign_id,
+                                     api_key=client.api_key,
+                                     warehouses=warehouses)
+                except ClientError as e:
+                    logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
