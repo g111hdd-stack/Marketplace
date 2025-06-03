@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import OperationalError
 
 from data_classes import DataYaOrder, DataYaCampaigns
+from ya_sdk.errors import ClientError
 from ya_sdk.ya_api import YandexApi
 from database import YaDbConnection
 
@@ -151,11 +152,14 @@ async def main_orders_yandex(retries: int = 6) -> None:
             for campaign in sorted(list_campaigns, key=lambda x: x.client_id):
                 client = db_conn.get_client(client_id=campaign.client_id)
                 logger.info(f"Добавление в базу данных компании '{client.name_company}' магазина '{campaign.name}'")
-                await add_yandex_orders_entry(db_conn=db_conn,
-                                              client_id=client.client_id,
-                                              campaign_id=campaign.campaign_id,
-                                              api_key=client.api_key,
-                                              date_now=date_now)
+                try:
+                    await add_yandex_orders_entry(db_conn=db_conn,
+                                                  client_id=client.client_id,
+                                                  campaign_id=campaign.campaign_id,
+                                                  api_key=client.api_key,
+                                                  date_now=date_now)
+                except ClientError as e:
+                    logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

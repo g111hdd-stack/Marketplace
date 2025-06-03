@@ -227,6 +227,8 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                                  cost=cost)
                             result_data.append(entry)
                         except Exception as e:
+                            if sheet == 'Размещение товаров на витрине' and isinstance(idx, int) and int(idx) < 2:
+                                continue
                             logger.error(f'Ошибка при чтении листа {sheet} строки {idx}: {e}')
             else:
                 logger.error(f'Лист "{sheet}" не найден в файле.')
