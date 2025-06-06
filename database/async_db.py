@@ -5,8 +5,9 @@ from typing import List
 from functools import wraps
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from config import ASYNC_DB_URL
 from .models.async_models import *
@@ -40,7 +41,7 @@ def async_retry_on_exception(retries=3, delay=10):
 class AsyncDbConnection:
     def __init__(self, echo: bool = False) -> None:
         self.engine = create_async_engine(ASYNC_DB_URL, echo=echo, future=True)
-        self.async_session = async_sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
+        self.async_session = sessionmaker(bind=self.engine, expire_on_commit=False, class_=AsyncSession)
 
     @async_retry_on_exception()
     async def start_db(self) -> None:
