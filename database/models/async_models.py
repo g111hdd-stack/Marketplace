@@ -8,6 +8,13 @@ Base = declarative_base(metadata=metadata)
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 
+def round_to_5_minutes_moscow():
+    now_msk = datetime.now(MOSCOW_TZ).replace(tzinfo=None)
+    floored_minutes = (now_msk.minute // 5) * 5
+    rounded = now_msk.replace(minute=floored_minutes, second=0, microsecond=0)
+    return rounded
+
+
 class Client(Base):
     """Модель таблицы clients."""
     __tablename__ = 'clients'
@@ -50,7 +57,7 @@ class Rating(Base):
 
     id = Column(Integer, Identity(), primary_key=True)
     query_id = Column(Integer, ForeignKey('queries.id_query'), nullable=False)
-    collected_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(MOSCOW_TZ))
+    collected_at = Column(DateTime(timezone=False), nullable=False, default=round_to_5_minutes_moscow)
     cpm = Column(Numeric(precision=12, scale=2), nullable=True)
     promo_position = Column(Integer, nullable=True)
     position = Column(Integer, nullable=True)
