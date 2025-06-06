@@ -59,3 +59,21 @@ class DataOverseasPurchase:
     price: float
     log_cost: float
     log_add_cost: float
+
+
+@dataclass
+class DataRating:
+    query_id: int
+    cpm: Optional[float] = None
+    promo_position: Optional[int] = None
+    position: Optional[int] = None
+    advert_id: Optional[str] = None
+
+
+@dataclass
+class DataQuery:
+    id_query: int
+    query: str
+    sku: str
+    vendor_code: str
+    entrepreneur: str
