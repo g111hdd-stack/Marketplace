@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(me
 logger = logging.getLogger(__name__)
 
 URL = "https://search.wb.ru/exactmatch/ru/female/v9/search"
-MAX_PAGE = 3
+MAX_PAGE = 1
 NUM_WORKERS = 4
 
 HEADERS = {
@@ -91,7 +91,7 @@ async def pars_query(session: ClientSession, query: DataQuery, db_conn: AsyncDbC
         logger.info(f"Товар не найден на первых {MAX_PAGE} страницах")
         await db_conn.add_rating(DataRating(query_id=query.id_query,
                                             cpm=None,
-                                            promo_position=300,
+                                            promo_position=100,
                                             position=None,
                                             advert_id=None))
 
