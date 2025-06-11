@@ -311,7 +311,7 @@ async def add_yandex_report_entry(path_file: str, client_id: str, from_date: dat
 
             # Средняя стоимость буста (взвешенная по заказам)
             average_cost = (
-                cost / boost_orders_count if boost_orders_count else 0
+                cost / boost_orders_delivered_count if boost_orders_delivered_count else 0
             )
 
             # Доля расходов от выручки
