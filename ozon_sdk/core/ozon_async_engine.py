@@ -43,7 +43,7 @@ class OzonAsyncEngine:
                         if response.status != 200:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
-                            await asyncio.sleep(60)
+                            await asyncio.sleep(120)
                             retry -= 1
                             continue
                         return await response.json(content_type=None)
@@ -69,7 +69,7 @@ class OzonAsyncEngine:
                         if response.status != 200:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")
-                            await asyncio.sleep(60)
+                            await asyncio.sleep(120)
                             retry -= 1
                             continue
                         return await response.json()
