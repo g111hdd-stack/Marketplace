@@ -7,8 +7,8 @@ from functools import wraps
 
 from sqlalchemy.orm import Session
 from pyodbc import Error as PyodbcError
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import create_engine, text, func as f
 from sqlalchemy.dialects.postgresql import insert
 
 from config import *

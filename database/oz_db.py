@@ -120,7 +120,6 @@ class OzDbConnection(DbConnection):
             Обновление информации о карточках товаров.
 
             Args:
-                client_id (str): ID кабинета.
                 list_card_product (list[DataOzProductCard]): Список данных о карточках товаров.
         """
         for row in list_card_product:

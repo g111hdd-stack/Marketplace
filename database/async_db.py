@@ -40,7 +40,7 @@ def async_retry_on_exception(retries=3, delay=10):
 
 class AsyncDbConnection:
     def __init__(self, echo: bool = False) -> None:
-        self.engine = create_async_engine(ASYNC_DB_URL, echo=echo, future=True)
+        self.engine = create_async_engine(ASYNC_DB_URL, echo=echo)
         self.async_session = sessionmaker(bind=self.engine, expire_on_commit=False, class_=AsyncSession)
 
     @async_retry_on_exception()
