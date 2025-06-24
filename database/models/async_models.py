@@ -1,6 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Column, String, MetaData, Integer, Identity, Numeric, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, String, MetaData, Integer, Identity
+from sqlalchemy import UniqueConstraint, Numeric, ForeignKey, DateTime, Boolean
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
@@ -64,3 +65,7 @@ class Rating(Base):
     advert_id = Column(String(length=20), nullable=True)
 
     query = relationship("Query", back_populates="ratings")
+
+    __table_args__ = (
+        UniqueConstraint('query_id', 'collected_at', name='ratings_unique'),
+    )

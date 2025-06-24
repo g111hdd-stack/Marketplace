@@ -6,7 +6,7 @@ from functools import wraps
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from config import ASYNC_DB_URL
@@ -57,7 +57,10 @@ class AsyncDbConnection:
                                 position=rating.position,
                                 advert_id=rating.advert_id)
             session.add(new_rating)
-            await session.commit()
+            try:
+                await session.commit()
+            except IntegrityError:
+                await session.rollback()
 
     @async_retry_on_exception()
     async def get_queries(self) -> List[DataQuery]:

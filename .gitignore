@@ -1,6 +1,7 @@
 .idea/
 config.py
 /venv/
+/venv2/
 /templates/
 /temp/
 /dag/
