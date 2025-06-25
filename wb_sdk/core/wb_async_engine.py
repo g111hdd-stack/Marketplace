@@ -31,6 +31,9 @@ class WBAsyncEngine:
                         params = {k: v for k, v in params.items() if v is not None}
                     async with session.get(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
                                            timeout=120) as response:
+                        if response.status == 404:
+                            detail = await response.json()
+                            raise ClientError(detail.get('detail', 'Отсутствует ответ'))
                         if response.status in [404, 403, 401]:
                             raise ClientError
                         if response.status not in [200, 201, 204]:
