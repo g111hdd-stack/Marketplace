@@ -1,3 +1,5 @@
+import datetime
+
 from .requests import *
 from .response import *
 from .core import WBAsyncEngine
@@ -21,7 +23,8 @@ class WBApi:
         self._paid_storage_status_api = self._api_factory.get_api(PaidStorageStatusResponse)
         self._paid_storage_download_api = self._api_factory.get_api(PaidStorageDownloadResponse)
         self._analytics_acceptance_report_api = self._api_factory.get_api(AnalyticsAcceptanceReportResponse)
-        self._analytics_acceptance_report_download_api = self._api_factory.get_api(AnalyticsAcceptanceReportDownloadResponse)
+        self._analytics_acceptance_report_download_api = self._api_factory.get_api(
+            AnalyticsAcceptanceReportDownloadResponse)
         self._analytics_antifraud_details_api = self._api_factory.get_api(AnalyticsAntifraudDetailsResponse)
         self._mm_report_downloads_api = self._api_factory.get_api(NmReportDownloadsResponse)
         self._nm_report_downloads_file_api = self._api_factory.get_api(NmReportDownloadsFileResponse)
@@ -29,6 +32,10 @@ class WBApi:
         self._warehouse_remains_tasks_status_api = self._api_factory.get_api(WarehouseRemainsTasksStatusResponse)
         self._warehouse_remains_tasks_download_api = self._api_factory.get_api(WarehouseRemainsTasksDownloadResponse)
         self._supplier_stocks_api = self._api_factory.get_api(SupplierStocksResponse)
+        self._fbs_orders_api = self._api_factory.get_api(FBSOrdersResponse)
+        self._fbs_warehouses_api = self._api_factory.get_api(FBSWarehousesResponse)
+        self._fbs_supply_api = self._api_factory.get_api(FBSSupplyResponse)
+        self._fbs_stocks_api = self._api_factory.get_api(FBSStocksResponse)
 
     async def get_supplier_sales(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
@@ -222,7 +229,8 @@ class WBApi:
                                                       limit=limit,
                                                       dateTo=date_to,
                                                       rrdid=rrdid)
-        answer: SupplierReportDetailByPeriodResponse = await self._supplier_report_detail_by_period_api.get(query=request)
+        answer: SupplierReportDetailByPeriodResponse = await self._supplier_report_detail_by_period_api.get(
+            query=request)
 
         return answer
 
@@ -327,22 +335,51 @@ class WBApi:
 
     async def get_warehouse_remains_tasks_status(self, task_id: str) -> WarehouseRemainsTasksStatusResponse:
         request = WarehouseRemainsTasksStatusRequest()
-        answer: WarehouseRemainsTasksStatusResponse = await self._warehouse_remains_tasks_status_api.get(query=request,
-                                                                                                         format_dict={
-                                                                                                             'task_id': task_id})
+        answer: WarehouseRemainsTasksStatusResponse = await self._warehouse_remains_tasks_status_api.get(
+            query=request, format_dict={'task_id': task_id})
 
         return answer
 
     async def get_warehouse_remains_tasks_download(self, task_id: str) -> WarehouseRemainsTasksDownloadResponse:
         request = WarehouseRemainsTasksDownloadRequest()
-        answer: WarehouseRemainsTasksDownloadResponse = await self._warehouse_remains_tasks_download_api.get(query=request,
-                                                                                                             format_dict={
-                                                                                                                 'task_id': task_id})
+        answer: WarehouseRemainsTasksDownloadResponse = await self._warehouse_remains_tasks_download_api.get(
+            query=request, format_dict={'task_id': task_id})
 
         return answer
 
     async def get_supplier_stocks(self, date_from: str) -> SupplierStocksResponse:
         request = SupplierStocksRequest(dateFrom=date_from)
         answer: SupplierStocksResponse = await self._supplier_stocks_api.get(query=request)
+
+        return answer
+
+    async def get_fbs_orders(self,
+                             date_from: datetime.datetime,
+                             date_to: datetime.datetime,
+                             limit: int = 1000,
+                             next_field: int = 0):
+        date_from = int(date_from.replace(tzinfo=datetime.timezone.utc).timestamp())
+        date_to = int(date_to.replace(tzinfo=datetime.timezone.utc).timestamp())
+        request = FBSOrdersRequest(dateFrom=date_from, dateTo=date_to, limit=limit, next_field=next_field)
+        answer: FBSOrdersResponse = await self._fbs_orders_api.get(query=request)
+
+        return answer
+
+    async def get_fbs_warehouses(self) -> FBSWarehousesResponse:
+        request = FBSWarehousesRequest()
+        answer: FBSWarehousesResponse = await self._fbs_warehouses_api.get(query=request)
+
+        return answer
+
+    async def get_fbs_supply(self, supply_id) -> FBSSupplyResponse:
+        request = FBSSupplyRequest()
+        answer: FBSSupplyResponse = await self._fbs_supply_api.get(query=request, format_dict={'supplyId': supply_id})
+
+        return answer
+
+    async def get_fbs_stocks(self, warehouse_id: str, skus: list[str]) -> FBSStocksResponse:
+        request = FBSStocksRequest(skus=skus)
+        answer: FBSStocksResponse = await self._fbs_stocks_api.post(body=request,
+                                                                    format_dict={'warehouseId': warehouse_id})
 
         return answer

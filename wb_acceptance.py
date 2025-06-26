@@ -96,7 +96,7 @@ async def main_wb_acceptance(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        from_date = date_now - timedelta(days=5)
+        from_date = date_now - timedelta(days=1)
         to_date = date_now - timedelta(microseconds=1)
 
         for client in clients:

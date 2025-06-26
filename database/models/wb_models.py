@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint, Boolean
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Identity, UniqueConstraint, Boolean, DateTime
 
 from .general_models import Base
 
@@ -265,4 +266,66 @@ class WBStock(Base):
 
     __table_args__ = (
         UniqueConstraint('client_id', 'date', 'sku', 'warehouse', 'size', name='wb_stocks_unique'),
+    )
+
+
+class WBOrderFBS(Base):
+    """Модель таблицы wb_fbs_orders."""
+    __tablename__ = 'wb_fbs_orders'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    supply_id = Column(String(length=255), nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    warehouse_id = Column(String(length=255), nullable=False)
+    order_date = Column(DateTime, nullable=False)
+    posting_number = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    sku = Column(String(length=255), nullable=False)
+    barcodes = Column(ARRAY(String), default=list, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('warehouse_id', 'posting_number', name='wb_fbs_orders_unique'),
+    )
+
+
+class WBWarehouseFBS(Base):
+    """Модель таблицы wb_fbs_warehouses."""
+    __tablename__ = 'wb_fbs_warehouses'
+
+    warehouse_id = Column(String(length=255), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    name = Column(String(length=255), nullable=False)
+    office_id = Column(String(length=255), nullable=False)
+    cargo_type = Column(Integer, nullable=False)
+    delivery_type = Column(Integer, nullable=False)
+
+
+class WBSupplyFBS(Base):
+    """Модель таблицы wb_fbs_supplies."""
+    __tablename__ = 'wb_fbs_supplies'
+
+    supply_id = Column(String(length=255), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    done = Column(Boolean)
+    created_at = Column(DateTime, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
+    scan_dt = Column(DateTime, nullable=True)
+    name = Column(String(length=255), nullable=False)
+    cargo_type = Column(Integer, nullable=False)
+
+
+class WBStockFBS(Base):
+    """Модель таблицы wb_fbs_stocks."""
+    __tablename__ = 'wb_fbs_stocks'
+
+    id = Column(Integer, Identity(), primary_key=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
+    warehouse_id = Column(String(length=255), nullable=False)
+    barcode = Column(String(length=255), nullable=False)
+    vendor_code = Column(String(length=255), nullable=True)
+    date = Column(Date, nullable=False)
+    count = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('client_id', 'warehouse_id', 'barcode', 'date', name='wb_fbs_stocks_unique'),
     )

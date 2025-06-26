@@ -27,7 +27,11 @@ class WBAPIFactory:
         WarehouseRemainsResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains',
         WarehouseRemainsTasksStatusResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/status',
         WarehouseRemainsTasksDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/warehouse_remains/tasks/{task_id}/download',
-        SupplierStocksResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/stocks'
+        SupplierStocksResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/stocks',
+        FBSOrdersResponse: 'https://marketplace-api.wildberries.ru/api/v3/orders',
+        FBSWarehousesResponse: 'https://marketplace-api.wildberries.ru/api/v3/warehouses',
+        FBSSupplyResponse: 'https://marketplace-api.wildberries.ru/api/v3/supplies/{supplyId}',
+        FBSStocksResponse: 'https://marketplace-api.wildberries.ru/api/v3/stocks/{warehouseId}'
     }
 
     def __init__(self, engine: WBAsyncEngine):

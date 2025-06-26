@@ -167,3 +167,47 @@ class DataWBStock:
     quantity_warehouse: int
     quantity_to_client: int
     quantity_from_client: int
+
+
+@dataclass
+class DataWBOrderFBS:
+    supply_id: str
+    client_id: str
+    warehouse_id: str
+    order_date: datetime.datetime
+    posting_number: str
+    vendor_code: str
+    sku: str
+    barcodes: list[str]
+
+
+@dataclass
+class DataWBWarehouseFBS:
+    client_id: str
+    name: str
+    office_id: str
+    warehouse_id: str
+    cargo_type: int
+    delivery_type: int
+
+
+@dataclass
+class DataWBSupplyFBS:
+    supply_id: str
+    client_id: str
+    done: bool
+    created_at: datetime.datetime
+    closed_at: datetime.datetime
+    scan_dt: datetime.datetime
+    name: str
+    cargo_type: int
+
+
+@dataclass
+class DataWBStockFBS:
+    client_id: str
+    warehouse_id: str
+    date: datetime.date
+    barcode: str
+    vendor_code: str
+    count: int

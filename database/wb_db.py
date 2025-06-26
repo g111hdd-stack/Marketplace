@@ -2,7 +2,7 @@ import logging
 
 from datetime import date
 
-from sqlalchemy import or_, text, select, update
+from sqlalchemy import or_, text, select, update, distinct, func
 from sqlalchemy.dialects.postgresql import insert
 
 from .models import *
@@ -94,6 +94,42 @@ class WBDbConnection(DbConnection):
         query = text("SELECT * FROM wb_stocks_ratio;")
         result = self.session.execute(query).fetchall()
         return result
+
+    @retry_on_exception()
+    def get_fbs_supplies(self, client_id: str) -> list:
+        """
+            Получает незакрытые поставки из wb_fbs_orders
+
+            Returns:
+                List[str]: Список поставок.
+        """
+        result = (
+            self.session.query(WBOrderFBS.supply_id)
+            .distinct()
+            .outerjoin(WBSupplyFBS, WBOrderFBS.supply_id == WBSupplyFBS.supply_id)
+            .filter(or_(WBSupplyFBS.done.is_(None), WBSupplyFBS.done.is_(False)),
+                    WBOrderFBS.supply_id != '',
+                    WBOrderFBS.client_id == client_id)
+            .all()
+        )
+        return [row[0] for row in result]
+
+    @retry_on_exception()
+    def get_fbs_barcodes(self, client_id: str) -> dict:
+        """
+            Получаем словарь складов со списком баркодов по клиенту.
+
+            Returns:
+                dict: словарь с данными.
+        """
+        data = {}
+        stmt = select(WBOrderFBS.warehouse_id, WBOrderFBS.vendor_code, func.unnest(WBOrderFBS.barcodes).label('barcode')) \
+            .filter(WBOrderFBS.client_id == client_id).distinct()
+        result = self.session.execute(stmt).all()
+        for warehouse_id, vendor_code, barcode in result:
+            data.setdefault(warehouse_id, [])
+            data[warehouse_id].append((barcode, vendor_code))
+        return data
 
     @retry_on_exception()
     def add_wb_operation(self, list_operations: list[DataOperation]) -> None:
@@ -468,6 +504,90 @@ class WBDbConnection(DbConnection):
                 quantity_to_client=row.quantity_to_client,
                 quantity_from_client=row.quantity_from_client
             ).on_conflict_do_nothing(index_elements=['client_id', 'date', 'sku', 'warehouse', 'size'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_wb_fbs_orders(self, list_orders: list[DataWBOrderFBS]) -> None:
+        """
+            Добавление в базу данных записи о заказах на FBS.
+
+            Args:
+                list_orders (list[DataWBOrderFBS]): Список данных о заказах FBS.
+        """
+        for row in list_orders:
+            stmt = insert(WBOrderFBS).values(
+                supply_id=row.supply_id,
+                client_id=row.client_id,
+                warehouse_id=row.warehouse_id,
+                order_date=row.order_date,
+                posting_number=row.posting_number,
+                vendor_code=row.vendor_code,
+                sku=row.sku,
+                barcodes=row.barcodes
+            ).on_conflict_do_nothing(index_elements=['warehouse_id', 'posting_number'])
+            self.session.execute(stmt)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_wb_fbs_warehouses(self, list_warehouses: list[DataWBWarehouseFBS]) -> None:
+        """
+            Добавление и обновление в базе данных записей о складах FBS.
+
+            Args:
+                list_warehouses (list[DataWBWarehouseFBS]): Список данных о складах FBS.
+        """
+        for row in list_warehouses:
+            new = WBWarehouseFBS(warehouse_id=row.warehouse_id,
+                                 client_id=row.client_id,
+                                 name=row.name,
+                                 officeId=row.office_id,
+                                 cargoType=row.cargo_type,
+                                 deliveryType=row.delivery_type)
+            self.session.merge(new)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_wb_fbs_supplies(self, list_supplies: list[DataWBSupplyFBS]) -> None:
+        """
+            Добавление и обновление в базе данных записей о поставках FBS.
+
+            Args:
+                list_supplies (list[DataWBSupplyFBS]): Список данных о поставках FBS.
+        """
+        for row in list_supplies:
+            new = WBSupplyFBS(supply_id=row.supply_id,
+                              client_id=row.client_id,
+                              done=row.done,
+                              created_at=row.created_at,
+                              closed_at=row.closed_at,
+                              scan_dt=row.scan_dt,
+                              name=row.name,
+                              cargo_type=row.cargo_type)
+            self.session.merge(new)
+        self.session.commit()
+        logger.info(f"Успешное добавление в базу")
+
+    @retry_on_exception()
+    def add_wb_fbs_stocks(self, list_stocks: list[DataWBStockFBS]) -> None:
+        """
+            Добавление данных об остатках на складах FBS.
+
+            Args:
+                list_stocks (list[DataWBStockFBS]): Список данных о поставках FBS.
+        """
+        for row in list_stocks:
+            stmt = insert(WBStockFBS).values(
+                client_id=row.client_id,
+                warehouse_id=row.warehouse_id,
+                barcode=row.barcode,
+                vendor_code=row.vendor_code,
+                date=row.date,
+                count=row.count
+            ).on_conflict_do_nothing(index_elements=['client_id', 'warehouse_id', 'barcode', 'date'])
             self.session.execute(stmt)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
