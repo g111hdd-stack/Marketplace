@@ -21,6 +21,7 @@ class WBApi:
         self._paid_storage_status_api = self._api_factory.get_api(PaidStorageStatusResponse)
         self._paid_storage_download_api = self._api_factory.get_api(PaidStorageDownloadResponse)
         self._analytics_acceptance_report_api = self._api_factory.get_api(AnalyticsAcceptanceReportResponse)
+        self._analytics_acceptance_report_download_api = self._api_factory.get_api(AnalyticsAcceptanceReportDownloadResponse)
         self._analytics_antifraud_details_api = self._api_factory.get_api(AnalyticsAntifraudDetailsResponse)
         self._mm_report_downloads_api = self._api_factory.get_api(NmReportDownloadsResponse)
         self._nm_report_downloads_file_api = self._api_factory.get_api(NmReportDownloadsFileResponse)
@@ -250,6 +251,13 @@ class WBApi:
     async def get_analytics_acceptance_report(self, date_from: str, date_to: str) -> AnalyticsAcceptanceReportResponse:
         request = AnalyticsAcceptanceReportRequest(dateFrom=date_from, dateTo=date_to)
         answer: AnalyticsAcceptanceReportResponse = await self._analytics_acceptance_report_api.get(query=request)
+
+        return answer
+
+    async def get_analytics_acceptance_report_download(self, task_id: str) -> AnalyticsAcceptanceReportDownloadResponse:
+        request = AnalyticsAcceptanceReportDownloadRequest()
+        answer: AnalyticsAcceptanceReportDownloadResponse = await self._analytics_acceptance_report_download_api.get(
+            query=request, format_dict={'task_id': task_id})
 
         return answer
 

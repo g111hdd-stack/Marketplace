@@ -16,3 +16,4 @@ from .warehouse_remains_response import *
 from .warehouse_remains_tasks_status_response import *
 from .warehouse_remains_tasks_download_response import *
 from .supplier_stocks_response import *
+from .analytics_acceptance_report_download_response import *

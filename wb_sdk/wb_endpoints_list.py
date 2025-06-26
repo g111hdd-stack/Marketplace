@@ -20,6 +20,7 @@ class WBAPIFactory:
         PaidStorageDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/{task_id}/download',
         SupplierOrdersResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/orders',
         AnalyticsAcceptanceReportResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/acceptance_report',
+        AnalyticsAcceptanceReportDownloadResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/acceptance_report/tasks/{task_id}/download',
         AnalyticsAntifraudDetailsResponse: 'https://seller-analytics-api.wildberries.ru/api/v1/analytics/antifraud-details',
         NmReportDownloadsResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/downloads',
         NmReportDownloadsFileResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/downloads/file/{downloadId}',

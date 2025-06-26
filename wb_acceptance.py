@@ -40,14 +40,28 @@ async def add_acceptance(db_conn: WBDbConnection, client_id: str, api_key: str, 
     api_user = WBApi(api_key=api_key)
 
     # Получение отчёта по приёмке товара
-    answer = await api_user.get_analytics_acceptance_report(date_from=from_date, date_to=to_date)
+    answer_report = await api_user.get_analytics_acceptance_report(date_from=from_date, date_to=to_date)
+    error_text = ''
 
-    # Обработка полученных результатов
-    for acceptance in answer.report:
-        list_acceptance.append(DataWBAcceptance(client_id=client_id,
-                                                date=acceptance.shkCreateDate,
-                                                sku=str(acceptance.nmID),
-                                                cost=round(acceptance.total, 2)))
+    if answer_report.data:
+        for _ in range(3):
+            try:
+                await asyncio.sleep(20)
+                answer = await api_user.get_analytics_acceptance_report_download(task_id=answer_report.data.taskId)
+
+                # Обработка полученных результатов
+                for acceptance in answer.result:
+                    list_acceptance.append(DataWBAcceptance(client_id=client_id,
+                                                            date=acceptance.shkCreateDate,
+                                                            sku=str(acceptance.nmID),
+                                                            cost=round(acceptance.total, 2)))
+                break
+            except ClientError as e:
+                error_text = e
+        else:
+            logger.error(f"Не удалось получить ответ: {error_text}")
+    else:
+        logger.error(f"Не был создан отчёт")
 
     # Агрегирование данных
     aggregate = {}
@@ -82,7 +96,7 @@ async def main_wb_acceptance(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        from_date = date_now - timedelta(days=1)
+        from_date = date_now - timedelta(days=5)
         to_date = date_now - timedelta(microseconds=1)
 
         for client in clients:

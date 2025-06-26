@@ -6,4 +6,4 @@ from ..entities import AnalyticsAcceptanceReport
 
 class AnalyticsAcceptanceReportResponse(BaseResponse):
     """Возвращает отчёт по приёмке."""
-    report: Optional[list[AnalyticsAcceptanceReport]] = []
+    data: Optional[AnalyticsAcceptanceReport] = None
