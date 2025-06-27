@@ -543,9 +543,9 @@ class WBDbConnection(DbConnection):
             new = WBWarehouseFBS(warehouse_id=row.warehouse_id,
                                  client_id=row.client_id,
                                  name=row.name,
-                                 officeId=row.office_id,
-                                 cargoType=row.cargo_type,
-                                 deliveryType=row.delivery_type)
+                                 office_id=row.office_id,
+                                 cargo_type=row.cargo_type,
+                                 delivery_type=row.delivery_type)
             self.session.merge(new)
         self.session.commit()
         logger.info(f"Успешное добавление в базу")
