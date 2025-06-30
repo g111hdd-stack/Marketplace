@@ -36,6 +36,7 @@ class WBApi:
         self._fbs_warehouses_api = self._api_factory.get_api(FBSWarehousesResponse)
         self._fbs_supply_api = self._api_factory.get_api(FBSSupplyResponse)
         self._fbs_stocks_api = self._api_factory.get_api(FBSStocksResponse)
+        self._cards_list_api = self._api_factory.get_api(CardsListResponse)
 
     async def get_supplier_sales(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
@@ -381,5 +382,36 @@ class WBApi:
         request = FBSStocksRequest(skus=skus)
         answer: FBSStocksResponse = await self._fbs_stocks_api.post(body=request,
                                                                     format_dict={'warehouseId': warehouse_id})
+
+        return answer
+
+    async def get_cards_list(self,
+                             updated_at: str = None,
+                             nm_id: int = None,
+                             with_photo: int = -1,
+                             text_search: str = None,
+                             tag_ids: list[int] = None,
+                             allowed_categories_only: bool = False,
+                             object_ids: list[int] = None,
+                             brands: list[str] = None,
+                             imt_id: int = None,
+                             ascending: bool = False,
+                             limit: int = 100,
+                             locale: str = 'ru') -> CardsListResponse:
+        query = CardsListQueryRequest(locale=locale)
+        body = CardsListBodyRequest(settings=CardsListSettingsBodyRequest(
+            sort=CardsListSettingsSortBodyRequest(ascending=ascending),
+            filter_field=CardsListSettingsFilterBodyRequest(
+                withPhoto=with_photo,
+                textSearch=text_search,
+                tagIDs=tag_ids,
+                allowedCategoriesOnly=allowed_categories_only,
+                objectIDs=object_ids,
+                brands=brands,
+                imtID=imt_id
+            ),
+            cursor=CardsListSettingsCursorBodyRequest(limit=limit, updatedAt=updated_at, nmID=nm_id)
+        ))
+        answer: CardsListResponse = await self._cards_list_api.post(body=body, query=query)
 
         return answer

@@ -31,7 +31,8 @@ class WBAPIFactory:
         FBSOrdersResponse: 'https://marketplace-api.wildberries.ru/api/v3/orders',
         FBSWarehousesResponse: 'https://marketplace-api.wildberries.ru/api/v3/warehouses',
         FBSSupplyResponse: 'https://marketplace-api.wildberries.ru/api/v3/supplies/{supplyId}',
-        FBSStocksResponse: 'https://marketplace-api.wildberries.ru/api/v3/stocks/{warehouseId}'
+        FBSStocksResponse: 'https://marketplace-api.wildberries.ru/api/v3/stocks/{warehouseId}',
+        CardsListResponse: 'https://content-api.wildberries.ru/content/v2/get/cards/list'
     }
 
     def __init__(self, engine: WBAsyncEngine):

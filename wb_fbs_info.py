@@ -141,36 +141,36 @@ async def add_wb_fbs_supplies_entry(db_conn: WBDbConnection, client_id: str, api
     db_conn.add_wb_fbs_supplies(list_supplies=list_supplies)
 
 
-async def add_wb_fbs_stock_entry(db_conn: WBDbConnection, client_id: str, api_key: str) -> None:
-    """
-        Получаем данные об остатках на складах FBS по указанному клиенту.
-
-        Args:
-            db_conn (WBDbConnection): Объект соединения с базой данных.
-            client_id (str): ID кабинета.
-            api_key (str): API KEY кабинета.
-    """
-
-    list_stocks = []
-
-    # Инициализация API-клиента WB
-    api_user = WBApi(api_key=api_key)
-
-    warehouse_barcodes = db_conn.get_fbs_barcodes(client_id=client_id)
-
-    for warehouse_id, barcodes in warehouse_barcodes.items():
-        for skus in [barcodes[i:i + 1000] for i in range(0, len(barcodes), 1000)]:
-            sku_to_vendor = dict(skus)
-            answer = await api_user.get_fbs_stocks(warehouse_id=warehouse_id, skus=list(sku_to_vendor.keys()))
-            for stock in answer.stocks:
-                list_stocks.append(DataWBStockFBS(client_id=client_id,
-                                                  warehouse_id=warehouse_id,
-                                                  date=date.today(),
-                                                  barcode=stock.sku,
-                                                  vendor_code=sku_to_vendor.get(stock.sku, None),
-                                                  count=stock.amount))
-
-    db_conn.add_wb_fbs_stocks(list_stocks=list_stocks)
+# async def add_wb_fbs_stock_entry(db_conn: WBDbConnection, client_id: str, api_key: str) -> None:
+#     """
+#         Получаем данные об остатках на складах FBS по указанному клиенту.
+#
+#         Args:
+#             db_conn (WBDbConnection): Объект соединения с базой данных.
+#             client_id (str): ID кабинета.
+#             api_key (str): API KEY кабинета.
+#     """
+#
+#     list_stocks = []
+#
+#     # Инициализация API-клиента WB
+#     api_user = WBApi(api_key=api_key)
+#
+#     warehouse_barcodes = db_conn.get_fbs_barcodes(client_id=client_id)
+#
+#     for warehouse_id, barcodes in warehouse_barcodes.items():
+#         for skus in [barcodes[i:i + 1000] for i in range(0, len(barcodes), 1000)]:
+#             sku_to_vendor = dict(skus)
+#             answer = await api_user.get_fbs_stocks(warehouse_id=warehouse_id, skus=list(sku_to_vendor.keys()))
+#             for stock in answer.stocks:
+#                 list_stocks.append(DataWBStockFBS(client_id=client_id,
+#                                                   warehouse_id=warehouse_id,
+#                                                   date=date.today(),
+#                                                   barcode=stock.sku,
+#                                                   vendor_code=sku_to_vendor.get(stock.sku, None),
+#                                                   count=stock.amount))
+#
+#     db_conn.add_wb_fbs_stocks(list_stocks=list_stocks)
 
 
 async def main_fbs_orders_wb(retries: int = 6) -> None:
@@ -203,13 +203,13 @@ async def main_fbs_orders_wb(retries: int = 6) -> None:
                                                 api_key=client.api_key)
             except ClientError as e:
                 logger.error(f'{e}')
-            try:
-                logger.info(f"Обновляем информацию об остатках на складах FBS компании {client.name_company}")
-                await add_wb_fbs_stock_entry(db_conn=db_conn,
-                                             client_id=client.client_id,
-                                             api_key=client.api_key)
-            except ClientError as e:
-                logger.error(f'{e}')
+            # try:
+            #     logger.info(f"Обновляем информацию об остатках на складах FBS компании {client.name_company}")
+            #     await add_wb_fbs_stock_entry(db_conn=db_conn,
+            #                                  client_id=client.client_id,
+            #                                  api_key=client.api_key)
+            # except ClientError as e:
+            #     logger.error(f'{e}')
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

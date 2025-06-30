@@ -21,3 +21,4 @@ from .fbs_orders_response import *
 from .fbs_warehouses_response import *
 from .fbs_supply_response import *
 from .fbs_stocks_response import *
+from .cards_list_response import *

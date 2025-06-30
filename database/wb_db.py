@@ -114,22 +114,38 @@ class WBDbConnection(DbConnection):
         )
         return [row[0] for row in result]
 
-    @retry_on_exception()
-    def get_fbs_barcodes(self, client_id: str) -> dict:
-        """
-            Получаем словарь складов со списком баркодов по клиенту.
-
-            Returns:
-                dict: словарь с данными.
-        """
-        data = {}
-        stmt = select(WBOrderFBS.warehouse_id, WBOrderFBS.vendor_code, func.unnest(WBOrderFBS.barcodes).label('barcode')) \
-            .filter(WBOrderFBS.client_id == client_id).distinct()
-        result = self.session.execute(stmt).all()
-        for warehouse_id, vendor_code, barcode in result:
-            data.setdefault(warehouse_id, [])
-            data[warehouse_id].append((barcode, vendor_code))
-        return data
+    # @retry_on_exception()
+    # def get_fbs_warehouses(self, client_id: str) -> list[str]:
+    #     """
+    #         Получаем список складов FBS по клиенту.
+    #
+    #         Returns:
+    #             list: список складов.
+    #     """
+    #     result = (
+    #         self.session.query(WBWarehouseFBS.warehouse_id)
+    #         .filter(~WBWarehouseFBS.name.ilike('%DBS%'),
+    #                 WBWarehouseFBS.client_id == client_id)
+    #         .all()
+    #     )
+    #     return [row[0] for row in result]
+    #
+    # @retry_on_exception()
+    # def get_fbs_barcodes(self, client_id: str) -> dict:
+    #     """
+    #         Получаем словарь складов со списком баркодов по клиенту.
+    #
+    #         Returns:
+    #             dict: словарь с данными.
+    #     """
+    #     data = {}
+    #     stmt = select(WBOrderFBS.warehouse_id, WBOrderFBS.vendor_code, func.unnest(WBOrderFBS.barcodes).label('barcode')) \
+    #         .filter(WBOrderFBS.client_id == client_id).distinct()
+    #     result = self.session.execute(stmt).all()
+    #     for warehouse_id, vendor_code, barcode in result:
+    #         data.setdefault(warehouse_id, [])
+    #         data[warehouse_id].append((barcode, vendor_code))
+    #     return data
 
     @retry_on_exception()
     def add_wb_operation(self, list_operations: list[DataOperation]) -> None:
