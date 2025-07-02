@@ -267,7 +267,7 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
                                            ))
 
         # Получение остальных страниц результата
-        if len(answer.result.data) < limit:
+        if not limit or len(answer.result.data) < limit:
             break
 
         offset += limit
