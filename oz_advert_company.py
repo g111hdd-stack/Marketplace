@@ -243,9 +243,11 @@ async def add_statistics_card_products(db_conn: OzDbConnection, client_id: str, 
 
             # Проверка на Премиум
             if len(metrics_round) < len(metrics):
-                logger.error(f"{client_id} Статистика не доступна из-за отсутсвия Премиума")
-                limit = 0
-                break
+                # logger.error(f"{client_id} Статистика не доступна из-за отсутсвия Премиума")
+                metrics_round = metrics_round[:2]
+                metrics_round.extend([0, 0, 0, 0, 0, 0, 0])
+                # limit = 0
+                # break
 
             # Проверка на полностью нулевую статистику
             if not sum(metrics_round):
