@@ -74,7 +74,8 @@ SELECT
     ymt.accrual_date as "Дата забора"
 FROM ya_orders yo
 LEFT JOIN clients c ON c.client_id = yo.client_id
-LEFT JOIN ya_main_table ymt ON ymt.posting_number = yo.posting_number 
+LEFT JOIN (SELECT * FROM ya_main_table WHERE type_of_transaction = 'delivered') ymt 
+ON ymt.posting_number = yo.posting_number 
 WHERE yo.order_date >= '2025-04-01'
 AND status NOT IN ('CANCELLED_IN_DELIVERY', 'CANCELLED_IN_PROCESSING', 'CANCELLED_BEFORE_PROCESSING', 'RETURNED')
 ORDER BY yo.order_date DESC, c.entrepreneur, yo.vendor_code
