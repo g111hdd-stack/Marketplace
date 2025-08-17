@@ -8,7 +8,7 @@ from gspread.utils import ValueRenderOption
 from sqlalchemy import create_engine, text
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import DB_ARRIS_MASTER_URL
+from config import DB_ARRIS_MASTER_URL, SPREADSHEET_ID
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
@@ -19,7 +19,6 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 PATH_JSON = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
-SPREADSHEET_ID = "1JDP5JAB8qqfwVGvhQZ0R5BuSQRolBIyhtM5flZn7-5Q"
 
 all_list = {
     'OZON 1': [4, 0, 10, 'Ozon', 2, 3, 5, 6],
