@@ -176,7 +176,7 @@ async def add_yandex_report_entry(path_file: str, client_id: str) -> list[DataYa
                         orders_conversion = next((v for v in row_data.get('orders_conversion', {}).values() if v is not None), None)
                         order_sum = next((v for v in row_data.get('order_sum', {}).values() if v is not None), None)
                         cpo = next((v for v in row_data.get('cpo', {}).values() if v is not None and v != ''), 0)
-                        average_cost_per_mille = next((v for v in row_data.get('average_cost_per_mille', {}).values() if v is not None), None)
+                        average_cost_per_mille = next((v for v in row_data.get('average_cost_per_mille', {}).values() if v is not None), 0)
                         cost = next((v for v in row_data.get('cost', {}).values() if v is not None), None)
                         cpm = next((v for v in row_data.get('cpm', {}).values() if v is not None), None)
                         cost_ratio_revenue = next((v for v in row_data.get('cost_ratio_revenue', {}).values() if v is not None and v != ''), 0)
@@ -281,7 +281,7 @@ async def add_yandex_report_entry(path_file: str, client_id: str) -> list[DataYa
         logger.error(f'Ошибка при чтении файла {path_file}: {e}')
 
 
-async def add_yandex_report_advert_entry(path_file: str, client_id: str, from_date: date) -> list[DataYaAdvertCost]:
+async def add_yandex_report_advert_entry(path_file: str, client_id: str) -> list[DataYaAdvertCost]:
     headers_dict = {'date': {'Дата': None},
                     'advert_id': {'ID кампании': None},
                     'name_advert': {'Название кампании': None},
@@ -405,8 +405,7 @@ async def main_yandex_report(retries: int = 6) -> None:
                                                              client_id=client.client_id)
                 db_conn.add_ya_report_shelf(list_reports=list_reports)
                 list_reports_advert_cost = await add_yandex_report_advert_entry(path_file=path_file,
-                                                                                client_id=client.client_id,
-                                                                                from_date=date_now - timedelta(days=1))
+                                                                                client_id=client.client_id)
                 db_conn.add_ya_report_advert_cost(list_reports=list_reports_advert_cost)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')

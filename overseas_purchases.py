@@ -1,140 +1,180 @@
+import os
+import gspread
 import logging
+import datetime
 import warnings
-import pandas as pd
-import tkinter as tk
 
-from tkinter import filedialog
+from sqlalchemy import create_engine, text
+from oauth2client.service_account import ServiceAccountCredentials
 
-from database import DbConnection
-from data_classes import DataOverseasPurchase
+from config import DB_URL
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
 
-warnings.simplefilter(action='ignore', category=UserWarning)
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+PATH_JSON = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
+PROJECT = 'Расчет себестоимости'
+
+month = {
+    1: 'январь',
+    2: 'февраль',
+    3: 'март',
+    4: 'апрель',
+    5: 'май',
+    6: 'июнь',
+    7: 'июль',
+    8: 'август',
+    9: 'сентябрь',
+    10: 'октябрь',
+    11: 'ноябрь',
+    12: 'декабрь'
+}
+
+column = ['accrual_date', 'vendor_code', 'quantities', 'price', 'log_cost', 'log_add_cost']
 
 
-def select_files():
-    db_conn = DbConnection()
-    db_conn.start_db()
+def get_values_china(to_date: datetime.date) -> list:
+    sheet_name = 'Китай приемка'
 
-    file_paths = filedialog.askopenfilenames(filetypes=[("Excel files", "*.xlsx *.xls")])
+    creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
+    client = gspread.authorize(creds)
+    spreadsheet = client.open(PROJECT)
 
-    if file_paths:
-        for file_path in file_paths:
-            list_purchase = process_file(file_path)
-            db_conn.add_overseas_purchases(list_purchase=list_purchase)
+    worksheet = spreadsheet.worksheet(sheet_name)
 
+    data = worksheet.get_all_values()
 
-def process_file(path_file: str):
-    headers = {'accrual_date': None,
-               'vendor_code': None,
-               'quantity': None,
-               'ptice_￥': None,
-               'logistics_cost_$': None,
-               'add_logistics_ru': None}
+    to_year = to_date.year
+    index = next((i for i, sublist in enumerate(data) if sublist[0] == str(to_year)), None)
+    data = data[index:]
 
-    try:
-        df = pd.read_excel(path_file)
-        df = df.fillna('')
-        logger.info(f'Файл {path_file} прочитан успешно.')
+    to_month = to_date.month
+    index = next((i for i, sublist in enumerate(data) if sublist[0].lower().strip() == month.get(to_month)), None)
+    data = data[index:]
 
-        result_data = []
+    list_except = list(month.values()) + ['наименование', 'артикул', 'наименовение']
+    data = [sublist for sublist in data if sublist[0].lower().strip() not in list_except and sublist[0].strip()]
 
-        for idx, row in df.iterrows():
+    entry = []
+    date_obj = None
+
+    for val in data:
+        if val[0].startswith('Приемка'):
             try:
-                row_data = {}
-                for header in headers:
-                    if header in df.columns:
-                        row_data[header] = row[header]
-
-                accrual_date = row_data.get('accrual_date')
-                if accrual_date:
-                    try:
-                        accrual_date = accrual_date.date()
-                    except Exception as e:
-                        print(accrual_date, e)
-                        continue
-                else:
-                    print('Not date')
-                    continue
-
-                vendor_code = row_data.get('vendor_code')
-                if vendor_code:
-                    vendor_code = vendor_code.strip().lower()
-                else:
-                    print('Not vendor_code')
-                    continue
-
-                quantities = row_data.get('quantity')
-                if isinstance(quantities, (float, int)):
-                    quantities = int(quantities)
-                else:
-                    print('Not quantities')
-                    continue
-
-                price = row_data.get('ptice_￥')
-                if isinstance(price, (float, int)):
-                    price = round(float(price), 2)
-                else:
-                    print('Not price')
-                    continue
-
-                log_cost = row_data.get('logistics_cost_$')
-                if isinstance(log_cost, (float, int)):
-                    log_cost = round(float(log_cost), 2)
-                else:
-                    print('Not logistics_cost')
-                    continue
-
-                log_add_cost = row_data.get('add_logistics_ru')
-                if isinstance(log_add_cost, (float, int)):
-                    log_add_cost = round(float(log_add_cost), 2)
-                else:
-                    log_add_cost = 0.00
-
-                result_data.append(DataOverseasPurchase(accrual_date=accrual_date,
-                                                        vendor_code=vendor_code,
-                                                        quantities=quantities,
-                                                        price=price,
-                                                        log_cost=log_cost,
-                                                        log_add_cost=log_add_cost))
+                date_str = val[0].split()[-1]
+                date_obj = datetime.datetime.strptime(date_str, "%d.%m.%Y").date()
+                if date_obj < to_date:
+                    date_obj = None
             except Exception as e:
-                print(e)
-                continue
+                logger.error(f'Ошибка форматирование даты {val[0]}: {str(e)}')
+                date_obj = None
+        elif date_obj and len(val) > 8:
+            try:
+                vendor_code = val[0].lower().strip()
+                quantities = int(val[2])
+                price = round(float(val[3].replace(',', '.')), 2)
+                log_cost = round(float(val[6].replace(',', '.')), 2)
+                log_add_cost = round(float(val[8].replace(',', '.')), 2) if val[8] else 0
 
-        print(len(result_data))
-        # Агрегирование данных
-        aggregate = {}
-        for data in result_data:
-            key = (data.accrual_date, data.vendor_code)
-            if key in aggregate:
-                aggregate[key].append((data.quantities, data.price, data.log_cost, data.log_add_cost))
-            else:
-                aggregate[key] = [(data.quantities, data.price, data.log_cost, data.log_add_cost)]
-        result_data = []
-        for key, value in aggregate.items():
-            accrual_date, vendor_code = key
-            quantities = sum([val[0] for val in value])
-            price = max([val[1] for val in value])
-            log_cost = sum([val[2] for val in value])
-            log_add_cost = sum([val[3] for val in value])
+                index = next((i for i, sublist in enumerate(entry) if sublist[0:2] == [date_obj, vendor_code]), None)
+                if index is not None:
+                    entry.pop(index)
 
-            result_data.append(DataOverseasPurchase(accrual_date=accrual_date,
-                                                    vendor_code=vendor_code,
-                                                    quantities=quantities,
-                                                    price=price,
-                                                    log_cost=log_cost,
-                                                    log_add_cost=log_add_cost))
-        print(len(result_data))
-        return result_data
-    except Exception as e:
-        logger.error(f'Ошибка при чтении файла {path_file}: {e}')
+                entry.append([date_obj, vendor_code, quantities, price, log_cost, log_add_cost])
+            except Exception as e:
+                logger.error(f'Ошибка форматирования данных {val}: {str(e)}')
+
+    return [dict(zip(column, row)) for row in entry]
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.withdraw()
+def get_values_russia(to_date: datetime.date) -> list:
+    sheet_name = 'себес белая'
 
-    print("Выберите Excel файлы для обработки:")
-    select_files()
+    creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
+    client = gspread.authorize(creds)
+    spreadsheet = client.open(PROJECT)
+
+    worksheet = spreadsheet.worksheet(sheet_name)
+
+    data = worksheet.get_all_values()
+
+    entry = []
+
+    for val in data:
+        if len(val) >= 34 and val[0].strip():
+            try:
+                date_obj = datetime.datetime.strptime(val[2].strip(), "%d.%m.%Y").date()
+                if date_obj < to_date:
+                    continue
+
+                vendor_code = val[0].lower().strip()
+                quantities = int(val[7])
+                price = round(float(val[10].replace(',', '.')), 2)
+                log_cost = round(float(val[19].replace(',', '.') or 0), 2)
+
+                commission_cost = float(val[17].replace(',', '.') or 0)
+                auto_pickup = float(val[22].replace(',', '.') or 0)
+                terminal_expenses = float(val[23].replace(',', '.') or 0)
+                customs_clearance = float(val[24].replace(',', '.') or 0)
+                delay = float(val[25].replace(',', '.') or 0)
+                customs_duties = float(val[26].replace(',', '.') or 0)
+                certification = float(val[31].replace(',', '.') or 0)
+                log_add_cost = round(
+                    commission_cost + auto_pickup + terminal_expenses + customs_clearance + delay + customs_duties + certification, 2)
+
+                entry.append([date_obj, vendor_code, quantities, price, log_cost, log_add_cost])
+            except Exception as e:
+                logger.error(f'Ошибка форматирования данных {val}: {str(e)}')
+
+    return [dict(zip(column, row)) for row in entry]
+
+
+def overseas_purchase():
+    to_date = datetime.date.today() - datetime.timedelta(days=30)
+
+    values_china = get_values_china(to_date=to_date)
+    values_russia = get_values_russia(to_date=to_date)
+
+    rows = values_china + values_russia
+
+    if not rows:
+        logger.warning('Данные по поставкам отсутствуют')
+        return
+
+    engine = create_engine(DB_URL)
+
+    delete_sql = text("""
+        DELETE FROM public.overseas_purchase
+        WHERE accrual_date >= :to_date
+    """)
+
+    insert_sql = text("""
+        INSERT INTO public.overseas_purchase
+            (accrual_date, vendor_code, quantities, price, log_cost, log_add_cost)
+        VALUES
+            (:accrual_date, :vendor_code, :quantities, :price, :log_cost, :log_add_cost)
+        ON CONFLICT (accrual_date, vendor_code) DO UPDATE
+        SET
+            quantities = EXCLUDED.quantities,
+            price = EXCLUDED.price,
+            log_cost = EXCLUDED.log_cost,
+            log_add_cost = EXCLUDED.log_add_cost
+    """)
+
+    with engine.begin() as conn:
+        logger.info(f'Удаляю записи из overseas_purchase от {to_date.isoformat()}')
+        conn.execute(delete_sql, {'to_date': to_date})
+        logger.info('Вставляю новые записи в overseas_purchase')
+        conn.execute(insert_sql, rows)
+        logger.info('Запись успешно завершена')
+
+
+try:
+    overseas_purchase()
+except Exception as e:
+    logger.error(str(e))
