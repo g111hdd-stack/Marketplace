@@ -250,7 +250,7 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
                                                            end_date=end_date.isoformat())
 
     if not answer_report.error:
-        await asyncio.sleep(5)
+        await asyncio.sleep(15)
 
         # Получение отчёта статистики КТ
         answer_download = await api_user.get_nm_report_downloads_file(uuid=new_uuid)
