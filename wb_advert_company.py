@@ -250,34 +250,37 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
                                                            end_date=end_date.isoformat())
 
     if not answer_report.error:
-        await asyncio.sleep(15)
-
         # Получение отчёта статистики КТ
-        answer_download = await api_user.get_nm_report_downloads_file(uuid=new_uuid)
-        zip_file = io.BytesIO(answer_download.file)
-        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-            csv_filename = zip_ref.namelist()[0]
-            with zip_ref.open(csv_filename) as csv_file:
-                csv_reader = csv.DictReader(io.TextIOWrapper(csv_file, encoding='utf-8'))
-                data = [row for row in csv_reader]
-                skus = db_conn.get_wb_sku_vendor_code(client_id=client_id)
-                for row in data:
-                    sku = row.get('nmID', 0)
-                    vendor_code = skus.get(sku)
-                    if not vendor_code:
-                        continue
-                    list_card_product.append(DataWBStatisticCardProduct(
-                        sku=sku,
-                        vendor_code=skus.get(sku),
-                        client_id=client_id,
-                        date=datetime.strptime(row.get('dt'), '%Y-%m-%d').date(),
-                        open_card_count=int(row.get('openCardCount', 0)),
-                        add_to_cart_count=int(row.get('addToCartCount', 0)),
-                        orders_count=int(row.get('ordersCount', 0)),
-                        buyouts_count=int(row.get('buyoutsCount', 0)),
-                        cancel_count=int(row.get('cancelCount', 0)),
-                        orders_sum=round(float(row.get('ordersSumRub', 0)), 2)
-                    ))
+        for _ in range(3):
+            await asyncio.sleep(15)
+            try:
+                answer_download = await api_user.get_nm_report_downloads_file(uuid=new_uuid)
+                zip_file = io.BytesIO(answer_download.file)
+                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                    csv_filename = zip_ref.namelist()[0]
+                    with zip_ref.open(csv_filename) as csv_file:
+                        csv_reader = csv.DictReader(io.TextIOWrapper(csv_file, encoding='utf-8'))
+                        data = [row for row in csv_reader]
+                        skus = db_conn.get_wb_sku_vendor_code(client_id=client_id)
+                        for row in data:
+                            sku = row.get('nmID', 0)
+                            vendor_code = skus.get(sku)
+                            if not vendor_code:
+                                continue
+                            list_card_product.append(DataWBStatisticCardProduct(
+                                sku=sku,
+                                vendor_code=skus.get(sku),
+                                client_id=client_id,
+                                date=datetime.strptime(row.get('dt'), '%Y-%m-%d').date(),
+                                open_card_count=int(row.get('openCardCount', 0)),
+                                add_to_cart_count=int(row.get('addToCartCount', 0)),
+                                orders_count=int(row.get('ordersCount', 0)),
+                                buyouts_count=int(row.get('buyoutsCount', 0)),
+                                cancel_count=int(row.get('cancelCount', 0)),
+                                orders_sum=round(float(row.get('ordersSumRub', 0)), 2)
+                            ))
+            except Exception as e:
+                logger.warning(f"Ошибка: {str(e)}")
 
     logger.info(f"Количество записей: {len(list_card_product)}")
     db_conn.add_wb_cards_products_statistics(client_id=client_id, list_card_product=list_card_product)
@@ -292,7 +295,7 @@ async def main_wb_advert(retries: int = 6) -> None:
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         from_date = date_now - timedelta(days=1)
 
-        for client in clients:
+        for client in clients[4:]:
             try:
                 logger.info(f"Сбор карточек товаров {client.name_company}")
                 await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
