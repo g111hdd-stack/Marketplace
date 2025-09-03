@@ -49,16 +49,22 @@ async def get_storage(db_conn: WBDbConnection, client_id: str, api_key: str, fro
     if answer:
         task_id = answer.data.taskId  # ID отчёта
 
+        status = None
+
         # Проверка готовности отчёта
-        while True:
-            await asyncio.sleep(5)
+        for _ in range(3):
+            await asyncio.sleep(20)
             answer_status = await api_user.get_paid_storage_status(task_id=task_id)
             if answer_status:
-                if answer_status.data.status == 'done':
+                status = answer_status.data.status
+                if status == 'done':
                     break
-                elif answer_status.data.status == 'canceled':
-                    logger.info(f"Отчет отменен")
+                elif status == 'canceled':
+                    logger.error(f"Отчет отменен")
                     return
+        else:
+            logger.error(f"Отчет не получен: статус {status}")
+            return
 
         # Получение отчёта
         answer_download = await api_user.get_paid_storage_download(task_id=task_id)
