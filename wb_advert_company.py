@@ -295,7 +295,7 @@ async def main_wb_advert(retries: int = 6) -> None:
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         from_date = date_now - timedelta(days=1)
 
-        for client in clients[-2:]:
+        for client in clients:
             try:
                 logger.info(f"Сбор карточек товаров {client.name_company}")
                 await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
