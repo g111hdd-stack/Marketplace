@@ -37,7 +37,7 @@ async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date
 
     # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
-    while True:
+    for _ in range(3):
         # Получение отчёта
         answer = await api_user.get_supplier_report_detail_by_period(date_from=date_from.isoformat(),
                                                                      date_to=date_to.isoformat())
@@ -45,6 +45,8 @@ async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date
             break
 
         await asyncio.sleep(10)
+    else:
+        raise ClientError(f'Не удалось получить отчёт по {client_id}')
 
     # Обработка полученных результатов
     for report in answer.result:
