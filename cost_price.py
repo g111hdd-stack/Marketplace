@@ -102,6 +102,27 @@ def cost_price():
 
     engine = create_engine(DB_URL)
 
+    if to_date.day == 1:
+        sql_pre_month = text("""
+            INSERT INTO public.cost_price
+                (month_date, year_date, vendor_code, cost)
+            SELECT
+                :month_date, :year_date, vendor_code, cost
+            FROM public.cost_price
+            WHERE month_date = :pre_month_date AND year_date = :pre_year_date
+            ON CONFLICT (month_date, year_date, vendor_code) DO NOTHING
+            RETURNING vendor_code
+        """)
+
+        with engine.begin() as conn:
+            logger.info('Создаю новый месяц')
+            result = conn.execute(sql_pre_month,
+                                  {'month_date': to_date.month,
+                                   'year_date': to_date.year,
+                                   'pre_month_date': to_date.month - 1 or 12,
+                                   'pre_year_date': to_date.year if to_date.month != 1 else to_date.year - 1})
+            logger.info(f'Запись {len(result.fetchall())} строк успешно завершена')
+
     sql = text("""
         INSERT INTO public.cost_price
             (month_date, year_date, vendor_code, cost)
@@ -117,31 +138,35 @@ def cost_price():
         logger.info('Запись успешно завершена')
 
     sql_new_vendor_code = text("""
-        INSERT INTO ip_vendor_code (vendor_code, "group")
-        SELECT lower(vc.vendor_code), 'new'
+        INSERT INTO public.ip_vendor_code 
+            (vendor_code, "group")
+        SELECT 
+            lower(vc.vendor_code), 'new'
         FROM vendor_code vc
         WHERE vc.vendor_code NOT LIKE '%---%'
-        ON CONFLICT (vendor_code) DO NOTHING;
+        ON CONFLICT (vendor_code) DO NOTHING
+        RETURNING vendor_code
     """)
 
     with engine.begin() as conn:
         logger.info('Вставляю новые артикулы в ip_vendor_code')
-        conn.execute(sql_new_vendor_code)
-        logger.info('Запись успешно завершена')
+        result = conn.execute(sql_new_vendor_code)
+        logger.info(f'Запись {len(result.fetchall())} строк успешно завершена')
 
     sql_update_cost_price = text("""
-        INSERT INTO cost_price (month_date, year_date, vendor_code, "cost")
+        INSERT INTO public.cost_price 
+            (month_date, year_date, vendor_code, "cost")
         SELECT 
             :month_date AS month_date,
             :year_date AS year_date,
             ivc.vendor_code,
             cp2.cost
-        FROM ip_vendor_code ivc
-        LEFT JOIN cost_price cp 
+        FROM public.ip_vendor_code ivc
+        LEFT JOIN public.cost_price cp 
             ON lower(cp.vendor_code) = lower(ivc.vendor_code) 
             AND cp.month_date = :month_date
             AND cp.year_date = :year_date
-        LEFT JOIN cost_price cp2 
+        LEFT JOIN public.cost_price cp2 
             ON lower(cp2.vendor_code) = lower(ivc.main_vendor_code) 
             AND cp2.month_date = :month_date
             AND cp2.year_date = :year_date
@@ -150,7 +175,7 @@ def cost_price():
             AND cp2.cost IS NOT NULL 
             AND ivc.type_of_vendor_code = 'maindouble'
         ON CONFLICT (month_date, year_date, vendor_code) DO UPDATE
-        SET cost = EXCLUDED.cost;
+        SET cost = EXCLUDED.cost
     """)
 
     with engine.begin() as conn:
@@ -230,6 +255,7 @@ def write_google_accounting_cost():
         logger.info("Данные успешно записаны в Google Таблицу!")
     except Exception as e:
         logger.error(f"Ошибка при подключении или выполнении запроса: {e}")
+
 
 try:
     cost_price()
