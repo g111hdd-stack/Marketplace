@@ -3,6 +3,7 @@ import gspread
 import logging
 import datetime
 import warnings
+import pandas as pd
 
 from sqlalchemy import create_engine, text
 from oauth2client.service_account import ServiceAccountCredentials
@@ -18,7 +19,10 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 PATH_JSON = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
-PROJECT = 'Расчет себестоимости'
+
+HEADER_COLOR = {"red": 0.2, "green": 0.4, "blue": 0.6}
+FIRST_BAND_COLOR = {"red": 0.9, "green": 0.95, "blue": 0.95}
+SECOND_BAND_COLOR = {"red": 0.98, "green": 0.98, "blue": 1.0}
 
 month = {
     1: 'январь',
@@ -41,7 +45,7 @@ column = ['month_date', 'year_date', 'vendor_code', 'cost']
 def get_values(to_date: datetime.date) -> list:
     creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
     client = gspread.authorize(creds)
-    spreadsheet = client.open(PROJECT)
+    spreadsheet = client.open('Расчет себестоимости')
 
     worksheets = spreadsheet.worksheets()
 
@@ -112,8 +116,123 @@ def cost_price():
         conn.execute(sql, values)
         logger.info('Запись успешно завершена')
 
+    sql_new_vendor_code = text("""
+        INSERT INTO ip_vendor_code (vendor_code, "group")
+        SELECT lower(vc.vendor_code), 'new'
+        FROM vendor_code vc
+        WHERE vc.vendor_code NOT LIKE '%---%'
+        ON CONFLICT (vendor_code) DO NOTHING;
+    """)
+
+    with engine.begin() as conn:
+        logger.info('Вставляю новые артикулы в ip_vendor_code')
+        conn.execute(sql_new_vendor_code)
+        logger.info('Запись успешно завершена')
+
+    sql_update_cost_price = text("""
+        INSERT INTO cost_price (month_date, year_date, vendor_code, "cost")
+        SELECT 
+            :month_date AS month_date,
+            :year_date AS year_date,
+            ivc.vendor_code,
+            cp2.cost
+        FROM ip_vendor_code ivc
+        LEFT JOIN cost_price cp 
+            ON lower(cp.vendor_code) = lower(ivc.vendor_code) 
+            AND cp.month_date = :month_date
+            AND cp.year_date = :year_date
+        LEFT JOIN cost_price cp2 
+            ON lower(cp2.vendor_code) = lower(ivc.main_vendor_code) 
+            AND cp2.month_date = :month_date
+            AND cp2.year_date = :year_date
+        WHERE (ivc."group" IS NULL OR ivc."group" <> 'other_trash')
+            AND cp.cost IS NULL 
+            AND cp2.cost IS NOT NULL 
+            AND ivc.type_of_vendor_code = 'maindouble'
+        ON CONFLICT (month_date, year_date, vendor_code) DO UPDATE
+        SET cost = EXCLUDED.cost;
+    """)
+
+    with engine.begin() as conn:
+        logger.info('Обновляю записи по дублям')
+        conn.execute(sql_update_cost_price, {'month_date': to_date.month, 'year_date': to_date.year})
+        logger.info('Запись успешно завершена')
+
+
+def write_google_accounting_cost():
+    sheet_name = 'Косты'
+    engine = create_engine(DB_URL)
+
+    query = "SELECT month, year, vendor_code, cost FROM accounting_cost ORDER BY year desc, month desc, vendor_code"
+
+    try:
+        all_requests = []
+        headers = [
+            'Месяц',
+            'Год',
+            'Артикул',
+            'Кост'
+        ]
+
+        print("Считываю данные с БД.")
+        df = pd.read_sql(query, engine)
+        data_to_insert = df.values.tolist()
+
+        print("Подключаюсь к Google Таблице.")
+        creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
+        client = gspread.authorize(creds)
+        spreadsheet = client.open('Косты')
+
+        try:
+            worksheet = spreadsheet.worksheet('Косты')
+        except gspread.exceptions.WorksheetNotFound:
+            print(f"Создаю лист {sheet_name}.")
+            worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=len(headers) + 1)
+
+        print("Очищаю от старых данных.")
+        worksheet.delete_rows(1, len(worksheet.get_all_values()))
+        print("Начинаю запись.")
+        worksheet.insert_row(headers, 1)
+        worksheet.insert_rows(data_to_insert, 2)
+        print("Применяю стили.")
+        all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+                                                      "startRowIndex": 0,
+                                                      "endRowIndex": 1,
+                                                      "endColumnIndex": len(data_to_insert[1])},
+                                            "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER",
+                                                                           "verticalAlignment": "MIDDLE",
+                                                                           "wrapStrategy": "WRAP"}},
+                                            "fields": "userEnteredFormat(horizontalAlignment,verticalAlignment, "
+                                                      "wrapStrategy)"}})
+
+        all_requests.append({"addBanding": {"bandedRange": {"range": {"sheetId": worksheet.id,
+                                                                      "startRowIndex": 0,
+                                                                      "endRowIndex": len(data_to_insert) + 1,
+                                                                      "startColumnIndex": 0,
+                                                                      "endColumnIndex": len(data_to_insert[0])},
+                                                            "rowProperties": {"headerColor": HEADER_COLOR,
+                                                                              "firstBandColor": FIRST_BAND_COLOR,
+                                                                              "secondBandColor": SECOND_BAND_COLOR}}}})
+
+        all_requests.append({"updateDimensionProperties": {"range": {"sheetId": worksheet.id,
+                                                                     "dimension": "COLUMNS",
+                                                                     "startIndex": 2,
+                                                                     "endIndex": 3},
+                                                           "properties": {"pixelSize": 300},
+                                                           "fields": "pixelSize"}})
+
+        all_requests.append({"setBasicFilter": {"filter": {"range": {"sheetId": worksheet.id,
+                                                                     "startRowIndex": 0,
+                                                                     "endRowIndex": len(data_to_insert) + 1,
+                                                                     "startColumnIndex": 0,
+                                                                     "endColumnIndex": len(data_to_insert[1])}}}})
+        spreadsheet.batch_update({"requests": all_requests})
+        print("Данные успешно записаны в Google Таблицу!")
+    except Exception as e:
+        print(f"Ошибка при подключении или выполнении запроса: {e}")
 
 try:
     cost_price()
+    write_google_accounting_cost()
 except Exception as e:
     logger.error(str(e))

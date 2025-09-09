@@ -260,9 +260,9 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
                     csv_filename = zip_ref.namelist()[0]
                     with zip_ref.open(csv_filename) as csv_file:
                         csv_reader = csv.DictReader(io.TextIOWrapper(csv_file, encoding='utf-8'))
-                        data = [row for row in csv_reader]
                         skus = db_conn.get_wb_sku_vendor_code(client_id=client_id)
-                        for row in data:
+
+                        for row in csv_reader:
                             sku = row.get('nmID', 0)
                             vendor_code = skus.get(sku)
                             if not vendor_code:

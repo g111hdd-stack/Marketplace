@@ -44,7 +44,13 @@ class WBDbConnection(DbConnection):
             Returns:
                 dict: словарь {sku: vendor_code}.
         """
-        result = self.session.query(WBCardProduct.sku, WBCardProduct.vendor_code).filter_by(client_id=client_id).all()
+        query = text("""
+        SELECT wcp.sku, wcp.vendor_code
+        FROM wb_card_product wcp 
+        LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = wcp.vendor_code 
+        WHERE (ivc."group" <> 'other_trash' OR ivc."group" IS NULL) AND wcp.client_id = :client_id;
+        """)
+        result = self.session.execute(query, {"client_id": client_id}).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
