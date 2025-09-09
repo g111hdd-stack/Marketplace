@@ -174,11 +174,11 @@ def write_google_accounting_cost():
             'Кост'
         ]
 
-        print("Считываю данные с БД.")
+        logger.info("Считываю данные с БД.")
         df = pd.read_sql(query, engine)
         data_to_insert = df.values.tolist()
 
-        print("Подключаюсь к Google Таблице.")
+        logger.info("Подключаюсь к Google Таблице.")
         creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
         client = gspread.authorize(creds)
         spreadsheet = client.open('Косты')
@@ -186,15 +186,15 @@ def write_google_accounting_cost():
         try:
             worksheet = spreadsheet.worksheet('Косты')
         except gspread.exceptions.WorksheetNotFound:
-            print(f"Создаю лист {sheet_name}.")
+            logger.info(f"Создаю лист {sheet_name}.")
             worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=len(headers) + 1)
 
-        print("Очищаю от старых данных.")
+        logger.info("Очищаю от старых данных.")
         worksheet.delete_rows(1, len(worksheet.get_all_values()))
-        print("Начинаю запись.")
+        logger.info("Начинаю запись.")
         worksheet.insert_row(headers, 1)
         worksheet.insert_rows(data_to_insert, 2)
-        print("Применяю стили.")
+        logger.info("Применяю стили.")
         all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
                                                       "startRowIndex": 0,
                                                       "endRowIndex": 1,
@@ -227,9 +227,9 @@ def write_google_accounting_cost():
                                                                      "startColumnIndex": 0,
                                                                      "endColumnIndex": len(data_to_insert[1])}}}})
         spreadsheet.batch_update({"requests": all_requests})
-        print("Данные успешно записаны в Google Таблицу!")
+        logger.info("Данные успешно записаны в Google Таблицу!")
     except Exception as e:
-        print(f"Ошибка при подключении или выполнении запроса: {e}")
+        logger.error(f"Ошибка при подключении или выполнении запроса: {e}")
 
 try:
     cost_price()
