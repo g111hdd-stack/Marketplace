@@ -201,17 +201,19 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                         if header == 'Стоимость услуги (':
                                             for column in df.columns:
                                                 if header in column:
-                                                    delta = row['Unnamed: 46']
-                                                    delta = float(delta) if delta else 0
-                                                    row_data[metric][header] = float(row[column]) + delta
+                                                    disc_loyalty = row['Unnamed: 46']
+                                                    disc_joint = row['Unnamed: 47']
+                                                    disc_loyalty = float(disc_loyalty) if isinstance(disc_loyalty, (float, int)) else 0
+                                                    disc_joint = float(disc_joint) if isinstance(disc_joint, (float, int)) else 0
+                                                    row_data[metric][header] = float(row[column]) + disc_loyalty + disc_joint
 
-                            client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v), None))
-                            campaign_name = next((v for v in row_data.get('campaign_name', {}).values() if v), None)
-                            posting_number = convert_id(next((v for v in row_data.get('posting_number', {}).values() if v), None))
-                            operation_date = next((v for v in row_data.get('operation_date', {}).values() if v), None)
-                            cost = next((v for v in row_data.get('cost', {}).values() if v), None)
-                            service = next((v for v in row_data.get('service', {}).values() if v), None)
-                            vendor_code = next((v for v in row_data.get('vendor_code', {}).values() if v), None)
+                            client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v is not None), None))
+                            campaign_name = next((v for v in row_data.get('campaign_name', {}).values() if v is not None), None)
+                            posting_number = convert_id(next((v for v in row_data.get('posting_number', {}).values() if v is not None), None))
+                            operation_date = next((v for v in row_data.get('operation_date', {}).values() if v is not None), None)
+                            cost = next((v for v in row_data.get('cost', {}).values() if v is not None), None)
+                            service = next((v for v in row_data.get('service', {}).values() if v is not None), None)
+                            vendor_code = next((v for v in row_data.get('vendor_code', {}).values() if v is not None), None)
                             operation_type = sheet if 'Платное хранение' not in sheet else 'Платное хранение'
 
                             operation_date = datetime.strptime(operation_date, '%Y-%m-%d %H:%M:%S').date()
