@@ -70,6 +70,18 @@ def get_column_cell_colors(spreadsheet_id: str, sheet_name: str, column_letter: 
     return result
 
 
+def keep_first_n_sheets(spreadsheet: gspread.Spreadsheet, n: int = 90, keep: set[str] = {"Шаблон"}):
+    sheets = spreadsheet.worksheets()
+
+    # исключаем "Шаблон" из фильтрации, он всегда сохраняется
+    filtered = [ws for ws in sheets if ws.title not in keep]
+
+    # если больше n, удаляем лишние
+    if len(filtered) > n:
+        for ws in filtered[n:]:
+            spreadsheet.del_worksheet(ws)
+
+
 def reorder_sheets(spreadsheet: gspread.Spreadsheet, pattern_name: str) -> None:
     """Реорганизация листов с сохранением шаблона в начале."""
     sheets = {sheet.title: sheet.id for sheet in spreadsheet.worksheets()}
@@ -321,6 +333,8 @@ def stat_orders_update(db_conn: DbConnection, days: int = 1) -> None:
 
     # Сортируем листы для удобства
     reorder_sheets(spreadsheet=spreadsheet, pattern_name=sheet_name)
+
+    keep_first_n_sheets(spreadsheet, n=90, keep={sheet_name})
 
     # Собираем данные из шаблона
     vendors = worksheet.col_values(1) + ['Остальное']
