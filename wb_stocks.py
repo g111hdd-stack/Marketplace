@@ -33,22 +33,25 @@ async def get_stocks(db_conn: WBDbConnection, client_id: str, api_key: str) -> N
     api_user = WBApi(api_key=api_key)
 
     # Создание отчёта по хранению
-    answer = await api_user.get_supplier_stocks(date_from=datetime(year=2000, month=1, day=1).date().isoformat())
+    for _ in range(3):
+        answer = await api_user.get_supplier_stocks(date_from=datetime(year=2000, month=1, day=1).date().isoformat())
 
-    if answer:
-        for stock in answer.result:
-            if stock.quantity or stock.inWayToClient or stock.inWayFromClient:
-                list_stocks.append(DataWBStock(date=datetime.today().date(),
-                                               client_id=client_id,
-                                               sku=str(stock.nmId),
-                                               vendor_code=stock.supplierArticle,
-                                               size=stock.techSize,
-                                               category=stock.category,
-                                               subject=stock.subject,
-                                               warehouse=stock.warehouseName,
-                                               quantity_warehouse=stock.quantity,
-                                               quantity_to_client=stock.inWayToClient,
-                                               quantity_from_client=stock.inWayFromClient))
+        if answer:
+            for stock in answer.result:
+                if stock.quantity or stock.inWayToClient or stock.inWayFromClient:
+                    list_stocks.append(DataWBStock(date=datetime.today().date(),
+                                                   client_id=client_id,
+                                                   sku=str(stock.nmId),
+                                                   vendor_code=stock.supplierArticle,
+                                                   size=stock.techSize,
+                                                   category=stock.category,
+                                                   subject=stock.subject,
+                                                   warehouse=stock.warehouseName,
+                                                   quantity_warehouse=stock.quantity,
+                                                   quantity_to_client=stock.inWayToClient,
+                                                   quantity_from_client=stock.inWayFromClient))
+        else:
+            continue
 
     # Агрегирование данных
     aggregate = {}
