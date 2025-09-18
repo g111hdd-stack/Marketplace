@@ -115,7 +115,6 @@ async def get_product_card(db_conn: WBDbConnection, client_id: str, api_key: str
             break
 
         offset += limit
-    print(len(list_card_product))
     logger.info(f"Обновление информации о карточках товаров")
     db_conn.add_wb_cards_products(list_card_product=list_card_product)
 

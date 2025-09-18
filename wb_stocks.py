@@ -3,7 +3,7 @@ import logging
 
 import nest_asyncio
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.exc import OperationalError
 
@@ -28,6 +28,7 @@ async def get_stocks(db_conn: WBDbConnection, client_id: str, api_key: str) -> N
             api_key (str): API KEY кабинета.
     """
     list_stocks = []
+    check_list = []
 
     # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
@@ -39,6 +40,8 @@ async def get_stocks(db_conn: WBDbConnection, client_id: str, api_key: str) -> N
         if answer:
             for stock in answer.result:
                 if stock.quantity or stock.inWayToClient or stock.inWayFromClient:
+                    if (stock.nmId, stock.techSize, stock.warehouseName) in check_list:
+                        continue
                     list_stocks.append(DataWBStock(date=datetime.today().date(),
                                                    client_id=client_id,
                                                    sku=str(stock.nmId),
@@ -50,56 +53,57 @@ async def get_stocks(db_conn: WBDbConnection, client_id: str, api_key: str) -> N
                                                    quantity_warehouse=stock.quantity,
                                                    quantity_to_client=stock.inWayToClient,
                                                    quantity_from_client=stock.inWayFromClient))
+                    check_list.append((stock.nmId, stock.techSize, stock.warehouseName))
         else:
             continue
-
-    # Агрегирование данных
-    aggregate = {}
-    for row in list_stocks:
-        key = (
-            row.date,
-            row.client_id,
-            row.sku,
-            row.size,
-            row.warehouse
-        )
-        if key in aggregate:
-            aggregate[key].append((row.quantity_warehouse,
-                                   row.quantity_to_client,
-                                   row.quantity_from_client,
-                                   row.vendor_code,
-                                   row.category,
-                                   row.subject))
-        else:
-            aggregate[key] = [(row.quantity_warehouse,
-                               row.quantity_to_client,
-                               row.quantity_from_client,
-                               row.vendor_code,
-                               row.category,
-                               row.subject)]
-
-    list_stocks = []
-    for key, value in aggregate.items():
-        date, client_id, sku, size, warehouse = key
-        quantity_warehouse = sum([val[0] for val in value])
-        quantity_to_client = sum([val[1] for val in value])
-        quantity_from_client = sum([val[2] for val in value])
-        vendor_code = value[0][3]
-        category = value[0][4]
-        subject = value[0][5]
-        list_stocks.append(DataWBStock(
-            date=date,
-            client_id=client_id,
-            sku=sku,
-            vendor_code=vendor_code,
-            size=size,
-            category=category,
-            subject=subject,
-            warehouse=warehouse,
-            quantity_warehouse=quantity_warehouse,
-            quantity_to_client=quantity_to_client,
-            quantity_from_client=quantity_from_client)
-        )
+    #
+    # # Агрегирование данных
+    # aggregate = {}
+    # for row in list_stocks:
+    #     key = (
+    #         row.date,
+    #         row.client_id,
+    #         row.sku,
+    #         row.size,
+    #         row.warehouse
+    #     )
+    #     if key in aggregate:
+    #         aggregate[key].append((row.quantity_warehouse,
+    #                                row.quantity_to_client,
+    #                                row.quantity_from_client,
+    #                                row.vendor_code,
+    #                                row.category,
+    #                                row.subject))
+    #     else:
+    #         aggregate[key] = [(row.quantity_warehouse,
+    #                            row.quantity_to_client,
+    #                            row.quantity_from_client,
+    #                            row.vendor_code,
+    #                            row.category,
+    #                            row.subject)]
+    #
+    # list_stocks = []
+    # for key, value in aggregate.items():
+    #     date, client_id, sku, size, warehouse = key
+    #     quantity_warehouse = sum([val[0] for val in value])
+    #     quantity_to_client = sum([val[1] for val in value])
+    #     quantity_from_client = sum([val[2] for val in value])
+    #     vendor_code = value[0][3]
+    #     category = value[0][4]
+    #     subject = value[0][5]
+    #     list_stocks.append(DataWBStock(
+    #         date=date,
+    #         client_id=client_id,
+    #         sku=sku,
+    #         vendor_code=vendor_code,
+    #         size=size,
+    #         category=category,
+    #         subject=subject,
+    #         warehouse=warehouse,
+    #         quantity_warehouse=quantity_warehouse,
+    #         quantity_to_client=quantity_to_client,
+    #         quantity_from_client=quantity_from_client)
+    #     )
     logger.info(f"Количсетво строк: {len(list_stocks)}")
     db_conn.add_wb_stock_entry(list_stocks=list_stocks)
 
