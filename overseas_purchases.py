@@ -116,6 +116,10 @@ def get_values_russia(to_date: datetime.date) -> list:
                 quantities = int(val[7])
                 price = round(float(val[10].replace(',', '.')), 2)
                 log_cost = round(float(val[19].replace(',', '.') or 0), 2)
+                if log_cost == 0:
+                    log_cost_rub = round(float(val[21].replace(',', '.') or 0), 2)
+                else:
+                    log_cost_rub = 0
 
                 commission_cost = float(val[17].replace(',', '.') or 0)
                 auto_pickup = float(val[22].replace(',', '.') or 0)
@@ -125,7 +129,7 @@ def get_values_russia(to_date: datetime.date) -> list:
                 customs_duties = float(val[26].replace(',', '.') or 0)
                 certification = float(val[31].replace(',', '.') or 0)
                 log_add_cost = round(
-                    commission_cost + auto_pickup + terminal_expenses + customs_clearance + delay + customs_duties + certification, 2)
+                    log_cost_rub + commission_cost + auto_pickup + terminal_expenses + customs_clearance + delay + customs_duties + certification, 2)
 
                 entry.append([date_obj, vendor_code, quantities, price, log_cost, log_add_cost])
             except Exception as e:
