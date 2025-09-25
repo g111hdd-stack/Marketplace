@@ -209,7 +209,80 @@ def write_google_accounting_cost():
         spreadsheet = client.open('Косты')
 
         try:
-            worksheet = spreadsheet.worksheet('Косты')
+            worksheet = spreadsheet.worksheet(sheet_name)
+        except gspread.exceptions.WorksheetNotFound:
+            logger.info(f"Создаю лист {sheet_name}.")
+            worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=len(headers) + 1)
+
+        logger.info("Очищаю от старых данных.")
+        worksheet.delete_rows(1, len(worksheet.get_all_values()))
+        logger.info("Начинаю запись.")
+        worksheet.insert_row(headers, 1)
+        worksheet.insert_rows(data_to_insert, 2)
+        logger.info("Применяю стили.")
+        all_requests.append({"repeatCell": {"range": {"sheetId": worksheet.id,
+                                                      "startRowIndex": 0,
+                                                      "endRowIndex": 1,
+                                                      "endColumnIndex": len(data_to_insert[1])},
+                                            "cell": {"userEnteredFormat": {"horizontalAlignment": "CENTER",
+                                                                           "verticalAlignment": "MIDDLE",
+                                                                           "wrapStrategy": "WRAP"}},
+                                            "fields": "userEnteredFormat(horizontalAlignment,verticalAlignment, "
+                                                      "wrapStrategy)"}})
+
+        all_requests.append({"addBanding": {"bandedRange": {"range": {"sheetId": worksheet.id,
+                                                                      "startRowIndex": 0,
+                                                                      "endRowIndex": len(data_to_insert) + 1,
+                                                                      "startColumnIndex": 0,
+                                                                      "endColumnIndex": len(data_to_insert[0])},
+                                                            "rowProperties": {"headerColor": HEADER_COLOR,
+                                                                              "firstBandColor": FIRST_BAND_COLOR,
+                                                                              "secondBandColor": SECOND_BAND_COLOR}}}})
+
+        all_requests.append({"updateDimensionProperties": {"range": {"sheetId": worksheet.id,
+                                                                     "dimension": "COLUMNS",
+                                                                     "startIndex": 2,
+                                                                     "endIndex": 3},
+                                                           "properties": {"pixelSize": 300},
+                                                           "fields": "pixelSize"}})
+
+        all_requests.append({"setBasicFilter": {"filter": {"range": {"sheetId": worksheet.id,
+                                                                     "startRowIndex": 0,
+                                                                     "endRowIndex": len(data_to_insert) + 1,
+                                                                     "startColumnIndex": 0,
+                                                                     "endColumnIndex": len(data_to_insert[1])}}}})
+        spreadsheet.batch_update({"requests": all_requests})
+        logger.info("Данные успешно записаны в Google Таблицу!")
+    except Exception as e:
+        logger.error(f"Ошибка при подключении или выполнении запроса: {e}")
+
+
+def write_google_real_cost():
+    sheet_name = 'Косты Реальные'
+    engine = create_engine(DB_URL)
+
+    query = "SELECT month_date, year_date, vendor_code, cost FROM cost_price ORDER BY year_date desc, month_date desc, vendor_code"
+
+    try:
+        all_requests = []
+        headers = [
+            'Месяц',
+            'Год',
+            'Артикул',
+            'Кост'
+        ]
+
+        logger.info("Считываю данные с БД.")
+        df = pd.read_sql(query, engine)
+        data_to_insert = df.values.tolist()
+
+        logger.info("Подключаюсь к Google Таблице.")
+        creds = ServiceAccountCredentials.from_json_keyfile_name(PATH_JSON, SCOPE)
+        client = gspread.authorize(creds)
+        spreadsheet = client.open('Косты')
+
+        try:
+            worksheet = spreadsheet.worksheet(sheet_name)
         except gspread.exceptions.WorksheetNotFound:
             logger.info(f"Создаю лист {sheet_name}.")
             worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=len(headers) + 1)
@@ -260,5 +333,6 @@ def write_google_accounting_cost():
 try:
     cost_price()
     write_google_accounting_cost()
+    write_google_real_cost()
 except Exception as e:
     logger.error(str(e))
