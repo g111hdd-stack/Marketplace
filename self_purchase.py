@@ -52,7 +52,7 @@ def get_values(sheet_name: str, to_date: datetime.date) -> list:
             entrepreneur = row[all_list[sheet_name][2]].lower().strip()
             marketplace = all_list[sheet_name][3].lower().strip()
             vendor_code = str(row[all_list[sheet_name][4]]).lower().strip()
-            sku = str(row[all_list[sheet_name][5]])
+            sku = str(row[all_list[sheet_name][5]]).strip()
             quantities = int(row[all_list[sheet_name][6]])
             price = round(float(row[all_list[sheet_name][7]]), 2)
 
