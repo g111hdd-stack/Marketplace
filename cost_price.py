@@ -336,4 +336,3 @@ try:
     write_google_real_cost()
 except Exception as e:
     logger.error(str(e))
-#test
