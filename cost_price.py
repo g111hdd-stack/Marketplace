@@ -114,7 +114,7 @@ def get_values(to_date: datetime.date) -> list:
 
     for row in data[1:]:
         try:
-            vendor_code = row[0].lower()
+            vendor_code = row[0].lower().strip()
             if vendor_code not in cloth:
                 cost = round(float(row[14].replace(',', '.') or row[1].replace(',', '.')), 2)
             else:
