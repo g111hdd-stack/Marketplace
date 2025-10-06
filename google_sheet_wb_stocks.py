@@ -326,7 +326,7 @@ def wb_stocks_ratio(db_conn: WBDbConnection):
                 data.append([client, vendor_code, region, warehouse])
 
                 for date_ratio, (count_orders, count_stocks) in sorted(date_map.items(), reverse=True):
-                    if not count_orders and not count_stocks:
+                    if not count_orders and not count_stocks and len(data[-1]) < 5:
                         data.pop()
                         break
 
