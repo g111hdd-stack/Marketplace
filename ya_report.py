@@ -109,6 +109,7 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
                         retry_pending -= 1
                         if not retry_pending:
                             logger.error(f"Ошибка формирования отчёта: долгий PENDING")
+                            break
                 else:
                     retry -= 1
                     if not retry:
