@@ -302,8 +302,6 @@ async def main_yandex_report(retries: int = 6) -> None:
             for client_id, campaigns in client_dict.items():
 
                 client = db_conn.get_client(client_id=client_id)
-                if client.name_company != 'NemoCAM':
-                    continue
 
                 logger.info(f"За дату {date_now - timedelta(days=1)}")
                 logger.info(f"Добавление в базу данных компании '{client.name_company}'")
