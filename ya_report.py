@@ -88,9 +88,11 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
 
     if report_id is not None:
         retry = 3
+        retry_pending = 10
         while True:
             await asyncio.sleep(10)
             answer_report_info = await api_user.get_reports_info(report_id=report_id)
+
             if answer_report_info:
                 if answer_report_info.result:
                     if answer_report_info.result.status == 'DONE':
@@ -103,6 +105,10 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
                     elif answer_report_info.result.status == 'FAILED':
                         logger.error(f"Ошибка формирования отчёта: FAILED")
                         break
+                    elif answer_report_info.result.status == 'PENDING':
+                        retry_pending -= 1
+                        if not retry_pending:
+                            logger.error(f"Ошибка формирования отчёта: долгий PENDING")
                 else:
                     retry -= 1
                     if not retry:
@@ -296,6 +302,8 @@ async def main_yandex_report(retries: int = 6) -> None:
             for client_id, campaigns in client_dict.items():
 
                 client = db_conn.get_client(client_id=client_id)
+                if client.name_company != 'NemoCAM':
+                    continue
 
                 logger.info(f"За дату {date_now - timedelta(days=1)}")
                 logger.info(f"Добавление в базу данных компании '{client.name_company}'")
