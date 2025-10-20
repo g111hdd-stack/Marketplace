@@ -178,7 +178,7 @@ SELECT
     "year" as "Год",
     vendor_code as "Артикул",
     cost as "Себестоимость, ₽"
-FROM accounting_cost
+FROM cost_price
 WHERE ("month" > 3 AND "year" = 2025) OR "year" > 2025
 ORDER BY "year" DESC, "month" DESC, vendor_code
 """, con=engine)
