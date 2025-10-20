@@ -174,13 +174,13 @@ write_data(worksheet=get_worksheet(sheet_name='AdvS', cols=len(df_ya_report_shel
 
 df_cost_price = pd.read_sql("""
 SELECT
-    "month" as "Месяц",
-    "year" as "Год",
+    "month_date" as "Месяц",
+    "year_date" as "Год",
     vendor_code as "Артикул",
     cost as "Себестоимость, ₽"
 FROM cost_price
-WHERE ("month" > 3 AND "year" = 2025) OR "year" > 2025
-ORDER BY "year" DESC, "month" DESC, vendor_code
+WHERE ("month_date" > 3 AND "year_date" = 2025) OR "year_date" > 2025
+ORDER BY "year_date" DESC, "month_date" DESC, vendor_code
 """, con=engine)
 
 write_data(worksheet=get_worksheet(sheet_name='Sebes', cols=len(df_cost_price.columns) + 5),
