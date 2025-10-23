@@ -88,9 +88,11 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
 
     if report_id is not None:
         retry = 3
+        retry_pending = 10
         while True:
             await asyncio.sleep(10)
             answer_report_info = await api_user.get_reports_info(report_id=report_id)
+
             if answer_report_info:
                 if answer_report_info.result:
                     if answer_report_info.result.status == 'DONE':
@@ -103,6 +105,11 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
                     elif answer_report_info.result.status == 'FAILED':
                         logger.error(f"Ошибка формирования отчёта: FAILED")
                         break
+                    elif answer_report_info.result.status == 'PENDING':
+                        retry_pending -= 1
+                        if not retry_pending:
+                            logger.error(f"Ошибка формирования отчёта: долгий PENDING")
+                            break
                 else:
                     retry -= 1
                     if not retry:

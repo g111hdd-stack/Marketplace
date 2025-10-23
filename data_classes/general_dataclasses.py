@@ -77,3 +77,18 @@ class DataQuery:
     sku: str
     vendor_code: str
     entrepreneur: str
+
+
+@dataclass
+class DataCommodityAsset:
+    date: datetime.date
+    vendor_code: str
+    fbs: int
+    on_the_way: int
+
+
+@dataclass
+class DataSupply:
+    date: datetime.date
+    vendor_code: str
+    supplies: int

@@ -2,6 +2,7 @@ import logging
 import requests
 import datetime
 
+from config import PROXY
 from database import DbConnection
 from data_classes import DataRate
 from requests.exceptions import RequestException, JSONDecodeError
@@ -16,8 +17,8 @@ valutes = ['USD', 'CNY']
 url = 'https://www.cbr-xml-daily.ru/daily_json.js'
 
 proxies = {
-    'http': 'http://spare:kB3wia9z@176.113.83.95:7657',
-    'https': 'http://spare:kB3wia9z@176.113.83.95:7657'
+    'http': PROXY,
+    'https': PROXY
 }
 
 try:
