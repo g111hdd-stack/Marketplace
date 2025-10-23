@@ -101,6 +101,21 @@ class Supplies(Base):
     )
 
 
+class CommodityAssets(Base):
+    """Модель таблицы commodity_assets."""
+    __tablename__ = 'commodity_assets'
+
+    date = Column(Date, nullable=False)
+    vendor_code = Column(String(length=255), nullable=False)
+    fbs = Column(Integer, nullable=False)
+    on_the_way = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        PrimaryKeyConstraint('date', 'vendor_code'),
+    )
+
+
+
 class SalesPlan(Base):
     """Модель таблицы sales_plan."""
     __tablename__ = 'sales_plan'
