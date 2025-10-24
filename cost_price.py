@@ -173,9 +173,9 @@ def cost_price():
         logger.info('Запись успешно завершена')
 
     sql_new_vendor_code = text("""
-        INSERT INTO public.ip_vendor_code 
+        INSERT INTO public.ip_vendor_code
             (vendor_code, "group")
-        SELECT 
+        SELECT
             lower(vc.vendor_code), 'new'
         FROM vendor_code vc
         WHERE vc.vendor_code NOT LIKE '%---%'
@@ -195,19 +195,14 @@ def cost_price():
             :month_date AS month_date,
             :year_date AS year_date,
             ivc.vendor_code,
-            cp2.cost
+            cp.cost
         FROM public.ip_vendor_code ivc
-        LEFT JOIN public.cost_price cp 
-            ON lower(cp.vendor_code) = lower(ivc.vendor_code) 
+        LEFT JOIN public.cost_price cp
+            ON lower(cp.vendor_code) = lower(ivc.main_vendor_code) 
             AND cp.month_date = :month_date
             AND cp.year_date = :year_date
-        LEFT JOIN public.cost_price cp2 
-            ON lower(cp2.vendor_code) = lower(ivc.main_vendor_code) 
-            AND cp2.month_date = :month_date
-            AND cp2.year_date = :year_date
         WHERE (ivc."group" IS NULL OR ivc."group" <> 'other_trash')
-            AND cp.cost IS NULL 
-            AND cp2.cost IS NOT NULL 
+            AND cp.cost IS NOT NULL 
             AND ivc.type_of_vendor_code = 'maindouble'
         ON CONFLICT (month_date, year_date, vendor_code) DO UPDATE
         SET cost = EXCLUDED.cost
