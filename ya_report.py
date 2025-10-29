@@ -181,7 +181,7 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
             if 'Платное хранение' in s:
                 name_sheets.append(s)
 
-        new_sheet_names = [s for s in sheet_names if s not in name_sheets]
+        new_sheet_names = [s for s in sheet_names if s not in name_sheets + ['Сводка']]
 
         if new_sheet_names:
             logger.error(f'Появились новые листы: {", ".join(new_sheet_names)}')
