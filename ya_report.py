@@ -180,6 +180,12 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
         for s in sheet_names:
             if 'Платное хранение' in s:
                 name_sheets.append(s)
+
+        new_sheet_names = [s for s in sheet_names if s not in name_sheets + ['Сводка']]
+
+        if new_sheet_names:
+            logger.error(f'Появились новые листы: {", ".join(new_sheet_names)}')
+
         result_data = []
 
         for sheet in name_sheets:
@@ -240,7 +246,7 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                 continue
                             logger.error(f'Ошибка при чтении листа {sheet} строки {idx}: {e}')
             else:
-                logger.error(f'Лист "{sheet}" не найден в файле.')
+                logger.info(f'Лист "{sheet}" не найден в файле.')
 
         aggregate = {}
         for row in result_data:

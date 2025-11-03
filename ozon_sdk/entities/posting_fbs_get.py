@@ -20,8 +20,8 @@ class PostingFBSGetAddressee(BaseEntity):
 class PostingFBSGetAnalyticsData(BaseEntity):
     """Данные аналитики."""
     city: str = None
-    delivery_date_begin: datetime = None
-    delivery_date_end: datetime = None
+    delivery_date_begin: Optional[datetime] = None
+    delivery_date_end: Optional[datetime] = None
     delivery_type: str = None
     is_legal: bool = None
     is_premium: bool = None

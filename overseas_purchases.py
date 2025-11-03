@@ -108,6 +108,8 @@ def get_values_russia(to_date: datetime.date) -> list:
     for val in data:
         if len(val) >= 34 and val[0].strip():
             try:
+                if val[34] != 'TRUE':
+                    continue
                 date_obj = datetime.datetime.strptime(val[2].strip(), "%d.%m.%Y").date()
                 if date_obj < to_date:
                     continue
