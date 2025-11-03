@@ -1,6 +1,6 @@
 import datetime
 
-from typing import Optional
+from typing import Optional, Union
 from dataclasses import dataclass
 
 
@@ -92,3 +92,15 @@ class DataSupply:
     date: datetime.date
     vendor_code: str
     supplies: int
+
+
+@dataclass
+class DataPlanSale:
+    date: datetime.date
+    vendor_code: str
+    quantity_plan: int
+    price_plan: float
+    sum_price_plan: float
+    profit_proc: float
+    profit: float
+    supplies: Union[int, str]
