@@ -133,6 +133,35 @@ class DbConnection:
         return [row[0] for row in result]
 
     @retry_on_exception()
+    def get_plan_sale(self) -> list[DataPlanSale]:
+        """
+            Получает данные по плану продаж из БД.
+
+            Returns:
+                List[DataPlanSale]: Список данных по плану продаж.
+        """
+        result = []
+
+        query_supplies = text("SELECT * FROM supplies")
+        result_supplies = self.session.execute(query_supplies).fetchall()
+        map_supplies = {(row[0], row[1]): row[2] for row in result_supplies}
+
+        query_sales_plan = text("SELECT * FROM sales_plan_view ORDER BY vendor_code ASC, date ASC")
+        result_sales_plan = self.session.execute(query_sales_plan).fetchall()
+
+        for row in result_sales_plan:
+            result.append(DataPlanSale(date=row[0],
+                                       vendor_code=row[1],
+                                       quantity_plan=row[2],
+                                       price_plan=round(float(row[3]), 2),
+                                       sum_price_plan=round(float(row[4]), 2),
+                                       profit_proc=round(float(row[5]), 2),
+                                       profit=round(float(row[6]), 2),
+                                       supplies=map_supplies.get((row[0], row[1]), '')))
+
+        return result
+
+    @retry_on_exception()
     def add_cost_price(self, list_cost_price: list[DataCostPrice]) -> None:
         """
             Добавляет себестоймость товаров в БД.
