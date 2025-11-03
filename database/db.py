@@ -207,16 +207,18 @@ class DbConnection:
 
     @retry_on_exception()
     def add_commodity_assets(self, list_assets: list[DataCommodityAsset]) -> None:
+        if not list_assets:
+            return
+        self.session.query(CommodityAssets).filter(
+            CommodityAssets.date == list_assets[0].date).delete(synchronize_session=False)
+        self.session.commit()
+
         for row in list_assets:
             stmt = insert(CommodityAssets).values(
                 date=row.date,
                 vendor_code=row.vendor_code,
                 fbs=row.fbs,
                 on_the_way=row.on_the_way
-            ).on_conflict_do_update(
-                index_elements=['date', 'vendor_code'],
-                set_={'fbs': row.fbs,
-                      'on_the_way': row.on_the_way}
             )
             self.session.execute(stmt)
         self.session.commit()
@@ -224,14 +226,15 @@ class DbConnection:
 
     @retry_on_exception()
     def add_supplies(self, list_supplies: list[DataSupply]) -> None:
+        if not list_supplies:
+            return
+        self.session.query(Supplies).delete(synchronize_session=False)
+        self.session.commit()
         for row in list_supplies:
             stmt = insert(Supplies).values(
                 date=row.date,
                 vendor_code=row.vendor_code,
                 supplies=row.supplies
-            ).on_conflict_do_update(
-                index_elements=['date', 'vendor_code'],
-                set_={'supplies': row.supplies}
             )
             self.session.execute(stmt)
         self.session.commit()
