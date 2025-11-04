@@ -181,7 +181,7 @@ def main_fbs_stocks(retries: int = 6) -> None:
         db_conn = DbConnection()
         db_conn.start_db()
 
-        # add_fbs_stocks(db_conn=db_conn)
+        add_fbs_stocks(db_conn=db_conn)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:
