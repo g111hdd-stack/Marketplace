@@ -1,4 +1,5 @@
 import re
+import os
 import time
 import logging
 import gspread
@@ -13,7 +14,8 @@ from data_classes import DataSupply, DataCommodityAsset
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
 logger = logging.getLogger(__name__)
 
-SERVICE_ACCOUNT_FILE = 'templates/service-account-432709-1178152e9e49.json'
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+SERVICE_ACCOUNT_FILE = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 SPREADSHEET_ID = '1DehtcP1a4OjDxMtqXPNRvosz2-62-PY3abHEKLz7q5g'
 
