@@ -543,7 +543,7 @@ async def main_oz_advert(retries: int = 6) -> None:
 
         clients = db_conn.get_clients(marketplace="Ozon")
 
-        for day in range(16, 0, -1):
+        for day in range(21, 16, -1):
 
             if not readiness_check:
                 for client in clients:
