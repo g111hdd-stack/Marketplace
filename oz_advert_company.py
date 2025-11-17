@@ -362,7 +362,11 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             adverts_ids.append(advert_id)
         else:
             # Получение объектов РК
-            answer_sku = await api_user.get_client_campaign_objects(campaign_id=advert_id)
+            try:
+                answer_sku = await api_user.get_client_campaign_objects(campaign_id=advert_id)
+            except ClientError:
+                adverts_ids.append(advert_id)
+                continue
 
             if not answer_sku:
                 continue
@@ -371,7 +375,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             if len(skus) > 1:
                 adverts_ids.append(advert_id)
             elif len(skus) == 1:
-                sku = skus[0].id_field  # Артикул WB товара
+                sku = skus[0].id_field
                 if sku not in list_sku:
                     continue
 
@@ -483,7 +487,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
     db_conn.add_oz_statistics_adverts(list_statistics_advert=list_statistics_advert)
 
 readiness_check = {}
-check_func = {'cards': False, 'adverts': False, 'stat_cards': False, 'stat_adverts': False}
+check_func = {'cards': True, 'adverts': False, 'stat_cards': True, 'stat_adverts': False}
 
 
 async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterday: datetime.date):
@@ -539,20 +543,22 @@ async def main_oz_advert(retries: int = 6) -> None:
 
         clients = db_conn.get_clients(marketplace="Ozon")
 
-        if not readiness_check:
+        for day in range(16, 0, -1):
+
+            if not readiness_check:
+                for client in clients:
+                    readiness_check[client.name_company] = check_func.copy()
+
+            date_yesterday = (datetime.now() - timedelta(days=day)).date()
+
+            tasks = []
+
             for client in clients:
-                readiness_check[client.name_company] = check_func.copy()
+                if client.name_company not in readiness_check.keys():
+                    continue
+                tasks.append(statistic(db_conn=db_conn, client=client, date_yesterday=date_yesterday))
 
-        date_yesterday = (datetime.now() - timedelta(days=1)).date()
-
-        tasks = []
-
-        for client in clients:
-            if client.name_company not in readiness_check.keys():
-                continue
-            tasks.append(statistic(db_conn=db_conn, client=client, date_yesterday=date_yesterday))
-
-        await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')

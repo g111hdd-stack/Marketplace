@@ -20,8 +20,10 @@ class ClientCampaign(BaseEntity):
     advObjectType: str = None
     fromDate: str = None
     toDate: str = None
+    isAutocreated: bool = None
     budget: str = None
     dailyBudget: str = None
+    weeklyBudget: str = None
     placement: Optional[list[str]] = []
     productAutopilotStrategy: str = None
     autopilot: Optional[ExtCampaignCampaignAutopilotProperties] = None

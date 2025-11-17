@@ -1,3 +1,5 @@
+from openpyxl.worksheet import page
+
 from .requests import *
 from .response import *
 from .core import OzonAsyncEngine, OzonPerformanceAsyncEngine
@@ -460,7 +462,7 @@ class OzonPerformanceAPI:
             ClientCampaignSearchPromoProductsResponse)
 
     async def get_client_campaign(self, campaign_ids: list[str] = None, adv_object_type: str = None,
-                                  state: str = None) -> ClientCampaignResponse:
+                                  state: str = None, page: int = None, page_size: int = None) -> ClientCampaignResponse:
         """
             Получения списка рекламных компаний.
 
@@ -489,8 +491,14 @@ class OzonPerformanceAPI:
                                                     для которых необходимо вывести информацию.
                 adv_object_type (str, optional): Тип рекламируемой кампании.
                 state (str, optional): Состояние кампании.
+                page (int, optional): Номер страницы. Пагинация начинается с единицы.
+                page_size (int, optional): Размер страницы.
         """
-        request = ClientCampaignRequest(campaignIds=campaign_ids, advObjectType=adv_object_type, state=state)
+        request = ClientCampaignRequest(campaignIds=campaign_ids,
+                                        advObjectType=adv_object_type,
+                                        state=state,
+                                        page=page,
+                                        pageSize=page_size)
         answer: ClientCampaignResponse = await self._client_campaign_api.get(request)
         return answer
 
