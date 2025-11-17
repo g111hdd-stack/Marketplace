@@ -487,7 +487,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
     db_conn.add_oz_statistics_adverts(list_statistics_advert=list_statistics_advert)
 
 readiness_check = {}
-check_func = {'cards': True, 'adverts': False, 'stat_cards': True, 'stat_adverts': False}
+check_func = {'cards': True, 'adverts': True, 'stat_cards': True, 'stat_adverts': False}
 
 
 async def statistic(db_conn: OzDbConnection, client: Type[Client], date_yesterday: datetime.date):
