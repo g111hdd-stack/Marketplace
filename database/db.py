@@ -1,14 +1,15 @@
 import time
 import logging
 import datetime
+import numpy as np
 
 from typing import Type
 from functools import wraps
 
 from sqlalchemy.orm import Session
 from pyodbc import Error as PyodbcError
-from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
+from sqlalchemy import create_engine, text, func
 from sqlalchemy.dialects.postgresql import insert
 
 from config import *
@@ -108,9 +109,7 @@ class DbConnection:
 
             Returns:
                 dict: Словарь артикул: ссылка на товар.
-        # """
-        # result = (self.session.query(WBCardProduct.vendor_code, f.min(WBCardProduct.link).label('link'))
-        #           .filter(WBCardProduct.is_work.is_(True)).group_by(WBCardProduct.vendor_code).all())
+        """
         result = self.session.query(WBCardProduct.vendor_code,
                                     WBCardProduct.link).filter(WBCardProduct.is_work.is_(True)).all()
         final = {}
@@ -160,6 +159,148 @@ class DbConnection:
                                        supplies=map_supplies.get((row[0], row[1]), '')))
 
         return result
+
+    @retry_on_exception()
+    def get_last_date_commodity_assets(self) -> datetime.date:
+        """
+            Получает дату последнего обновления остатков на FBS.
+
+            Returns:
+                datetime.date: дата последнего обновления остатков на FBS.
+        """
+        result = self.session.query(func.max(CommodityAssets.date)).scalar()
+        return result
+
+    @retry_on_exception()
+    def get_stocks(self, from_date: datetime.date) -> dict[str, int]:
+        """
+            Получает словарь артикулов с остатками товара за дату.
+
+            Args:
+                from_date (datetime.date): Дата за которую нужна информация.
+
+            Returns:
+                Dict[str, int]: Словарь артикулов с остатками на складах.
+        """
+        query = text("""
+            SELECT vendor_code, SUM(total_quantity) as quantity
+            FROM stocks_view_final 
+            WHERE date = :from_date
+            GROUP BY vendor_code
+        """)
+        result = self.session.execute(query, {"from_date": from_date}).fetchall()
+        return {row[0]: int(row[1]) for row in result}
+
+    @retry_on_exception()
+    def get_plan(self, from_date: datetime.date) -> dict[str, int]:
+        """
+            Получает словарь артикулов с планом продаж за дату.
+
+            Args:
+                from_date (datetime.date): Дата за которую нужна информация.
+
+            Returns:
+                Dict[str, int]: Словарь артикулов с планом продаж.
+        """
+        query = text("""
+            SELECT sp.vendor_code, sp.quantity_plan
+            FROM sales_plan sp
+            INNER JOIN (
+                SELECT vendor_code, MAX(date) AS max_date
+                FROM sales_plan
+                WHERE date <= :from_date
+                GROUP BY vendor_code
+            ) t
+                ON sp.vendor_code = t.vendor_code
+               AND sp.date = t.max_date
+        """)
+
+        result = self.session.execute(query, {"from_date": from_date}).fetchall()
+
+        return {row[0]: int(row[1]) for row in result}
+
+    @retry_on_exception()
+    def get_analytics(self, from_date: datetime.date) -> dict[str, str]:
+        """
+            Получает словарь артикулов с аналитикой продаж за 14 дневный период с переданной даты.
+
+            Args:
+                from_date (datetime.date): Конечная дата периода.
+
+            Returns:
+                Dict[str, int]: Словарь артикулов с аналитикой продаж.
+        """
+        plan = self.get_plan(from_date=from_date)
+
+        query_analytics = text("""
+            SELECT vendor_code, date, quantities
+            FROM google_12_na_273 
+            WHERE date > :from_date
+            ORDER BY vendor_code, date ASC
+        """)
+        result_analytics = self.session.execute(
+            query_analytics, {"from_date": from_date - datetime.timedelta(days=14)}).fetchall()
+
+        map_analytics = {}
+
+        for row in result_analytics:
+            if row[0] not in plan:
+                continue
+            map_analytics.setdefault(row[0], {})
+            map_analytics[row[0]].setdefault(row[1], int(row[2]))
+
+        data_analytics = {}
+
+        for key, values in map_analytics.items():
+            data_analytics.setdefault(key, [])
+            for day in range(13, -1, -1):
+                data_analytics[key].append(map_analytics[key].get(from_date - datetime.timedelta(days=day), 0))
+
+        analytics = {}
+
+        for key, values in data_analytics.items():
+            avg_plan = plan.get(key, 0)
+            if not avg_plan:
+                continue
+
+            analytics.setdefault(key, "")
+
+            week1 = values[:7]
+            avg_week1 = np.mean(week1)
+
+            week2 = values[7:]
+            avg_week2 = np.mean(week2)
+
+            proc_plan = avg_week2 / avg_plan
+
+            if proc_plan >= 1.5:
+                analytics[key] += "Значительно выше плана."
+            elif 1.5 > proc_plan >= 1.15:
+                analytics[key] += "Выше плана."
+            elif 1.15 > proc_plan >= 0.9:
+                analytics[key] += "По плану."
+            elif 0.9 > proc_plan >= 0.6:
+                analytics[key] += "Ниже плана."
+            elif 0.6 > proc_plan >= 0.4:
+                analytics[key] += "Половина от плана."
+            elif 0.4 > proc_plan >= 0.15:
+                analytics[key] += "Ниже половины от плана."
+            else:
+                analytics[key] += "Далеко от плана."
+
+            if proc_plan > 0.15 and avg_week1 > avg_plan * 0.15:
+                proc_weeks = avg_week2 / avg_week1
+
+                if proc_weeks >= 2:
+                    analytics[key] += "Значительный рост продаж."
+                elif 2 > proc_weeks >= 1.3:
+                    analytics[key] += "Рост продаж."
+                elif 0.7 > proc_weeks >= 0.3:
+                    analytics[key] += "Спад продаж."
+                elif 0.3 > proc_weeks:
+                    analytics[key] += "Значительный спад продаж."
+
+        return analytics
 
     @retry_on_exception()
     def add_cost_price(self, list_cost_price: list[DataCostPrice]) -> None:
