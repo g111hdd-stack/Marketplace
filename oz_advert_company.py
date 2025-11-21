@@ -362,7 +362,11 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             adverts_ids.append(advert_id)
         else:
             # Получение объектов РК
-            answer_sku = await api_user.get_client_campaign_objects(campaign_id=advert_id)
+            try:
+                answer_sku = await api_user.get_client_campaign_objects(campaign_id=advert_id)
+            except ClientError:
+                adverts_ids.append(advert_id)
+                continue
 
             if not answer_sku:
                 continue
@@ -371,7 +375,7 @@ async def add_statistic_adverts(db_conn: OzDbConnection, client_id: str, perform
             if len(skus) > 1:
                 adverts_ids.append(advert_id)
             elif len(skus) == 1:
-                sku = skus[0].id_field  # Артикул WB товара
+                sku = skus[0].id_field
                 if sku not in list_sku:
                     continue
 
@@ -538,6 +542,8 @@ async def main_oz_advert(retries: int = 6) -> None:
         global readiness_check
 
         clients = db_conn.get_clients(marketplace="Ozon")
+
+        # for day in range(47, 16, -1):
 
         if not readiness_check:
             for client in clients:

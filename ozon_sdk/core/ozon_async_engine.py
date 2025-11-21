@@ -46,6 +46,7 @@ class OzonAsyncEngine:
                             await asyncio.sleep(120)
                             retry -= 1
                             continue
+                        r = await response.json(content_type=None)
                         return await response.json(content_type=None)
                 except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
                     logger.error(f"Ошибка соединения: {e}")
