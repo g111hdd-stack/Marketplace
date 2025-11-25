@@ -1,24 +1,20 @@
-import calendar
-import datetime as dt
-import logging
 import os
 import re
 import time
-from datetime import datetime, date, timedelta
-
+import logging
 import gspread
+import calendar
+
 from gspread.utils import ValueInputOption
-from gspread_formatting import (
-    Color, CellFormat, BooleanRule, BooleanCondition,
-    ConditionalFormatRule, GridRange, get_conditional_format_rules, format_cell_range)
-from oauth2client.service_account import ServiceAccountCredentials
 from sqlalchemy.exc import OperationalError
-from googleapiclient.discovery import build
+from datetime import datetime, date, timedelta
+from gspread_formatting import get_conditional_format_rules
+from oauth2client.service_account import ServiceAccountCredentials
+from gspread_formatting import Color, CellFormat, BooleanRule, BooleanCondition, ConditionalFormatRule, GridRange
 
-from config import SPREADSHEET_ID_REMAINING_STOCK_PURCHASE, SPREADSHEET_ID_12NA273
-from data_classes import DataSupply, DataCommodityAsset
 from database import DbConnection
-
+from data_classes import DataSupply, DataCommodityAsset
+from config import SPREADSHEET_ID_REMAINING_STOCK_PURCHASE, SPREADSHEET_ID_12NA273
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s')
@@ -26,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 SERVICE_ACCOUNT_FILE = os.path.join(PROJECT_ROOT, 'templates', 'service-account-432709-1178152e9e49.json')
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
-          "https://www.googleapis.com/auth/drive"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 
 # === Подключение к API Google Sheets ===
@@ -71,8 +66,8 @@ def convert_date(x):
     if isinstance(x, str):
         x = datetime.strptime(x, '%Y-%m-%d').date()
 
-    if isinstance(x, dt.date):
-        epoch = dt.date(1899, 12, 30)
+    if isinstance(x, date):
+        epoch = date(1899, 12, 30)
         delta = x - epoch
         return int(delta.days + (delta.seconds / 86400))
 
@@ -264,11 +259,11 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
                                         vendor_code=vendor_code,
                                         supplies=values['quantity']))
 
-    # logger.info(f'Количество записей: {len(list_assets)}')
-    # db_conn.add_commodity_assets(list_assets=list_assets)
-    #
-    # logger.info(f'Количество записей: {len(list_supplies)}')
-    # db_conn.add_supplies(list_supplies=list_supplies)
+    logger.info(f'Количество записей: {len(list_assets)}')
+    db_conn.add_commodity_assets(list_assets=list_assets)
+
+    logger.info(f'Количество записей: {len(list_supplies)}')
+    db_conn.add_supplies(list_supplies=list_supplies)
 
 def plan_sale(db_conn: DbConnection):
     # 1) Данные из БД
@@ -627,9 +622,10 @@ def main_fbs_stocks(retries: int = 6) -> None:
     try:
         db_conn = DbConnection()
         db_conn.start_db()
-        # add_fbs_stocks(db_conn=db_conn)
-        # plan_sale(db_conn)
-        create_12_na_273(db_conn)
+
+        add_fbs_stocks(db_conn=db_conn)
+        plan_sale(db_conn=db_conn)
+        create_12_na_273(db_conn=db_conn)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
         if retries > 0:

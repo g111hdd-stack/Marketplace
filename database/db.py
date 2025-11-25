@@ -183,10 +183,11 @@ class DbConnection:
                 Dict[str, int]: Словарь артикулов с остатками на складах.
         """
         query = text("""
-            SELECT vendor_code, SUM(total_quantity) as quantity
-            FROM stocks_view_final 
-            WHERE date = :from_date AND marketplace <> 'On the way'
-            GROUP BY vendor_code
+            SELECT ivc.main_vendor_code, SUM(svf.total_quantity) as quantity
+            FROM stocks_view_final svf
+            LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = svf.vendor_code
+            WHERE svf.date = :from_date AND svf.marketplace <> 'On the way'
+            GROUP BY ivc.main_vendor_code
         """)
         result = self.session.execute(query, {"from_date": from_date}).fetchall()
         return {row[0]: int(row[1]) for row in result}
@@ -292,13 +293,13 @@ class DbConnection:
                 proc_weeks = avg_week2 / avg_week1
 
                 if proc_weeks >= 2:
-                    analytics[key] += " Значительный рост продаж."
+                    analytics[key] += "Значительный рост продаж."
                 elif 2 > proc_weeks >= 1.3:
-                    analytics[key] += " Рост продаж."
+                    analytics[key] += "Рост продаж."
                 elif 0.7 > proc_weeks >= 0.3:
-                    analytics[key] += " Спад продаж."
+                    analytics[key] += "Спад продаж."
                 elif 0.3 > proc_weeks:
-                    analytics[key] += " Значительный спад продаж."
+                    analytics[key] += "Значительный спад продаж."
 
         return analytics
 
