@@ -286,7 +286,7 @@ def plan_sale(db_conn: DbConnection):
     ] for x in plan_sale_values]
     # 4) Подключение к таблице и получение/создание листа
     spreadsheet = connect_to_google_sheets(SPREADSHEET_ID_12NA273)
-    sheet_name = "Plan2"
+    sheet_name = "Plan"
     try:
         worksheet = spreadsheet.worksheet(sheet_name)
     except gspread.WorksheetNotFound:
