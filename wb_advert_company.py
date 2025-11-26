@@ -328,7 +328,6 @@ async def main_wb_advert(retries: int = 6) -> None:
                                             from_date=from_date)
             except ClientError as e:
                 logger.error(f'{e}')
-            return
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
