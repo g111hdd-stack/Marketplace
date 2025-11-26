@@ -293,13 +293,13 @@ class DbConnection:
                 proc_weeks = avg_week2 / avg_week1
 
                 if proc_weeks >= 2:
-                    analytics[key] += "Значительный рост продаж."
+                    analytics[key] += " Значительный рост продаж."
                 elif 2 > proc_weeks >= 1.3:
-                    analytics[key] += "Рост продаж."
+                    analytics[key] += " Рост продаж."
                 elif 0.7 > proc_weeks >= 0.3:
-                    analytics[key] += "Спад продаж."
+                    analytics[key] += " Спад продаж."
                 elif 0.3 > proc_weeks:
-                    analytics[key] += "Значительный спад продаж."
+                    analytics[key] += " Значительный спад продаж."
 
         return analytics
 

@@ -56,7 +56,7 @@ class FullstatsDay(BaseEntity):
 
 class FullstatsDayBoosterStats(BaseEntity):
     """Статистика по средней позиции товара на страницах поисковой выдачи и каталога (для автоматических кампаний)."""
-    date_field: datetime = Field(default=None, alias='date')
+    date_field: str = Field(default=None, alias='date')
     nm: int = None
     avg_position: int = None
 
