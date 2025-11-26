@@ -33,7 +33,7 @@ class FullstatsDaysApp(BaseEntity):
     cr: float = None
     shks: int = None
     sum_price: float = None
-    nm: Optional[list[FullstatsDaysAppNM]] = []
+    nms: Optional[list[FullstatsDaysAppNM]] = []
     appType: int = None
 
 
@@ -41,6 +41,7 @@ class FullstatsDay(BaseEntity):
     """Статистка по дням."""
     date_field: datetime = Field(default=None, alias='date')
     views: int = None
+    canceled: int = None
     clicks: int = None
     ctr: float = None
     cpc: float = None
@@ -62,8 +63,8 @@ class FullstatsDayBoosterStats(BaseEntity):
 
 class Fullstats(BaseEntity):
     """Статистика кампании."""
-    dates: Optional[list[date]] = []
     views: int = None
+    canceled: int = None
     clicks: int = None
     ctr: float = None
     cpc: float = None

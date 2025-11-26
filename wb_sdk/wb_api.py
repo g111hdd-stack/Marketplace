@@ -134,7 +134,7 @@ class WBApi:
 
         return answer
 
-    async def get_fullstats(self, company_ids: list[int], dates: list[str]) -> FullstatsResponse:
+    async def get_fullstats(self, company_ids: list[int], begin_date: str, end_date: str) -> FullstatsResponse:
         """
             Возвращает статистику кампаний. \n
             Дата в формате строки YYYY-DD-MM. \n
@@ -144,12 +144,12 @@ class WBApi:
 
             Args:
                 company_ids (list[int]): ID кампании, не более 100.
-                dates (list[str]): Даты, за которые необходимо выдать информацию.
+                begin_date (str):Дата начала интервала.
+                end_date (str): Дата окончания интервала.
         """
-        request = []
-        for company_id in company_ids:
-            request.append(FullstatsRequest(id=company_id, dates=dates))
-        answer: FullstatsResponse = await self._fullstats_api.post(body=request)
+        request = FullstatsRequest(ids=",".join([str(cid) for cid in company_ids]),
+                                   beginDate=begin_date, endDate=end_date)
+        answer: FullstatsResponse = await self._fullstats_api.get(query=request)
 
         return answer
 

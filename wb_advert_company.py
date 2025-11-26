@@ -141,11 +141,11 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date)
     company_ids = [company_id for company_id in adverts]
 
-    date_list = []
-
-    while sd <= end_date:
-        date_list.append(sd.isoformat())
-        sd += timedelta(days=1)
+    # date_list = []
+    #
+    # while sd <= end_date:
+    #     date_list.append(sd.isoformat())
+    #     sd += timedelta(days=1)
 
     product_advertising_campaign = []
 
@@ -164,56 +164,58 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     }
 
     # Запрос статистики РК по 100 компаний за цикл
-    for dates in [date_list[i:i + 10] for i in range(0, len(date_list), 10)]:
-        filter_company_ids = []
-        for company_id in company_ids:
-            create = adverts.get(company_id)[0].isoformat()
-            end = adverts.get(company_id)[1].isoformat()
-            if not all(create > d for d in dates):
-                if not all(end < d for d in dates):
-                    filter_company_ids.append(company_id)
-        if not filter_company_ids:
-            continue
-        for ids in [company_ids[i:i+100] for i in range(0, len(company_ids), 100)]:
-            answer = await api_user.get_fullstats(company_ids=ids, dates=dates)
+    # for dates in [date_list[i:i + 10] for i in range(0, len(date_list), 10)]:
+    # filter_company_ids = []
+    # for company_id in company_ids:
+    #     create = adverts.get(company_id)[0].isoformat()
+    #     end = adverts.get(company_id)[1].isoformat()
+    #     if not all(create > d for d in date_list):
+    #         if not all(end < d for d in date_list):
+    #             filter_company_ids.append(company_id)
+    # if not filter_company_ids:
+    #     continue
+    for ids in [company_ids[i:i+100] for i in range(0, len(company_ids), 100)]:
+        answer = await api_user.get_fullstats(company_ids=ids,
+                                              begin_date=start_date.isoformat(),
+                                              end_date=end_date.isoformat())
 
-            # Обработка полученных результатов
-            if answer:
-                for advert in answer.result:
-                    for day in advert.days:
-                        for app in day.apps:
-                            if app.appType == 0 and app.nm:
-                                product_advertising_campaign.append(
-                                    DataWBStatisticAdvert(client_id=client_id,
-                                                          date=day.date_field,
-                                                          views=app.views,
-                                                          clicks=app.clicks,
-                                                          sum_cost=app.sum,
-                                                          atbs=app.atbs,
-                                                          orders_count=app.orders,
-                                                          shks=app.shks,
-                                                          sum_price=app.sum_price,
-                                                          sku=str(app.nm[0].nmId),
-                                                          advert_id=str(advert.advertId),
-                                                          app_type=app_type.get(app.appType))
-                                )
-                            else:
-                                for position in app.nm:
-                                    if position.views is not None:
-                                        product_advertising_campaign.append(
-                                            DataWBStatisticAdvert(client_id=client_id,
-                                                                  date=day.date_field,
-                                                                  views=position.views,
-                                                                  clicks=position.clicks,
-                                                                  sum_cost=position.sum,
-                                                                  atbs=position.atbs,
-                                                                  orders_count=position.orders,
-                                                                  shks=position.shks,
-                                                                  sum_price=position.sum_price,
-                                                                  sku=str(position.nmId),
-                                                                  advert_id=str(advert.advertId),
-                                                                  app_type=app_type.get(app.appType))
-                                        )
+        # Обработка полученных результатов
+        if answer:
+            for advert in answer.result:
+                for day in advert.days:
+                    for app in day.apps:
+                        if app.appType == 0 and app.nms:
+                            product_advertising_campaign.append(
+                                DataWBStatisticAdvert(client_id=client_id,
+                                                      date=day.date_field,
+                                                      views=app.views,
+                                                      clicks=app.clicks,
+                                                      sum_cost=app.sum,
+                                                      atbs=app.atbs,
+                                                      orders_count=app.orders,
+                                                      shks=app.shks,
+                                                      sum_price=app.sum_price,
+                                                      sku=str(app.nms[0].nmId),
+                                                      advert_id=str(advert.advertId),
+                                                      app_type=app_type.get(app.appType))
+                            )
+                        else:
+                            for position in app.nms:
+                                if position.views is not None:
+                                    product_advertising_campaign.append(
+                                        DataWBStatisticAdvert(client_id=client_id,
+                                                              date=day.date_field,
+                                                              views=position.views,
+                                                              clicks=position.clicks,
+                                                              sum_cost=position.sum,
+                                                              atbs=position.atbs,
+                                                              orders_count=position.orders,
+                                                              shks=position.shks,
+                                                              sum_price=position.sum_price,
+                                                              sku=str(position.nmId),
+                                                              advert_id=str(advert.advertId),
+                                                              app_type=app_type.get(app.appType))
+                                    )
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
     db_conn.add_wb_adverts_statistics(client_id=client_id,
@@ -301,12 +303,12 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            if client.name_company != 'Shuki':
-                try:
-                    logger.info(f"Сбор рекламных компаний {client.name_company}")
-                    await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
-                except ClientError as e:
-                    logger.error(f'{e}')
+            # if client.name_company != 'Shuki':
+            try:
+                logger.info(f"Сбор рекламных компаний {client.name_company}")
+                await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
 
             try:
                 logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
@@ -317,15 +319,16 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            if client.name_company != 'Shuki':
-                try:
-                    logger.info(f"Статистика рекламы {client.name_company}")
-                    await add_statistic_adverts(db_conn=db_conn,
-                                                client_id=client.client_id,
-                                                api_key=client.api_key,
-                                                from_date=from_date)
-                except ClientError as e:
-                    logger.error(f'{e}')
+            # if client.name_company != 'Shuki':
+            try:
+                logger.info(f"Статистика рекламы {client.name_company}")
+                await add_statistic_adverts(db_conn=db_conn,
+                                            client_id=client.client_id,
+                                            api_key=client.api_key,
+                                            from_date=from_date)
+            except ClientError as e:
+                logger.error(f'{e}')
+            return
 
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
