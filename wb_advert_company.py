@@ -174,7 +174,7 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     #             filter_company_ids.append(company_id)
     # if not filter_company_ids:
     #     continue
-    for ids in [company_ids[i:i+100] for i in range(0, len(company_ids), 100)]:
+    for ids in [company_ids[i:i+50] for i in range(0, len(company_ids), 50)]:
         answer = await api_user.get_fullstats(company_ids=ids,
                                               begin_date=start_date.isoformat(),
                                               end_date=end_date.isoformat())
