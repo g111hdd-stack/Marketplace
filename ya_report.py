@@ -1,18 +1,19 @@
-import asyncio
 import os
+import asyncio
+import logging
 import requests
 import warnings
-
 import nest_asyncio
-import logging
 import pandas as pd
 
+from typing import Union
 from datetime import datetime, timedelta, date
 from sqlalchemy.exc import OperationalError
 
-from data_classes import DataYaReport, DataYaCampaigns
 from ya_sdk.ya_api import YandexApi
 from database import YaDbConnection
+from data_classes import DataYaReport, DataYaCampaigns
+
 
 nest_asyncio.apply()
 
@@ -24,7 +25,7 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def download_file(url, file_name) -> str or None:
+def download_file(url: str, file_name: str) -> Union[str, None]:
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -65,7 +66,7 @@ async def get_campaign_ids(api_key: str) -> list[DataYaCampaigns]:
 
 
 async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCampaigns],
-                          date_now: date) -> str or None:
+                          date_now: date) -> Union[str, None]:
     date_from = date_now - timedelta(days=10)
     date_to = date_now - timedelta(days=1)
 
@@ -130,47 +131,50 @@ async def report_generate(client_id: str, api_key: str, campaigns: list[DataYaCa
         return None
 
 
-async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaigns]) -> list[DataYaReport]:
+async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaigns]) -> Union[list[DataYaReport], None]:
     name_campaigns = {campaign.name: campaign.campaign_id for campaign in campaigns}
-    headers_dict = {'client_id': {'ID бизнес-аккаунта': None},
-                    'campaign_name': {'Названия магазинов': None},
-                    'posting_number': {'Номер заказа': None},
-                    'operation_date': {'Дата оказания услуги': None,
-                                       'Дата и время оказания услуги': None},
-                    'service': {'Услуга': None},
-                    'vendor_code': {'Ваш SKU': None},
-                    'cost': {'Стоимость услуги (': None,
-                             'Стоимость услуги, ₽': None,
-                             'Стоимость услуги': None,
-                             'Постоплата, ₽': None,
-                             'Стоимость платного хранения, ₽': None}
-                    }
+    headers_dict = {
+        'client_id': {'ID бизнес-аккаунта': None},
+        'campaign_name': {'Названия магазинов': None},
+        'posting_number': {'Номер заказа': None},
+        'operation_date': {'Дата оказания услуги': None,
+                           'Дата и время оказания услуги': None},
+        'service': {'Услуга': None},
+        'vendor_code': {'Ваш SKU': None},
+        'cost': {'Стоимость услуги (': None,
+                 'Стоимость услуги, ₽': None,
+                 'Стоимость услуги': None,
+                 'Постоплата, ₽': None,
+                 'Стоимость платного хранения, ₽': None}
+    }
     headers = [key for val in headers_dict.values() for key in val.keys()]
 
-    name_sheets = ['Обработка заказов в СЦ или ПВЗ',
-                   'Размещение товаров на витрине',
-                   'Обработка заказов на складе',
-                   'Приём платежа',
-                   'Перевод платежа',
-                   'Доставка покупателю',
-                   'Экспресс-доставка покупателю',
-                   'Поставка через транзитный склад',  # new
-                   'Доставка из-за рубежа',  # new pass
-                   'Программа лояльности и отзывы',
-                   'Буст продаж, оплата за показы',
-                   'Буст продаж, оплата за продажи',
-                   'Полки',
-                   'Баннеры',  # new pass
-                   'Хранение невыкупов и возвратов',
-                   'Рассрочка',  # new pass
-                   'Приём излишков на складе',  # new pass
-                   'Организация утилизации',
-                   'Вывоз со склада, СЦ, ПВЗ',
-                   'Организация забора заказов',  # new pass
-                   'Вознаграждение за продажу',  # new pass
-                   'Расширенный доступ к сервисам',  # new pass
-                   'Складская обработка'  # new
-                   ]
+    name_sheets = [
+        'Обработка заказов в СЦ или ПВЗ',
+        'Размещение товаров на витрине',
+        'Обработка заказов на складе',
+        'Приём платежа',
+        'Перевод платежа',
+        'Доставка покупателю',
+        'Экспресс-доставка покупателю',
+        'Поставка через транзитный склад',  # new
+        'Доставка из-за рубежа',  # new pass
+        'Программа лояльности и отзывы',
+        'Буст продаж, оплата за показы',
+        'Буст продаж, оплата за продажи',
+        'Полки',
+        'Баннеры',  # new pass
+        'Хранение невыкупов и возвратов',
+        'Рассрочка',  # new pass
+        'Приём излишков на складе',  # new pass
+        'Организация утилизации',
+        'Вывоз со склада, СЦ, ПВЗ',
+        'Организация забора заказов',  # new pass
+        'Вознаграждение за продажу',  # new pass
+        'Расширенный доступ к сервисам',  # new pass
+        'Складская обработка',  # new
+        'Персональный менеджер'
+    ]
 
     try:
         excel_file = pd.ExcelFile(path_file)
@@ -209,31 +213,45 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                 row_data[metric] = {}
                                 for header in value.keys():
                                     if header in df.columns:
-                                        row_data[metric][header] = row[header]
+                                        if ('Буст продаж' in sheet or sheet == 'Полки') and header == 'Стоимость услуги, ₽':
+                                            spp = row.get('Скидка за участие в совместных акциях', 0)
+                                            spp = float(spp) if isinstance(spp, (float, int)) else 0
+                                            row_data[metric][header] = float(row[header]) + spp
+                                        else:
+                                            row_data[metric][header] = row[header]
                                     else:
                                         if header == 'Стоимость услуги (':
                                             for column in df.columns:
                                                 if header in column:
                                                     disc_loyalty = row['Unnamed: 46']
                                                     disc_joint = row['Unnamed: 47']
-                                                    disc_loyalty = float(disc_loyalty) if isinstance(disc_loyalty, (float, int)) else 0
-                                                    disc_joint = float(disc_joint) if isinstance(disc_joint, (float, int)) else 0
-                                                    row_data[metric][header] = float(row[column]) + disc_loyalty + disc_joint
+                                                    disc_loyalty = float(disc_loyalty) if isinstance(disc_loyalty,
+                                                                                                     (float,
+                                                                                                      int)) else 0
+                                                    disc_joint = float(disc_joint) if isinstance(disc_joint,
+                                                                                                 (float, int)) else 0
+                                                    row_data[metric][header] = float(
+                                                        row[column]) + disc_loyalty + disc_joint
 
-                            client_id = convert_id(next((v for v in row_data.get('client_id', {}).values() if v is not None), None))
-                            campaign_name = next((v for v in row_data.get('campaign_name', {}).values() if v is not None), None)
-                            posting_number = convert_id(next((v for v in row_data.get('posting_number', {}).values() if v is not None), None))
-                            operation_date = next((v for v in row_data.get('operation_date', {}).values() if v is not None), None)
+                            client_id = convert_id(
+                                next((v for v in row_data.get('client_id', {}).values() if v is not None), None))
+                            campaign_name = next(
+                                (v for v in row_data.get('campaign_name', {}).values() if v is not None), None)
+                            posting_number = convert_id(
+                                next((v for v in row_data.get('posting_number', {}).values() if v is not None), None))
+                            operation_date = next(
+                                (v for v in row_data.get('operation_date', {}).values() if v is not None), None)
                             cost = next((v for v in row_data.get('cost', {}).values() if v is not None), None)
                             service = next((v for v in row_data.get('service', {}).values() if v is not None), None)
-                            vendor_code = next((v for v in row_data.get('vendor_code', {}).values() if v is not None), None)
+                            vendor_code = next((v for v in row_data.get('vendor_code', {}).values() if v is not None),
+                                               None)
                             operation_type = sheet if 'Платное хранение' not in sheet else 'Платное хранение'
 
                             operation_date = datetime.strptime(operation_date, '%Y-%m-%d %H:%M:%S').date()
                             cost = round(float(cost), 2)
 
                             entry = DataYaReport(client_id=client_id,
-                                                 campaign_id=name_campaigns[campaign_name],
+                                                 campaign_id=name_campaigns.get(campaign_name, None),
                                                  date=operation_date,
                                                  posting_number=posting_number,
                                                  operation_type=operation_type,

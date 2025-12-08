@@ -56,7 +56,7 @@ class YaReport(Base):
 
     id = Column(Integer, Identity(), primary_key=True)
     client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
-    campaign_id = Column(String(length=255), ForeignKey('ya_campaigns.campaign_id'), nullable=False)
+    campaign_id = Column(String(length=255), ForeignKey('ya_campaigns.campaign_id'), nullable=True)
     date = Column(Date, nullable=False)
     posting_number = Column(String(length=255), default='', nullable=False)
     vendor_code = Column(String(length=255), default='', nullable=False)
