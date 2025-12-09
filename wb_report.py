@@ -113,8 +113,8 @@ async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date
                                             deduction=round(report.deduction, 2),
                                             acceptance=round(report.acceptance, 2),
                                             posting_number=report.srid))
+            rrdid = report.rrd_id
         if len(list_report) == limit:
-            rrdid = list_report[-1].rrdid
             continue
         break
 
@@ -131,12 +131,10 @@ async def main_wb_report(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        date_from = date_now - timedelta(days=20)
+        date_from = date_now - timedelta(days=15)
         date_to = date_now - timedelta(microseconds=1)
 
         for client in clients:
-            if client.name_company != 'Voyor':
-                continue
             try:
                 logger.info(f"Получение отчёта для {client.name_company} за период от {date_from.date().isoformat()} "
                             f"до {date_to.date().isoformat()}")
