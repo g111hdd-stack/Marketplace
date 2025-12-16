@@ -34,80 +34,89 @@ async def get_report(db_conn: WBDbConnection, client_id: str, api_key: str, date
     """
 
     list_report = []
+    limit = 100000
+    rrdid = 0
 
     # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
-    for _ in range(3):
-        # Получение отчёта
-        answer = await api_user.get_supplier_report_detail_by_period(date_from=date_from.isoformat(),
-                                                                     date_to=date_to.isoformat())
-        if answer.result:
-            break
+    while True:
+        for _ in range(3):
+            # Получение отчёта
+            answer = await api_user.get_supplier_report_detail_by_period(date_from=date_from.isoformat(),
+                                                                         date_to=date_to.isoformat(),
+                                                                         limit=limit,
+                                                                         rrdid=rrdid)
+            if answer.result:
+                break
 
-        await asyncio.sleep(10)
-    else:
-        raise ClientError(f'Не удалось получить отчёт по {client_id}')
+            await asyncio.sleep(10)
+        else:
+            raise ClientError(f'Не удалось получить отчёт по {client_id}')
 
-    # Обработка полученных результатов
-    for report in answer.result:
-        list_report.append(DataWBReport(realizationreport_id=str(report.realizationreport_id),
-                                        gi_id=str(report.gi_id),
-                                        subject_name=report.subject_name,
-                                        sku=str(report.nm_id),
-                                        brand=report.brand_name,
-                                        vendor_code=report.sa_name,
-                                        size=report.ts_name,
-                                        barcode=report.barcode,
-                                        doc_type_name=report.doc_type_name,
-                                        quantity=report.quantity,
-                                        retail_price=report.retail_price,
-                                        retail_amount=report.retail_amount,
-                                        sale_percent=report.sale_percent,
-                                        commission_percent=report.commission_percent,
-                                        office_name=report.office_name,
-                                        supplier_oper_name=report.supplier_oper_name,
-                                        order_date=report.order_dt,
-                                        sale_date=report.sale_dt,
-                                        operation_date=report.rr_dt,
-                                        shk_id=str(report.shk_id),
-                                        retail_price_withdisc_rub=round(report.retail_price_withdisc_rub, 2),
-                                        delivery_amount=report.delivery_amount,
-                                        return_amount=report.return_amount,
-                                        delivery_rub=round(report.delivery_rub, 2),
-                                        gi_box_type_name=report.gi_box_type_name,
-                                        product_discount_for_report=round(report.product_discount_for_report, 2),
-                                        supplier_promo=round(report.supplier_promo, 2),
-                                        order_id=str(report.rid),
-                                        ppvz_spp_prc=round(report.ppvz_spp_prc, 2),
-                                        ppvz_kvw_prc_base=round(report.ppvz_kvw_prc_base, 2),
-                                        ppvz_kvw_prc=round(report.ppvz_kvw_prc, 2),
-                                        sup_rating_prc_up=round(report.sup_rating_prc_up, 2),
-                                        is_kgvp_v2=round(report.is_kgvp_v2, 2),
-                                        ppvz_sales_commission=round(report.ppvz_sales_commission, 2),
-                                        ppvz_for_pay=round(report.ppvz_for_pay, 2),
-                                        ppvz_reward=round(report.ppvz_reward, 2),
-                                        acquiring_fee=round(report.acquiring_fee, 2),
-                                        acquiring_bank=report.acquiring_bank,
-                                        ppvz_vw=round(report.ppvz_vw, 2),
-                                        ppvz_vw_nds=round(report.ppvz_vw_nds, 2),
-                                        ppvz_office_id=str(report.ppvz_office_id),
-                                        ppvz_office_name=report.ppvz_office_name,
-                                        ppvz_supplier_id=str(report.ppvz_supplier_id),
-                                        ppvz_supplier_name=report.ppvz_supplier_name,
-                                        ppvz_inn=report.ppvz_inn,
-                                        declaration_number=report.declaration_number,
-                                        bonus_type_name=report.bonus_type_name,
-                                        sticker_id=report.sticker_id,
-                                        site_country=report.site_country,
-                                        penalty=round(report.penalty, 2),
-                                        additional_payment=round(report.additional_payment, 2),
-                                        rebill_logistic_cost=round(report.rebill_logistic_cost, 2),
-                                        rebill_logistic_org=report.rebill_logistic_org,
-                                        kiz=report.kiz,
-                                        storage_fee=round(report.storage_fee, 2),
-                                        deduction=round(report.deduction, 2),
-                                        acceptance=round(report.acceptance, 2),
-                                        posting_number=report.srid))
+        # Обработка полученных результатов
+        for report in answer.result:
+            list_report.append(DataWBReport(realizationreport_id=str(report.realizationreport_id),
+                                            gi_id=str(report.gi_id),
+                                            subject_name=report.subject_name,
+                                            sku=str(report.nm_id),
+                                            brand=report.brand_name,
+                                            vendor_code=report.sa_name,
+                                            size=report.ts_name,
+                                            barcode=report.barcode,
+                                            doc_type_name=report.doc_type_name,
+                                            quantity=report.quantity,
+                                            retail_price=report.retail_price,
+                                            retail_amount=report.retail_amount,
+                                            sale_percent=report.sale_percent,
+                                            commission_percent=report.commission_percent,
+                                            office_name=report.office_name,
+                                            supplier_oper_name=report.supplier_oper_name,
+                                            order_date=report.order_dt,
+                                            sale_date=report.sale_dt,
+                                            operation_date=report.rr_dt,
+                                            shk_id=str(report.shk_id),
+                                            retail_price_withdisc_rub=round(report.retail_price_withdisc_rub, 2),
+                                            delivery_amount=report.delivery_amount,
+                                            return_amount=report.return_amount,
+                                            delivery_rub=round(report.delivery_rub, 2),
+                                            gi_box_type_name=report.gi_box_type_name,
+                                            product_discount_for_report=round(report.product_discount_for_report, 2),
+                                            supplier_promo=round(report.supplier_promo, 2),
+                                            order_id=str(report.rid),
+                                            ppvz_spp_prc=round(report.ppvz_spp_prc, 2),
+                                            ppvz_kvw_prc_base=round(report.ppvz_kvw_prc_base, 2),
+                                            ppvz_kvw_prc=round(report.ppvz_kvw_prc, 2),
+                                            sup_rating_prc_up=round(report.sup_rating_prc_up, 2),
+                                            is_kgvp_v2=round(report.is_kgvp_v2, 2),
+                                            ppvz_sales_commission=round(report.ppvz_sales_commission, 2),
+                                            ppvz_for_pay=round(report.ppvz_for_pay, 2),
+                                            ppvz_reward=round(report.ppvz_reward, 2),
+                                            acquiring_fee=round(report.acquiring_fee, 2),
+                                            acquiring_bank=report.acquiring_bank,
+                                            ppvz_vw=round(report.ppvz_vw, 2),
+                                            ppvz_vw_nds=round(report.ppvz_vw_nds, 2),
+                                            ppvz_office_id=str(report.ppvz_office_id),
+                                            ppvz_office_name=report.ppvz_office_name,
+                                            ppvz_supplier_id=str(report.ppvz_supplier_id),
+                                            ppvz_supplier_name=report.ppvz_supplier_name,
+                                            ppvz_inn=report.ppvz_inn,
+                                            declaration_number=report.declaration_number,
+                                            bonus_type_name=report.bonus_type_name,
+                                            sticker_id=report.sticker_id,
+                                            site_country=report.site_country,
+                                            penalty=round(report.penalty, 2),
+                                            additional_payment=round(report.additional_payment, 2),
+                                            rebill_logistic_cost=round(report.rebill_logistic_cost, 2),
+                                            rebill_logistic_org=report.rebill_logistic_org,
+                                            kiz=report.kiz,
+                                            storage_fee=round(report.storage_fee, 2),
+                                            deduction=round(report.deduction, 2),
+                                            acceptance=round(report.acceptance, 2),
+                                            posting_number=report.srid))
+            rrdid = report.rrd_id
+        if len(list_report) == limit:
+            continue
+        break
 
     logger.info(f"Количество записей: {len(list_report)}")
     db_conn.add_wb_report_entry(client_id=client_id, start_date=date_from, list_report=list_report)
@@ -122,7 +131,7 @@ async def main_wb_report(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        date_from = date_now - timedelta(days=20)
+        date_from = date_now - timedelta(days=15)
         date_to = date_now - timedelta(microseconds=1)
 
         for client in clients:
