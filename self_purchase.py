@@ -56,6 +56,12 @@ def get_values(sheet_name: str, to_date: datetime.date) -> list:
             quantities = int(row[all_list[sheet_name][6]])
             price = round(float(row[all_list[sheet_name][7]]), 2)
 
+            if marketplace == 'wb' and entrepreneur.startswith('#'):
+                if row[1] == 'Magasin':
+                    entrepreneur = 'авагян г.г.'
+                elif row[1] == 'SELLER':
+                    entrepreneur = 'авагян в.г.'
+
             values.append([accrual_date, order_date, entrepreneur, marketplace, vendor_code, sku, quantities, price])
         except:
             pass
