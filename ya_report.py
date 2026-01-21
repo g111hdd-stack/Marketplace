@@ -136,7 +136,7 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
     headers_dict = {
         'client_id': {'ID бизнес-аккаунта': None},
         'campaign_name': {'Названия магазинов': None},
-        'posting_number': {'Номер заказа': None},
+        'posting_number': {'Номер заказа или отгрузки': None},
         'operation_date': {'Дата оказания услуги': None,
                            'Дата и время оказания услуги': None},
         'service': {'Услуга': None},
