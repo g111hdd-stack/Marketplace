@@ -194,7 +194,7 @@ SELECT
     yr.vendor_code AS "Артикул",
     COUNT(distinct yr.posting_number) AS "Количество заказов",
     SUM(CASE WHEN yr.operation_type = 'Размещение товаров на витрине' THEN yr.cost ELSE 0 END) AS "Размещение на витрине",
-    SUM(CASE WHEN yr.operation_type = 'Доставка покупателю' THEN yr.cost ELSE 0 END) AS "Логистика",
+    SUM(CASE WHEN yr.operation_type = ANY(ARRAY['Доставка покупателю', 'Экспресс-доставка покупателю']) THEN yr.cost ELSE 0 END) AS "Логистика",
     SUM(CASE WHEN yr.operation_type = ANY(ARRAY['Приём платежа', 'Перевод платежа']) THEN yr.cost ELSE 0 END) AS "Обработка платежа",
     COUNT(DISTINCT yr.posting_number) FILTER (WHERE yr.operation_type = 'Буст продаж, оплата за продажи') AS "Количество заказов с бустом",
     SUM(CASE WHEN yr.operation_type = 'Буст продаж, оплата за продажи' THEN yr.cost ELSE 0 END) AS "Буст продаж",

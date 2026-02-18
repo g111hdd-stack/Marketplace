@@ -303,7 +303,6 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            # if client.name_company != 'Shuki':
             try:
                 logger.info(f"Сбор рекламных компаний {client.name_company}")
                 await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
@@ -319,7 +318,6 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            # if client.name_company != 'Shuki':
             try:
                 logger.info(f"Статистика рекламы {client.name_company}")
                 await add_statistic_adverts(db_conn=db_conn,

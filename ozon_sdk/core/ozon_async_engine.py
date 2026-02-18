@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import logging
 
+from config import PROXY
 from ozon_sdk.errors import ClientError
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ class OzonAsyncEngine:
             'Client-Id': client_id,
             'Api-Key': api_key
         }
+
+        self.proxy_url = PROXY
 
     async def get(self, url: str, params: dict) -> dict:
         url = await self._get_url(url)
@@ -37,7 +40,7 @@ class OzonAsyncEngine:
             while retry != 0:
                 try:
                     new_params = {k: v for k, v in params.items() if v is not None}
-                    async with session.get(url, params=new_params, verify_ssl=False) as response:
+                    async with session.get(url, params=new_params, ssl=False, timeout=120) as response:
                         if response.status in [404, 403]:
                             raise ClientError
                         if response.status != 200:
@@ -46,7 +49,6 @@ class OzonAsyncEngine:
                             await asyncio.sleep(120)
                             retry -= 1
                             continue
-                        r = await response.json(content_type=None)
                         return await response.json(content_type=None)
                 except (aiohttp.ClientConnectionError, aiohttp.ClientError, asyncio.TimeoutError) as e:
                     logger.error(f"Ошибка соединения: {e}")
@@ -60,7 +62,7 @@ class OzonAsyncEngine:
         async with await self._get_session() as session:
             while retry != 0:
                 try:
-                    async with session.post(url, json=params, verify_ssl=False) as response:
+                    async with session.post(url, json=params, ssl=False, timeout=120) as response:
                         if response.status in [404, 403]:
                             raise ClientError
                         if response.status == 400:
