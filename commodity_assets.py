@@ -63,32 +63,44 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
     vendors = db_conn.get_vendors()
 
     today = date.today()
-    pattern = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
+    pattern = re.compile(r"\d{2}\.\d{2}\.\d{4}")
     spreadsheet = connect_to_google_sheets()
     sheet_names = get_sheet_names(spreadsheet)
 
-    dates_sheet_names = []
+    dates_sheet_names = []  # теперь тут (date, name)
+
     for name in sheet_names:
         name = name.strip()
-        if pattern.match(name):
+        match = pattern.search(name)
+
+        if match:
             try:
-                # пытаемся распарсить дату, проверяя её корректность
-                date_obj = datetime.strptime(name, "%d.%m.%Y").date()
-                dates_sheet_names.append(date_obj)
+                date_obj = datetime.strptime(match.group(), "%d.%m.%Y").date()
+                dates_sheet_names.append((date_obj, name))  # сохраняем и дату и имя
             except ValueError:
-                # если дата некорректная (например, 32.12.2024) — пропускаем
                 pass
 
-    latest = max(dates_sheet_names)
+    if not dates_sheet_names:
+        raise Exception("Не найдено листов с датой")
 
-    # сравниваем недели (isocalendar возвращает кортеж: (год, номер_недели, день_недели))
-    if not ((latest.isocalendar()[0] == today.isocalendar()[0]) and (
-            latest.isocalendar()[1] == today.isocalendar()[1])):
+    # выбираем лист с самой поздней датой
+    latest = max(dates_sheet_names, key=lambda x: x[0])
+
+    latest_date = latest[0]  # сама дата
+    name_list = latest[1]  # реальное название листа
+
+    # Проверка недели
+    if not (
+            latest_date.isocalendar()[0] == today.isocalendar()[0] and
+            latest_date.isocalendar()[1] == today.isocalendar()[1]
+    ):
+        print(latest_date)
+        print(today)
         raise Exception("Invalid date")
 
-    name_list = latest.strftime("%d.%m.%Y")
     logger.info(f"Считываем данные с листа: {name_list}")
 
+    # открываем лист по настоящему названию
     worksheet = spreadsheet.worksheet(name_list)
     data = worksheet.get_all_values()
     for row in data[2:]:
@@ -123,7 +135,7 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
         if not fbs and not quantity:
             continue
 
-        list_assets.append(DataCommodityAsset(vendor_code=vendor_code, fbs=fbs, on_the_way=quantity, date=latest))
+        list_assets.append(DataCommodityAsset(vendor_code=vendor_code, fbs=fbs, on_the_way=quantity, date=latest_date))
 
         if quantity:
             orientation_arrival_value = row[51].strip()
