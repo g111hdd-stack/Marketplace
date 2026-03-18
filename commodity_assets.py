@@ -205,7 +205,7 @@ def add_supply(db_conn: DbConnection):
     for key, values in aggregate_supply.items():
         print(key, values)
     logger.info(f'Количество записей: {len(list_supplies)}')
-    # db_conn.add_supplies(list_supplies=list_supplies)
+    db_conn.add_supplies(list_supplies=list_supplies)
 
 
 def add_fbs_stocks(db_conn: DbConnection) -> None:
@@ -320,7 +320,7 @@ def main_fbs_stocks(retries: int = 6) -> None:
         db_conn = DbConnection()
         db_conn.start_db()
 
-        # add_fbs_stocks(db_conn=db_conn)
+        add_fbs_stocks(db_conn=db_conn)
         add_supply(db_conn=db_conn)
     except OperationalError:
         logger.error(f'Не доступна база данных. Осталось попыток подключения: {retries - 1}')
