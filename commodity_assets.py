@@ -25,7 +25,7 @@ SPREADSHEET_ID2 = '17gKGe2ILkr7MV9VRDRWPcknSbHcNPdOGRa0cWQSffds' # Ежедне�
 def connect_to_google_sheets(spreadsheet_id: str):
     creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
     client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    spreadsheet = client.open_by_key(spreadsheet_id)
     return spreadsheet
 
 
@@ -288,7 +288,7 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
 
         list_assets.append(DataCommodityAsset(vendor_code=vendor_code, fbs=fbs, on_the_way=quantity, date=latest_date))
 
-        db_conn.add_commodity_assets(list_assets=list_assets)
+    db_conn.add_commodity_assets(list_assets=list_assets)
 
 
 
