@@ -34,8 +34,10 @@ class WBAsyncEngine:
                         if response.status == 404:
                             detail = await response.json()
                             raise ClientError(detail.get('detail', 'Отсутствует ответ'))
-                        if response.status in [404, 403, 401]:
+                        if response.status in [403, 401]:
                             raise ClientError
+                        if response.status == 204:
+                            return []
                         if response.status not in [200, 201, 204]:
                             logger.info(f"Получен ответ от {url} ({response.status})")
                             logger.error(f"Попытка повторного запроса. Осталось попыток: {retry - 1}")

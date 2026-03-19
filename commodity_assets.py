@@ -25,7 +25,7 @@ SPREADSHEET_ID2 = '17gKGe2ILkr7MV9VRDRWPcknSbHcNPdOGRa0cWQSffds' # Ежедне�
 def connect_to_google_sheets(spreadsheet_id: str):
     creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
     client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(spreadsheet_id)
+    spreadsheet = client.open_by_key(SPREADSHEET_ID)
     return spreadsheet
 
 
@@ -208,7 +208,6 @@ def add_supply(db_conn: DbConnection):
 
     db_conn.add_supplies(list_supplies=list_supplies)
 
-
 def add_fbs_stocks(db_conn: DbConnection) -> None:
     list_assets = []
 
@@ -225,7 +224,7 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
         name = name.strip()
         match = pattern.search(name)
 
-        if match:
+        if match and 'заказ' not in name.lower():
             try:
                 date_obj = datetime.strptime(match.group(), "%d.%m.%Y").date()
                 dates_sheet_names.append((date_obj, name))  # сохраняем и дату и имя
