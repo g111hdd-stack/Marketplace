@@ -205,6 +205,7 @@ def add_supply(db_conn: DbConnection):
     for key, values in aggregate_supply.items():
         print(key, values)
     logger.info(f'Количество записей: {len(list_supplies)}')
+
     db_conn.add_supplies(list_supplies=list_supplies)
 
 
@@ -288,6 +289,9 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
 
         list_assets.append(DataCommodityAsset(vendor_code=vendor_code, fbs=fbs, on_the_way=quantity, date=latest_date))
 
+        db_conn.add_commodity_assets(list_assets=list_assets)
+
+
 
 
     # Агрегация данных для таблицы DataCommodityAsset
@@ -311,7 +315,7 @@ def add_fbs_stocks(db_conn: DbConnection) -> None:
     #                                           on_the_way=values['on_the_way'],
     #                                           date=latest))
 
-    # Агрегация данных для таблицы DataSupply
+
 
 
 
