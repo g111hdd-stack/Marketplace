@@ -139,6 +139,32 @@ def get_values_russia(to_date: datetime.date) -> list:
 
     return [dict(zip(column, row)) for row in entry]
 
+def aggregate_rows(rows: list) -> list:
+    aggregated = {}
+
+    for row in rows:
+        key = (row['accrual_date'], row['vendor_code'])
+
+        if key in aggregated:
+            old_qty = aggregated[key]['quantities']
+            old_price = aggregated[key]['price']
+            new_qty = old_qty + row['quantities']
+
+            # средневзвешенная цена
+            new_price = round(
+                ((old_qty * old_price) + (row['quantities'] * row['price'])) / new_qty,
+                2
+            )
+
+            aggregated[key]['quantities'] = new_qty
+            aggregated[key]['price'] = new_price
+            aggregated[key]['log_cost'] = round(aggregated[key]['log_cost'] + row['log_cost'], 2)
+            aggregated[key]['log_add_cost'] = round(aggregated[key]['log_add_cost'] + row['log_add_cost'], 2)
+        else:
+            aggregated[key] = row.copy()
+
+    return list(aggregated.values())
+
 
 def overseas_purchase():
     to_date = datetime.date.today() - datetime.timedelta(days=30)
@@ -147,37 +173,41 @@ def overseas_purchase():
     values_russia = get_values_russia(to_date=to_date)
 
     rows = values_china + values_russia
+    rows = aggregate_rows(rows)
 
     if not rows:
         logger.warning('Данные по поставкам отсутствуют')
         return
 
-    engine = create_engine(DB_URL)
+    for row in rows:
+        print(row)
 
-    delete_sql = text("""
-        DELETE FROM public.overseas_purchase
-        WHERE accrual_date >= :to_date
-    """)
-
-    insert_sql = text("""
-        INSERT INTO public.overseas_purchase
-            (accrual_date, vendor_code, quantities, price, log_cost, log_add_cost)
-        VALUES
-            (:accrual_date, :vendor_code, :quantities, :price, :log_cost, :log_add_cost)
-        ON CONFLICT (accrual_date, vendor_code) DO UPDATE
-        SET
-            quantities = EXCLUDED.quantities,
-            price = EXCLUDED.price,
-            log_cost = EXCLUDED.log_cost,
-            log_add_cost = EXCLUDED.log_add_cost
-    """)
-
-    with engine.begin() as conn:
-        logger.info(f'Удаляю записи из overseas_purchase от {to_date.isoformat()}')
-        conn.execute(delete_sql, {'to_date': to_date})
-        logger.info('Вставляю новые записи в overseas_purchase')
-        conn.execute(insert_sql, rows)
-        logger.info('Запись успешно завершена')
+    # engine = create_engine(DB_URL)
+    #
+    # delete_sql = text("""
+    #     DELETE FROM public.overseas_purchase
+    #     WHERE accrual_date >= :to_date
+    # """)
+    #
+    # insert_sql = text("""
+    #     INSERT INTO public.overseas_purchase
+    #         (accrual_date, vendor_code, quantities, price, log_cost, log_add_cost)
+    #     VALUES
+    #         (:accrual_date, :vendor_code, :quantities, :price, :log_cost, :log_add_cost)
+    #     ON CONFLICT (accrual_date, vendor_code) DO UPDATE
+    #     SET
+    #         quantities = EXCLUDED.quantities,
+    #         price = EXCLUDED.price,
+    #         log_cost = EXCLUDED.log_cost,
+    #         log_add_cost = EXCLUDED.log_add_cost
+    # """)
+    #
+    # with engine.begin() as conn:
+    #     logger.info(f'Удаляю записи из overseas_purchase от {to_date.isoformat()}')
+    #     conn.execute(delete_sql, {'to_date': to_date})
+    #     logger.info('Вставляю новые записи в overseas_purchase')
+    #     conn.execute(insert_sql, rows)
+    #     logger.info('Запись успешно завершена')
 
 
 try:
