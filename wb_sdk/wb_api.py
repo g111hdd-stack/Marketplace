@@ -1,5 +1,3 @@
-import datetime
-
 from .requests import *
 from .response import *
 from .core import WBAsyncEngine
@@ -96,7 +94,7 @@ class WBApi:
 
         return answer
 
-    async def get_promotion_adverts(self, status: int, type_field: int, order: str = 'create', direction: str = 'asc') \
+    async def get_promotion_adverts(self, status: int, type_field: str, ids: list[str] | None = None) \
             -> PromotionAdvertsResponse:
         """
             Информация о рекламных кампаниях. \n
@@ -108,29 +106,18 @@ class WBApi:
                 9 - идут показы \n
                 11 - кампания на паузе
             Тип кампании:
-                4 - кампания в каталоге \n
-                5 - кампания в карточке товара \n
-                6 - кампания в поиске \n
-                7 - кампания в рекомендациях на главной странице \n
-                8 - автоматическая кампания \n
-                9 - поиск + каталог
-            Порядок:
-                create (по времени создания кампании) \n
-                change (по времени последнего изменения кампании) \n
-                id (по идентификатору кампании)
-            Направление:
-                desc (от большего к меньшему) \n
-                asc (от меньшего к большему)
+                cpm — за показы
+                cpc — за клик
 
             Args:
                 status (int): Статус кампании.
-                type_field (int): Тип кампании.
-                order (str, optional): Порядок.. Default to 'create'.
-                direction (str, optional): Направление.. Default to 'asc'.
-
+                type_field (str): Тип кампании.
+                ids (Optional[list[str]]): Список компаний.
         """
-        request = PromotionAdvertsRequest(status=status, type=type_field, order=order, direction=direction)
-        answer: PromotionAdvertsResponse = await self._promotion_adverts_api.post(query=request)
+        if ids is not None:
+            ids = ', '.join(ids)
+        request = PromotionAdvertsRequest(ids=ids, status=status, type=type_field)
+        answer: PromotionAdvertsResponse = await self._promotion_adverts_api.get(query=request)
 
         return answer
 

@@ -34,12 +34,9 @@ class WBDbConnection(DbConnection):
         return {int(advert_id): (create_time, end_time) for (advert_id, create_time, end_time) in result}
 
     @retry_on_exception()
-    def get_wb_sku_vendor_code(self, client_id: str) -> dict:
+    def get_wb_sku_vendor_code(self) -> dict:
         """
             Получает список SKU товаров, отфильтрованных по кабинету.
-
-            Args:
-                client_id (str): ID кабинета.
 
             Returns:
                 dict: словарь {sku: vendor_code}.
@@ -48,9 +45,9 @@ class WBDbConnection(DbConnection):
         SELECT wcp.sku, wcp.vendor_code
         FROM wb_card_product wcp 
         LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = wcp.vendor_code 
-        WHERE (ivc."group" <> 'other_trash' OR ivc."group" IS NULL) AND wcp.client_id = :client_id;
+        WHERE ivc."group" <> 'other_trash';
         """)
-        result = self.session.execute(query, {"client_id": client_id}).fetchall()
+        result = self.session.execute(query).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
@@ -270,7 +267,8 @@ class WBDbConnection(DbConnection):
                     shks=row.shks,
                     sum_price=row.sum_price,
                     sum_cost=row.sum_cost,
-                    appType=row.app_type
+                    appType=row.app_type,
+                    client_id=client_id
                 ).on_conflict_do_update(
                     index_elements=['sku', 'advert_id', 'date', 'appType'],
                     set_={'views': row.views,
@@ -279,7 +277,8 @@ class WBDbConnection(DbConnection):
                           'orders_count': row.orders_count,
                           'shks': row.shks,
                           'sum_price': row.atbs,
-                          'sum_cost': row.sum_cost}
+                          'sum_cost': row.sum_cost,
+                          'client_id': client_id}
                 )
                 self.session.execute(stmt)
         self.session.commit()

@@ -77,8 +77,9 @@ class OzDbConnection(DbConnection):
                 quantities=row.quantities,
                 commission=row.commission
             ).on_conflict_do_update(
-                index_elements=['accrual_date', 'type_of_transaction', 'posting_number', 'sku'],
-                set_={'sale': row.sale,
+                index_elements=['type_of_transaction', 'posting_number', 'sku'],
+                set_={'accrual_date': row.accrual_date,
+                      'sale': row.sale,
                       'quantities': row.quantities,
                       'commission': row.commission}
             )

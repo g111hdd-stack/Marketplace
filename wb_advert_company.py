@@ -4,15 +4,15 @@ import uuid
 import asyncio
 import logging
 import zipfile
-
 import nest_asyncio
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+
 from sqlalchemy.exc import OperationalError
 
-from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
+from wb_sdk.errors import ClientError
 from data_classes import DataWBAdvert, DataWBCardProduct, DataWBStatisticAdvert, DataWBStatisticCardProduct
 
 nest_asyncio.apply()
@@ -30,8 +30,10 @@ async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> 
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
     """
-    def format_date(date_format: str) -> datetime.date:
+    def format_date(date_format: str | None) -> date | None:
         """Функция форматирования даты."""
+        if date_format is None:
+            return None
         time_format = "%Y-%m-%d"
         return datetime.strptime(date_format.split('T')[0], time_format).date()
 
@@ -46,8 +48,8 @@ async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> 
         11: 'Кампания на паузе',
     }
     type_dict = {
-        8: 'Автоматическая кампания',
-        9: 'Аукцион'
+        'cpm': 1,
+        'cpc': 2
     }
 
     # Запрос данных по статусу и типу РК
@@ -58,19 +60,19 @@ async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> 
 
             # Обработка полученных результатов
             if answer_advent:
-                for advert in answer_advent.result:
-                    create_time = format_date(date_format=advert.createTime)  # Дата создания РК
-                    change_time = format_date(date_format=advert.changeTime)  # Дата последнего изменения РК
-                    start_time = format_date(date_format=advert.startTime)  # Дата последнего старта РК
-                    end_time = format_date(date_format=advert.endTime)  # Дата окончания РК
+                for advert in answer_advent.adverts:
+                    create_time = format_date(date_format=advert.timestamps.created)  # Дата создания РК
+                    change_time = format_date(date_format=advert.timestamps.updated)  # Дата последнего изменения РК
+                    start_time = format_date(date_format=advert.timestamps.started)  # Дата последнего старта РК
+                    end_time = format_date(date_format=advert.timestamps.deleted)  # Дата окончания РК
 
                     adverts_list.append(DataWBAdvert(id_advert=str(advert.advertId),
-                                                     id_type=advert.type,
-                                                     id_status=advert.status,
-                                                     name_advert=advert.name,
+                                                     id_type=type_dict.get(type_field),
+                                                     id_status=status,
+                                                     name_advert=advert.settings.name,
                                                      create_time=create_time,
                                                      change_time=change_time,
-                                                     start_time=start_time,
+                                                     start_time=start_time or create_time,
                                                      end_time=end_time))
 
     logger.info(f"Обновление информации о рекламных компаний")
@@ -294,36 +296,36 @@ async def main_wb_advert(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        from_date = date_now - timedelta(days=1)
+        from_date = date_now - timedelta(days=10)
 
-        for client in clients:
-            try:
-                logger.info(f"Сбор карточек товаров {client.name_company}")
-                await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
-            except ClientError as e:
-                logger.error(f'{e}')
-
+        for client in clients[8:]:
+            # try:
+            #     logger.info(f"Сбор карточек товаров {client.name_company}")
+            #     await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            # except ClientError as e:
+            #     logger.error(f'{e}')
+            #
             try:
                 logger.info(f"Сбор рекламных компаний {client.name_company}")
                 await add_adverts(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
             except ClientError as e:
                 logger.error(f'{e}')
-
-            try:
-                logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
-                await get_statistic_card_product(db_conn=db_conn,
-                                                 client_id=client.client_id,
-                                                 api_key=client.api_key,
-                                                 from_date=from_date)
-            except ClientError as e:
-                logger.error(f'{e}')
-
-            try:
-                logger.info(f"Статистика рекламы {client.name_company}")
-                await add_statistic_adverts(db_conn=db_conn,
-                                            client_id=client.client_id,
-                                            api_key=client.api_key,
-                                            from_date=from_date)
+            #
+            # try:
+            #     logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
+            #     await get_statistic_card_product(db_conn=db_conn,
+            #                                      client_id=client.client_id,
+            #                                      api_key=client.api_key,
+            #                                      from_date=from_date)
+            # except ClientError as e:
+            #     logger.error(f'{e}')
+            #
+            # try:
+            #     logger.info(f"Статистика рекламы {client.name_company}")
+            #     await add_statistic_adverts(db_conn=db_conn,
+            #                                 client_id=client.client_id,
+            #                                 api_key=client.api_key,
+            #                                 from_date=from_date)
             except ClientError as e:
                 logger.error(f'{e}')
 

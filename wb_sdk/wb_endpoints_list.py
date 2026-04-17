@@ -10,7 +10,7 @@ class WBAPIFactory:
 
     api_list: dict[Type[BaseResponse], str] = {
         SupplierSalesResponse: 'https://statistics-api.wildberries.ru/api/v1/supplier/sales',
-        PromotionAdvertsResponse: 'https://advert-api.wildberries.ru/adv/v1/promotion/adverts',
+        PromotionAdvertsResponse: 'https://advert-api.wildberries.ru/api/advert/v2/adverts',
         FullstatsResponse: 'https://advert-api.wildberries.ru/adv/v3/fullstats',
         NMReportDetailResponse: 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail',
         ListGoodsFilterResponse: 'https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter',

@@ -6,4 +6,4 @@ from ..entities import PromotionAdverts
 
 class PromotionAdvertsResponse(BaseResponse):
     """Информация о кампаниях."""
-    result: Optional[list[PromotionAdverts]] = []
+    adverts: Optional[list[PromotionAdverts]] = []
