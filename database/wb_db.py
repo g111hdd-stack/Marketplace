@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class WBDbConnection(DbConnection):
     @retry_on_exception()
-    def get_wb_adverts_id(self, client_id: str, from_date: datetime.date, to_date) -> dict:
+    def get_wb_adverts_id(self, client_id: str, from_date: datetime.date) -> dict:
         """
             Получает список рекламных компаний, отфильтрованных по кабинету и дате активности.
 
@@ -29,7 +29,7 @@ class WBDbConnection(DbConnection):
                                     WBAdverts.create_time,
                                     WBAdverts.end_time).filter_by(client_id=client_id).filter(
             or_(WBAdverts.id_status == 9,
-                WBAdverts.change_time >= from_date), WBAdverts.change_time < to_date
+                WBAdverts.change_time >= from_date)
         ).all()
         return {int(advert_id): (create_time, end_time) for (advert_id, create_time, end_time) in result}
 
