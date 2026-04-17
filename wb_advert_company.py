@@ -301,11 +301,11 @@ async def main_wb_advert(retries: int = 6) -> None:
         from_date = date_now - timedelta(days=1)
 
         for client in clients:
-            # try:
-            #     logger.info(f"Сбор карточек товаров {client.name_company}")
-            #     await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
-            # except ClientError as e:
-            #     logger.error(f'{e}')
+            try:
+                logger.info(f"Сбор карточек товаров {client.name_company}")
+                await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            except ClientError as e:
+                logger.error(f'{e}')
 
             try:
                 logger.info(f"Сбор рекламных компаний {client.name_company}")
@@ -313,14 +313,14 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            # try:
-            #     logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
-            #     await get_statistic_card_product(db_conn=db_conn,
-            #                                      client_id=client.client_id,
-            #                                      api_key=client.api_key,
-            #                                      from_date=from_date)
-            # except ClientError as e:
-            #     logger.error(f'{e}')
+            try:
+                logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
+                await get_statistic_card_product(db_conn=db_conn,
+                                                 client_id=client.client_id,
+                                                 api_key=client.api_key,
+                                                 from_date=from_date)
+            except ClientError as e:
+                logger.error(f'{e}')
 
             try:
                 logger.info(f"Статистика рекламы {client.name_company}")
