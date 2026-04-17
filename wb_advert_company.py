@@ -136,11 +136,11 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                 List[DataWBStatisticAdvert]: Список статистики рекламных компаний, удовлетворяющих условию фильтрации.
     """
     end_date = from_date.date()
-    start_date = end_date - timedelta(days=30)
+    start_date = end_date - timedelta(days=20)
     sd = start_date
 
     # Получение ID РК и время создания и окончания
-    adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date)
+    adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date, to_date=end_date)
     company_ids = [company_id for company_id in adverts]
 
     # date_list = []
@@ -242,7 +242,7 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
     list_card_product = []
 
     end_date = from_date.date()
-    start_date = end_date - timedelta(days=30)
+    start_date = end_date - timedelta(days=20)
 
     # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)
@@ -298,14 +298,14 @@ async def main_wb_advert(retries: int = 6) -> None:
         clients = db_conn.get_clients(marketplace="WB")
 
         date_now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        from_date = date_now - timedelta(days=1)
+        from_date = date_now - timedelta(days=10)
 
         for client in clients:
-            try:
-                logger.info(f"Сбор карточек товаров {client.name_company}")
-                await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
-            except ClientError as e:
-                logger.error(f'{e}')
+            # try:
+            #     logger.info(f"Сбор карточек товаров {client.name_company}")
+            #     await get_product_card(db_conn=db_conn, client_id=client.client_id, api_key=client.api_key)
+            # except ClientError as e:
+            #     logger.error(f'{e}')
 
             try:
                 logger.info(f"Сбор рекламных компаний {client.name_company}")
@@ -313,14 +313,14 @@ async def main_wb_advert(retries: int = 6) -> None:
             except ClientError as e:
                 logger.error(f'{e}')
 
-            try:
-                logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
-                await get_statistic_card_product(db_conn=db_conn,
-                                                 client_id=client.client_id,
-                                                 api_key=client.api_key,
-                                                 from_date=from_date)
-            except ClientError as e:
-                logger.error(f'{e}')
+            # try:
+            #     logger.info(f"Статистика карточек товара {client.name_company} за {from_date.date().isoformat()}")
+            #     await get_statistic_card_product(db_conn=db_conn,
+            #                                      client_id=client.client_id,
+            #                                      api_key=client.api_key,
+            #                                      from_date=from_date)
+            # except ClientError as e:
+            #     logger.error(f'{e}')
 
             try:
                 logger.info(f"Статистика рекламы {client.name_company}")
