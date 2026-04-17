@@ -94,8 +94,12 @@ class WBApi:
 
         return answer
 
-    async def get_promotion_adverts(self, status: int, type_field: str, ids: list[str] | None = None) \
-            -> PromotionAdvertsResponse:
+    async def get_promotion_adverts(
+            self,
+            ids: list[int] | None = None,
+            status: list[int] | None = None,
+            type_field: str | None = None
+    ) -> PromotionAdvertsResponse:
         """
             Информация о рекламных кампаниях. \n
             Статус кампании:
@@ -110,12 +114,14 @@ class WBApi:
                 cpc — за клик
 
             Args:
-                status (int): Статус кампании.
-                type_field (str): Тип кампании.
                 ids (Optional[list[str]]): Список компаний.
+                status (Optional[list[int]]): Статус кампании.
+                type_field (Optional[str]): Тип кампании.
         """
         if ids is not None:
-            ids = ', '.join(ids)
+            ids = ','.join([str(s) for s in ids])
+        if status is not None:
+            status = ','.join([str(s) for s in status])
         request = PromotionAdvertsRequest(ids=ids, status=status, type=type_field)
         answer: PromotionAdvertsResponse = await self._promotion_adverts_api.get(query=request)
 

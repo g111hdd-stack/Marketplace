@@ -5,5 +5,5 @@ from .base import BaseRequest
 
 class PromotionAdvertsRequest(BaseRequest):
     ids: Optional[str] = None
-    status: int
-    type: str
+    status: Optional[str] = None
+    type: Optional[str] = None
