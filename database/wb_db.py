@@ -34,9 +34,12 @@ class WBDbConnection(DbConnection):
         return {int(advert_id): (create_time, end_time) for (advert_id, create_time, end_time) in result}
 
     @retry_on_exception()
-    def get_wb_sku_vendor_code(self) -> dict:
+    def get_wb_sku_vendor_code(self, client_id: str) -> dict:
         """
             Получает список SKU товаров, отфильтрованных по кабинету.
+
+            Args:
+                client_id (str): ID кабинета.
 
             Returns:
                 dict: словарь {sku: vendor_code}.
@@ -45,9 +48,9 @@ class WBDbConnection(DbConnection):
         SELECT wcp.sku, wcp.vendor_code
         FROM wb_card_product wcp 
         LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = wcp.vendor_code 
-        WHERE ivc."group" <> 'other_trash';
+        WHERE ivc."group" <> 'other_trash' AND wcp.client_id = :client_id;
         """)
-        result = self.session.execute(query).fetchall()
+        result = self.session.execute(query, {"client_id": client_id}).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
