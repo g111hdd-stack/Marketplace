@@ -223,8 +223,8 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                         if header == 'Стоимость услуги (':
                                             for column in df.columns:
                                                 if header in column:
-                                                    disc_loyalty = row['Unnamed: 46']
-                                                    disc_joint = row['Unnamed: 47']
+                                                    disc_loyalty = row['Unnamed: 47']
+                                                    disc_joint = row['Unnamed: 48']
                                                     disc_loyalty = float(disc_loyalty) if isinstance(disc_loyalty,
                                                                                                      (float,
                                                                                                       int)) else 0

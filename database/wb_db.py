@@ -2,7 +2,7 @@ import logging
 
 from datetime import date
 
-from sqlalchemy import or_, text, select, update, distinct, func
+from sqlalchemy import or_, text, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from .models import *
@@ -48,7 +48,7 @@ class WBDbConnection(DbConnection):
         SELECT wcp.sku, wcp.vendor_code
         FROM wb_card_product wcp 
         LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = wcp.vendor_code 
-        WHERE (ivc."group" <> 'other_trash' OR ivc."group" IS NULL) AND wcp.client_id = :client_id;
+        WHERE ivc."group" <> 'other_trash' AND wcp.client_id = :client_id;
         """)
         result = self.session.execute(query, {"client_id": client_id}).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
@@ -270,7 +270,8 @@ class WBDbConnection(DbConnection):
                     shks=row.shks,
                     sum_price=row.sum_price,
                     sum_cost=row.sum_cost,
-                    appType=row.app_type
+                    appType=row.app_type,
+                    client_id=client_id
                 ).on_conflict_do_update(
                     index_elements=['sku', 'advert_id', 'date', 'appType'],
                     set_={'views': row.views,
@@ -279,7 +280,8 @@ class WBDbConnection(DbConnection):
                           'orders_count': row.orders_count,
                           'shks': row.shks,
                           'sum_price': row.atbs,
-                          'sum_cost': row.sum_cost}
+                          'sum_cost': row.sum_cost,
+                          'client_id': client_id}
                 )
                 self.session.execute(stmt)
         self.session.commit()

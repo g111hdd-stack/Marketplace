@@ -1,18 +1,19 @@
 import io
 import csv
+import time
 import uuid
 import asyncio
 import logging
 import zipfile
-
 import nest_asyncio
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+
 from sqlalchemy.exc import OperationalError
 
-from wb_sdk.errors import ClientError
 from wb_sdk.wb_api import WBApi
 from database import WBDbConnection
+from wb_sdk.errors import ClientError
 from data_classes import DataWBAdvert, DataWBCardProduct, DataWBStatisticAdvert, DataWBStatisticCardProduct
 
 nest_asyncio.apply()
@@ -30,8 +31,10 @@ async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> 
             client_id (str): ID кабинета.
             api_key (str): API KEY кабинета.
     """
-    def format_date(date_format: str) -> datetime.date:
+    def format_date(date_format: str | None) -> date | None:
         """Функция форматирования даты."""
+        if date_format is None:
+            return None
         time_format = "%Y-%m-%d"
         return datetime.strptime(date_format.split('T')[0], time_format).date()
 
@@ -46,34 +49,33 @@ async def add_adverts(db_conn: WBDbConnection, client_id: str, api_key: str) -> 
         11: 'Кампания на паузе',
     }
     type_dict = {
-        8: 'Автоматическая кампания',
-        9: 'Аукцион'
+        'cpm': 1,
+        'cpc': 2
     }
 
-    # Запрос данных по статусу и типу РК
-    for status in status_dict.keys():
-        for type_field in type_dict.keys():
-            # Получение списка РК
-            answer_advent = await api_user.get_promotion_adverts(status=status, type_field=type_field)
+    answer_advent = await api_user.get_promotion_adverts(status=list(status_dict.keys()))
 
-            # Обработка полученных результатов
-            if answer_advent:
-                for advert in answer_advent.result:
-                    create_time = format_date(date_format=advert.createTime)  # Дата создания РК
-                    change_time = format_date(date_format=advert.changeTime)  # Дата последнего изменения РК
-                    start_time = format_date(date_format=advert.startTime)  # Дата последнего старта РК
-                    end_time = format_date(date_format=advert.endTime)  # Дата окончания РК
+    # Обработка полученных результатов
+    if answer_advent:
+        for advert in answer_advent.adverts:
+            create_time = format_date(date_format=advert.timestamps.created)  # Дата создания РК
+            change_time = format_date(date_format=advert.timestamps.updated)  # Дата последнего изменения РК
+            start_time = format_date(date_format=advert.timestamps.started)  # Дата последнего старта РК
+            end_time = format_date(date_format=advert.timestamps.deleted)  # Дата окончания РК
 
-                    adverts_list.append(DataWBAdvert(id_advert=str(advert.advertId),
-                                                     id_type=advert.type,
-                                                     id_status=advert.status,
-                                                     name_advert=advert.name,
-                                                     create_time=create_time,
-                                                     change_time=change_time,
-                                                     start_time=start_time,
-                                                     end_time=end_time))
+            if type_dict.get(advert.settings.payment_type) is None:
+                continue
 
-    logger.info(f"Обновление информации о рекламных компаний")
+            adverts_list.append(DataWBAdvert(id_advert=str(advert.advertId),
+                                             id_type=type_dict.get(advert.settings.payment_type),
+                                             id_status=advert.status,
+                                             name_advert=advert.settings.name,
+                                             create_time=create_time,
+                                             change_time=change_time,
+                                             start_time=start_time or create_time,
+                                             end_time=end_time))
+
+    logger.info(f"Обновление информации о рекламных компаний {len(adverts_list)}")
     db_conn.add_wb_adverts(client_id=client_id, adverts_list=adverts_list)
 
 
@@ -216,6 +218,8 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
                                                               advert_id=str(advert.advertId),
                                                               app_type=app_type.get(app.appType))
                                     )
+        if len(ids) == 50:
+            time.sleep(20)
 
     logger.info(f"Количество записей: {len(product_advertising_campaign)}")
     db_conn.add_wb_adverts_statistics(client_id=client_id,
@@ -238,7 +242,7 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
     list_card_product = []
 
     end_date = from_date.date()
-    start_date = end_date - timedelta(days=30)
+    start_date = end_date - timedelta(days=20)
 
     # Инициализация API-клиента WB
     api_user = WBApi(api_key=api_key)

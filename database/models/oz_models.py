@@ -20,7 +20,7 @@ class OzMain(Base):
     commission = Column(Numeric(precision=12, scale=2), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('accrual_date', 'type_of_transaction', 'posting_number', 'sku', name='oz_main_table_unique'),
+        UniqueConstraint('type_of_transaction', 'posting_number', 'sku', name='oz_main_table_unique'),
     )
 
 

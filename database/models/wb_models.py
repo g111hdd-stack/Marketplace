@@ -71,7 +71,7 @@ class WBAdverts(Base):
     create_time = Column(Date, nullable=False)
     change_time = Column(Date, nullable=False)
     start_time = Column(Date, nullable=False)
-    end_time = Column(Date, nullable=False)
+    end_time = Column(Date, nullable=True)
 
 
 class WBTypeAdvert(Base):
@@ -106,6 +106,7 @@ class WBStatisticAdvert(Base):
     sum_price = Column(Numeric(precision=12, scale=2), nullable=False)
     sum_cost = Column(Numeric(precision=12, scale=2), nullable=False)
     appType = Column(String(length=255), nullable=False)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
 
     __table_args__ = (
         UniqueConstraint('sku', 'advert_id', 'date', 'appType', name='wb_statistic_advert_unique'),

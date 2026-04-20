@@ -1,8 +1,9 @@
+from typing import Optional
+
 from .base import BaseRequest
 
 
 class PromotionAdvertsRequest(BaseRequest):
-    status: int
-    type: int
-    order: str
-    direction: str
+    ids: Optional[str] = None
+    status: Optional[str] = None
+    type: Optional[str] = None
