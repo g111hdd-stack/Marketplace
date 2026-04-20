@@ -36,14 +36,14 @@ class WBAsyncApi:
         return data
 
     @staticmethod
-    async def params_to_dict(params: list or dict) -> list or dict:
+    async def params_to_dict(params: list | dict) -> list | dict:
         if isinstance(params, list):
             parameters = [param.dict(by_alias=True) for param in params]
         else:
             parameters = params.dict(by_alias=True)
         return parameters
 
-    async def _parse_response(self, response: dict or list):
+    async def _parse_response(self, response: dict | list):
         if response is None:
             return None
         if isinstance(response, list):
