@@ -137,22 +137,15 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
     """
     end_date = from_date.date()
     start_date = end_date - timedelta(days=30)
-    sd = start_date
 
     # Получение ID РК и время создания и окончания
     adverts = db_conn.get_wb_adverts_id(client_id=client_id, from_date=start_date)
     company_ids = [company_id for company_id in adverts]
 
-    # date_list = []
-    #
-    # while sd <= end_date:
-    #     date_list.append(sd.isoformat())
-    #     sd += timedelta(days=1)
-
     product_advertising_campaign = []
 
     if not company_ids:
-        logger.info(f"Количество РК: 0")
+        logger.error(f"Количество РК: 0")
         return
 
     # Инициализация API-клиента WB
@@ -165,17 +158,6 @@ async def add_statistic_adverts(db_conn: WBDbConnection, client_id: str, api_key
         64: 'IOS'
     }
 
-    # Запрос статистики РК по 100 компаний за цикл
-    # for dates in [date_list[i:i + 10] for i in range(0, len(date_list), 10)]:
-    # filter_company_ids = []
-    # for company_id in company_ids:
-    #     create = adverts.get(company_id)[0].isoformat()
-    #     end = adverts.get(company_id)[1].isoformat()
-    #     if not all(create > d for d in date_list):
-    #         if not all(end < d for d in date_list):
-    #             filter_company_ids.append(company_id)
-    # if not filter_company_ids:
-    #     continue
     for ids in [company_ids[i:i+50] for i in range(0, len(company_ids), 50)]:
         answer = await api_user.get_fullstats(company_ids=ids,
                                               begin_date=start_date.isoformat(),
@@ -253,11 +235,9 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
     answer_report = await api_user.get_mm_report_downloads(uuid=new_uuid,
                                                            start_date=start_date.isoformat(),
                                                            end_date=end_date.isoformat())
-
-    if not answer_report.error:
-        # Получение отчёта статистики КТ
+    if answer_report:
+        await asyncio.sleep(20)
         for _ in range(3):
-            await asyncio.sleep(15)
             try:
                 answer_download = await api_user.get_nm_report_downloads_file(uuid=new_uuid)
                 zip_file = io.BytesIO(answer_download.file)
@@ -284,6 +264,7 @@ async def get_statistic_card_product(db_conn: WBDbConnection, client_id: str, ap
                                 cancel_count=int(row.get('cancelCount', 0)),
                                 orders_sum=round(float(row.get('ordersSumRub', 0)), 2)
                             ))
+                break
             except Exception as e:
                 logger.warning(f"Ошибка: {str(e)}")
 
