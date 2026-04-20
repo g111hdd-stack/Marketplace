@@ -1,5 +1,3 @@
-from openpyxl.worksheet import page
-
 from .requests import *
 from .response import *
 from .core import OzonAsyncEngine, OzonPerformanceAsyncEngine
@@ -91,7 +89,7 @@ class OzonApi:
             Args:
                 posting_number (str, optional): Номер отправления.
                 analytics_data (bool, optional): Добавить в ответ данные аналитики.
-                barcodes (bool, optional): Добавить в ответ штрихкоды отправления.
+                barcodes (bool, optional): Добавить в ответ штрих-коды отправления.
                 financial_data (bool, optional): Добавить в ответ финансовые данные.
                 product_exemplars (bool, optional): Добавить в ответ данные о продуктах и их экземплярах.
                 related_postings (bool, optional): Добавить в ответ номера связанных отправлений.
@@ -144,17 +142,17 @@ class OzonApi:
                 DISABLED — товары, которые видны покупателям, но недоступны к покупке. \n
                 STATE_FAILED — товары, создание которых завершилось ошибкой. \n
                 READY_TO_SUPPLY — товары, готовые к поставке. \n
-                VALIDATION_STATE_PENDING — товары, которые проходят проверку валидатором на премодерации. \n
-                VALIDATION_STATE_FAIL — товары, которые не прошли проверку валидатором на премодерации. \n
-                VALIDATION_STATE_SUCCESS — товары, которые прошли проверку валидатором на премодерации. \n
+                VALIDATION_STATE_PENDING — товары, которые проходят проверку валидатором на пре модерации. \n
+                VALIDATION_STATE_FAIL — товары, которые не прошли проверку валидатором на пре модерации. \n
+                VALIDATION_STATE_SUCCESS — товары, которые прошли проверку валидатором на пре модерации. \n
                 TO_SUPPLY — товары, готовые к продаже. \n
                 IN_SALE — товары в продаже. \n
                 REMOVED_FROM_SALE — товары, скрытые от покупателей. \n
                 BANNED — заблокированные товары. \n
                 OVERPRICED — товары с завышенной ценой. \n
                 CRITICALLY_OVERPRICED — товары со слишком завышенной ценой. \n
-                EMPTY_BARCODE — товары без штрихкода. \n
-                BARCODE_EXISTS — товары со штрихкодом. \n
+                EMPTY_BARCODE — товары без штрих-кода. \n
+                BARCODE_EXISTS — товары со штрих-кодом. \n
                 QUARANTINE — товары на карантине после изменения цены более чем на 50%. \n
                 ARCHIVED — товары в архиве. \n
                 OVERPRICED_WITH_STOCK — товары в продаже со стоимостью выше, чем у конкурентов. \n
@@ -180,7 +178,7 @@ class OzonApi:
     async def get_product_info_list(self, offer_id: list[str] = None, product_id: list[str] = None,
                                     sku: list[int] = None) -> ProductInfoListResponse:
         """
-            Получение информации о таварах.
+            Получение информации о товарах.
 
             Args:
                 offer_id (list[str], optional): Список артикулов товаров в системе продавца.
@@ -249,7 +247,7 @@ class OzonApi:
                 dimension (list[str], optional): Группировка данных в отчёте.
                 filters (list[AnalyticsDataFilter], optional): Фильтры.
                 limit (int. optional): Количество значений в ответе. Минимум — 1, максимум — 1000.
-                metrics (list[str], optional): Список метриĸ, по ĸоторым будет сформирован отчёт. Укажите до 14 метрик.
+                metrics (list[str], optional): Список метриĸ, по которым будет сформирован отчёт. Укажите до 14 метрик.
                 offset (int, optional): Количество элементов, которое будет пропущено в ответе.
                 sort (list[AnalyticsDataSort], optional): Настройки сортировки отчёта.
         """
@@ -340,7 +338,7 @@ class OzonApi:
                 limit (int, optional): Количество значений в ответе. Минимум — 1, максимум — 1000.
                 offset (int, optional): Количество элементов, которое будет пропущено в ответе.
                 analytics_data (bool, optional): Добавить в ответ данные аналитики.
-                barcodes (bool, optional): Добавить в ответ штрихкоды отправления.
+                barcodes (bool, optional): Добавить в ответ штрих-коды отправления.
                 financial_data (bool, optional): Добавить в ответ финансовые данные.
                 translit (bool, optional): Выполнить транслитерацию возвращаемых значений.
         """
@@ -407,8 +405,8 @@ class OzonApi:
                 DISABLED — товары, которые видны покупателям, но недоступны к покупке. \n
                 STATE_FAILED — товары, создание которых завершилось ошибкой. \n
                 READY_TO_SUPPLY — товары, готовые к поставке. \n
-                VALIDATION_STATE_PENDING — товары, которые проходят проверку валидатором на премодерации. \n
-                VALIDATION_STATE_FAIL — товары, которые не прошли проверку валидатором на премодерации. \n
+                VALIDATION_STATE_PENDING — товары, которые проходят проверку валидатором на пре модерации. \n
+                VALIDATION_STATE_FAIL — товары, которые не прошли проверку валидатором на пре модерации. \n
                 VALIDATION_STATE_SUCCESS — товары, которые прошли проверку валидатором на премодерации. \n
                 TO_SUPPLY — товары, готовые к продаже. \n
                 IN_SALE — товары в продаже. \n
@@ -416,8 +414,8 @@ class OzonApi:
                 BANNED — заблокированные товары. \n
                 OVERPRICED — товары с завышенной ценой. \n
                 CRITICALLY_OVERPRICED — товары со слишком завышенной ценой. \n
-                EMPTY_BARCODE — товары без штрихкода. \n
-                BARCODE_EXISTS — товары со штрихкодом. \n
+                EMPTY_BARCODE — товары без штрих-кода. \n
+                BARCODE_EXISTS — товары со штрих-кодом. \n
                 QUARANTINE — товары на карантине после изменения цены более чем на 50%. \n
                 ARCHIVED — товары в архиве. \n
                 OVERPRICED_WITH_STOCK — товары в продаже со стоимостью выше, чем у конкурентов. \n
@@ -543,7 +541,7 @@ class OzonPerformanceAPI:
                 date_from (str, optional): Начальная дата периода отчёта в формате ГГГГ-ММ-ДД.
                 date_to (str, optional): Конечная дата периода отчёта в формате ГГГГ-ММ-ДД.
         """
-        request = ClientStatisticsDailyJSONRequest(campaigns=campaigns,
+        request = ClientStatisticsDailyJSONRequest(campaignIds=campaigns,
                                                    dateFrom=date_from,
                                                    dateTo=date_to)
         answer: ClientStatisticsDailyJSONResponse = await self._client_statistics_daily_json_api.get(request)
@@ -551,7 +549,7 @@ class OzonPerformanceAPI:
 
     async def get_client_statistics_uuid(self, uuid: str) -> ClientStatisticsUUIDResponse:
         """
-            Cтатус отчёта.
+            Статус отчёта.
 
             Args:
                 uuid (str): UUID отчета.

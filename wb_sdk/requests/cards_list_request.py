@@ -35,7 +35,7 @@ class CardsListSettingsCursorBodyRequest(BaseRequest):
 class CardsListSettingsBodyRequest(BaseRequest):
     """Настройки."""
     sort: CardsListSettingsSortBodyRequest
-    filter_field: CardsListSettingsFilterBodyRequest = Field(default=None, alias='filter')
+    filter_field: Optional[CardsListSettingsFilterBodyRequest] = Field(default=None, alias='filter')
     cursor: CardsListSettingsCursorBodyRequest
 
 
