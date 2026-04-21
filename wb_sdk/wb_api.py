@@ -152,7 +152,7 @@ class WBApi:
                                    page: int = 1) -> NMReportDetailResponse:
         """
             Получение статистики КТ за выбранный период, по nmID/предметам/брендам/тегам. \n
-            Поля brand_names,object_ids, tag_ids, nm_ids могут быть пустыми,
+            Поля brand_names, object_ids, tag_ids, nm_ids могут быть пустыми,
             тогда в ответе идут все карточки продавца. \n
             При выборе нескольких полей в ответ приходят данные по карточкам, у которых есть все выбранные поля.
             Работает с пагинацией. \n
@@ -354,7 +354,7 @@ class WBApi:
                              next_field: int = 0):
         date_from = int(date_from.replace(tzinfo=datetime.timezone.utc).timestamp())
         date_to = int(date_to.replace(tzinfo=datetime.timezone.utc).timestamp())
-        request = FBSOrdersRequest(dateFrom=date_from, dateTo=date_to, limit=limit, next_field=next_field)
+        request = FBSOrdersRequest(dateFrom=date_from, dateTo=date_to, limit=limit, next=next_field)
         answer: FBSOrdersResponse = await self._fbs_orders_api.get(query=request)
 
         return answer
@@ -394,7 +394,7 @@ class WBApi:
         query = CardsListQueryRequest(locale=locale)
         body = CardsListBodyRequest(settings=CardsListSettingsBodyRequest(
             sort=CardsListSettingsSortBodyRequest(ascending=ascending),
-            filter_field=CardsListSettingsFilterBodyRequest(
+            filter=CardsListSettingsFilterBodyRequest(
                 withPhoto=with_photo,
                 textSearch=text_search,
                 tagIDs=tag_ids,

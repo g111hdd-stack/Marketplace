@@ -45,10 +45,10 @@ class WBDbConnection(DbConnection):
                 dict: словарь {sku: vendor_code}.
         """
         query = text("""
-        SELECT wcp.sku, wcp.vendor_code
+        SELECT wcp.sku, lower(wcp.vendor_code)
         FROM wb_card_product wcp 
-        LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = wcp.vendor_code 
-        WHERE ivc."group" <> 'other_trash' AND wcp.client_id = :client_id;
+        LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = lower(wcp.vendor_code)
+        WHERE ivc."group" <> 'other_trash' AND ivc."group" is not NULL AND wcp.client_id = :client_id;
         """)
         result = self.session.execute(query, {"client_id": client_id}).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
