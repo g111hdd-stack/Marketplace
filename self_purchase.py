@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, text
 from oauth2client.service_account import ServiceAccountCredentials
 
 from config import DB_ARRIS_MASTER_URL, SPREADSHEET_ID
+from google_sheet_ya_adv import client
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
@@ -70,7 +71,7 @@ def get_values(sheet_name: str, to_date: datetime.date) -> list:
 
 
 def self_purchase():
-    to_date = datetime.date.today() - datetime.timedelta(days=30)
+    to_date = datetime.date.today() - datetime.timedelta(days=20)
 
     entry = []
     final = []
@@ -80,6 +81,7 @@ def self_purchase():
     logger.info(f'Получаю данные из БД')
 
     products_map = {}
+    clients_map = {}
 
     with engine.connect() as conn:
         products = conn.execute(text("SELECT marketplace, sku, vendor_code, client_id FROM public.products_master"))
@@ -90,6 +92,10 @@ def self_purchase():
                 products_map[marketplace][product[2]] = (product[3], product[1])
             else:
                 products_map[marketplace][product[1]] = (product[3], product[2])
+
+        clients = conn.execute(text("SELECT client_id, marketplace, entrepreneur FROM public.clients_master"))
+        for c in clients.fetchall():
+            clients_map.setdefault((c[1].lower(), c[2].lower()), c[0])
     logger.info(f'Данные по товарам получены')
 
     logger.info(f'Сбор данных по самовыкупам за период от {to_date.isoformat()}')
@@ -114,6 +120,8 @@ def self_purchase():
                 client_id, sku = products_map[marketplace][vendor_code]
             else:
                 client_id, vendor_code = products_map[marketplace][sku]
+                if client_id == '25473' and entrepreneur != 'Антон':
+                    client_id = clients_map.get((marketplace.lower(), entrepreneur.lower())) or client_id
 
             final.append([client_id, order_date, accrual_date, vendor_code, sku, quantities, price])
         except Exception as e:

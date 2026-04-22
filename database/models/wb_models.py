@@ -53,9 +53,10 @@ class WBStatisticCardProduct(Base):
     orders_sum = Column(Numeric(precision=12, scale=2), nullable=False)
     price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
     discount_price = Column(Numeric(precision=12, scale=2), default=None, nullable=True)
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('sku', 'date', name='wb_statistic_card_product_unique'),
+        UniqueConstraint('sku', 'date', 'client_id', name='wb_statistic_card_product_unique'),
     )
 
 

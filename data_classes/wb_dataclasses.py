@@ -25,6 +25,7 @@ class DataWBStatisticCardProduct:
     buyouts_count: int
     cancel_count: int
     orders_sum: float
+    client_id: str
 
 
 @dataclass

@@ -315,8 +315,9 @@ class WBDbConnection(DbConnection):
                 orders_sum=row.orders_sum,
                 price=price,
                 discount_price=discount_price,
+                client_id=client_id
             ).on_conflict_do_update(
-                index_elements=['sku', 'date'],
+                index_elements=['sku', 'date', 'client_id'],
                 set_={'open_card_count': row.open_card_count,
                       'add_to_cart_count': row.add_to_cart_count,
                       'orders_count': row.orders_count,
