@@ -79,7 +79,7 @@ async def main_wb_chats(retries: int = 6) -> None:
 
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-        for client in clients[10:11]:
+        for client in clients:
             negative_client = db_conn.get_wb_negative(client_id=client.client_id)
 
             if not negative_client or not negative_client.work:
