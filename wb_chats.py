@@ -94,8 +94,8 @@ async def main_wb_chats(retries: int = 6) -> None:
                                         client_id=client.client_id,
                                         api_key=client.api_key,
                                         today=today)
-
-                await post_chats(api_key=negative_api_key, chats=chats)
+                if chats:
+                    await post_chats(api_key=negative_api_key, chats=chats)
             except ClientError as e:
                 logger.error(f'{e}')
     except OperationalError:
