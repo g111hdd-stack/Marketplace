@@ -35,6 +35,8 @@ class WBApi:
         self._fbs_supply_api = self._api_factory.get_api(FBSSupplyResponse)
         self._fbs_stocks_api = self._api_factory.get_api(FBSStocksResponse)
         self._cards_list_api = self._api_factory.get_api(CardsListResponse)
+        self._chats_api = self._api_factory.get_api(ChatsResponse)
+        self._message_api = self._api_factory.get_api(MessageResponse)
 
     async def get_supplier_sales(self, date_from: str, flag: int = 0) -> SupplierSalesResponse:
         """
@@ -406,5 +408,17 @@ class WBApi:
             cursor=CardsListSettingsCursorBodyRequest(limit=limit, updatedAt=updated_at, nmID=nm_id)
         ))
         answer: CardsListResponse = await self._cards_list_api.post(body=body, query=query)
+
+        return answer
+
+    async def get_chats(self) -> ChatsResponse:
+        query = ChatsRequest()
+        answer: ChatsResponse = await self._chats_api.get(query=query)
+
+        return answer
+
+    async def get_message(self, reply_sign: str, message: str, file: list[str] = None) -> MessageResponse:
+        body = MessageRequest(replySign=reply_sign, message=message, file=file)
+        answer: MessageResponse = await self._message_api.post(body=body, chat=True)
 
         return answer

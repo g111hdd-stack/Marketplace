@@ -19,8 +19,8 @@ class WBAsyncEngine:
         response = await self._perform_get_request(url, file, json, params)
         return response
 
-    async def post(self, url: str, json: dict, params: dict) -> dict:
-        response = await self._perform_post_request(url, json, params)
+    async def post(self, url: str, json: dict, params: dict, chat: bool) -> dict:
+        response = await self._perform_post_request(url, json, params, chat)
         return response
 
     async def _perform_get_request(self, url, file: bool, json=None, params=None, retry: int = 6):
@@ -56,12 +56,14 @@ class WBAsyncEngine:
                     continue
             raise Exception
 
-    async def _perform_post_request(self, url, json=None, params=None, retry: int = 6):
-        async with await self._get_session() as session:
+    async def _perform_post_request(self, url, json=None, params=None, chat=None, retry: int = 6):
+        async with await self._get_session(chat) as session:
             while retry != 0:
                 try:
                     async with session.post(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
                                             timeout=120) as response:
+                        print(response.status)
+                        print("Body:", await response.text())
                         if response.status in [404, 403, 401]:
                             raise ClientError
                         if response.content_type != 'application/json':
@@ -93,12 +95,16 @@ class WBAsyncEngine:
                     continue
             raise Exception
 
-    async def _get_session(self, file: bool = False):
+    async def _get_session(self, file: bool = False, chat: bool = False) -> aiohttp.ClientSession:
         session = aiohttp.ClientSession()
 
         session.headers["Authorization"] = self.__headers['Authorization']
         session.headers["Accept"] = 'application/json'
+
         if file:
             session.headers["Accept"] = 'text/csv'
+
+        if chat:
+            session.headers["Accept"] = 'multipart/form-data'
 
         return session

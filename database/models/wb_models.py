@@ -4,6 +4,19 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Ident
 from .general_models import Base
 
 
+class WBNegative(Base):
+    """Модель таблицы wb_negative."""
+    __tablename__ = 'wb_negative'
+
+    client_id = Column(String(length=255), ForeignKey('clients.client_id'), primary_key=True)
+    api_key = Column(String(length=1000), nullable=False)
+    work = Column(Boolean, default=True, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('api_key', name='api_key_unique'),
+    )
+
+
 class WBMain(Base):
     """Модель таблицы wb_main_table."""
     __tablename__ = 'wb_main_table'

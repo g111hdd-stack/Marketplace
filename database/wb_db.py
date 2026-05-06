@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 class WBDbConnection(DbConnection):
     @retry_on_exception()
+    def get_wb_negative(self, client_id: str) -> WBNegative:
+        client = self.session.query(WBNegative).filter_by(client_id=client_id).first()
+        return client
+
+    @retry_on_exception()
     def get_wb_adverts_id(self, client_id: str, from_date: datetime.date) -> dict:
         """
             Получает список рекламных компаний, отфильтрованных по кабинету и дате активности.
@@ -34,23 +39,28 @@ class WBDbConnection(DbConnection):
         return {int(advert_id): (create_time, end_time) for (advert_id, create_time, end_time) in result}
 
     @retry_on_exception()
-    def get_wb_sku_vendor_code(self, client_id: str) -> dict:
+    def get_wb_sku_vendor_code(self, client_id: str, new: bool = True) -> dict:
         """
             Получает список SKU товаров, отфильтрованных по кабинету.
 
             Args:
                 client_id (str): ID кабинета.
+                new (bool): добавлять ли new в список.
 
             Returns:
                 dict: словарь {sku: vendor_code}.
         """
+        excluded = ('other_trash',) if new else ('other_trash', 'new')
         query = text("""
-        SELECT wcp.sku, lower(wcp.vendor_code)
-        FROM wb_card_product wcp 
-        LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = lower(wcp.vendor_code)
-        WHERE ivc."group" <> 'other_trash' AND ivc."group" is not NULL AND wcp.client_id = :client_id;
+            SELECT wcp.sku, lower(wcp.vendor_code)
+            FROM wb_card_product wcp 
+            LEFT JOIN ip_vendor_code ivc ON ivc.vendor_code = lower(wcp.vendor_code)
+            WHERE ivc."group" NOT IN :excluded
+              AND wcp.client_id = :client_id
         """)
-        result = self.session.execute(query, {"client_id": client_id}).fetchall()
+        result = self.session.execute(
+            query, {"client_id": client_id, "excluded": excluded}
+        ).fetchall()
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
