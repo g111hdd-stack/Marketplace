@@ -34,7 +34,7 @@ async def get_chats(
 
     if result:
         for row in result:
-            if row.lastMessage:
+            if row.lastMessage and row.goodCard:
                 message = row.lastMessage.text
                 timestamp = row.lastMessage.addTimestamp
 
