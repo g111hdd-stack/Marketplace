@@ -62,8 +62,6 @@ class WBAsyncEngine:
                 try:
                     async with session.post(url, json=json, params=params, proxy=self.proxy_url, ssl=False,
                                             timeout=120) as response:
-                        print(response.status)
-                        print("Body:", await response.text())
                         if response.status in [404, 403, 401]:
                             raise ClientError
                         if response.content_type != 'application/json':
