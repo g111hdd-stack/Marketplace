@@ -92,7 +92,10 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
                 for financial_data_product in answer_fb.result.financial_data.products:
                     if financial_data_product.product_id == product.sku:
                         commission = round(financial_data_product.commission_amount, 2)
-                        bonus = round(financial_data_product.price - financial_data_product.customer_price, 2)
+                        if financial_data_product.customer_currency_code == "RUB":
+                            bonus = round(financial_data_product.price - financial_data_product.customer_price, 2)
+                        else:
+                            bonus = None
                         break
                 else:
                     commission = None
