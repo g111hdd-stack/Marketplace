@@ -88,6 +88,11 @@ class DbConnection:
         return result
 
     @retry_on_exception()
+    def get_exchange_rate(self, from_date: datetime.date, currency: str) -> float | None:
+        result = self.session.query(ExchangeRate.rate).filter_by(date=from_date, currency=currency).first()
+        return float(result[0]) if result else None
+
+    @retry_on_exception()
     def get_orders(self, from_date: datetime.date) -> list[DataOrder]:
         """
             Получает данные из orders_from_card_stat.

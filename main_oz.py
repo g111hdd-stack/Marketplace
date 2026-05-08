@@ -91,11 +91,35 @@ async def add_oz_main_entry(db_conn: OzDbConnection, client_id: str, api_key: st
 
                 for financial_data_product in answer_fb.result.financial_data.products:
                     if financial_data_product.product_id == product.sku:
+                        price = financial_data_product.price
                         commission = round(financial_data_product.commission_amount, 2)
-                        if financial_data_product.customer_currency_code == "RUB":
-                            bonus = round(financial_data_product.price - financial_data_product.customer_price, 2)
+                        customer_currency_code = financial_data_product.customer_currency_code
+                        customer_price = financial_data_product.customer_price
+
+                        if customer_currency_code == "RUB":
+                            bonus = round(price - customer_price, 2)
+                        elif customer_currency_code in ["KZT", "BYN"]:
+                            order_date = db_conn.get_order_date(posting_number=posting_number)
+
+                            if not order_date:
+                                bonus = None
+                                logger.warning(f'Не найден заказ в БД {posting_number}')
+                                break
+
+                            rate = db_conn.get_exchange_rate(from_date=order_date, currency=customer_currency_code)
+
+                            if not rate:
+                                bonus = None
+                                logger.warning(f'Не найден курс в БД {order_date} {customer_currency_code}')
+                                break
+
+                            if customer_currency_code == "KZT":
+                                bonus = round(price - (customer_price * rate / 100), 2)
+                            else:
+                                bonus = round(price - (customer_price * rate), 2)
                         else:
                             bonus = None
+                            logger.warning(f'Валюта {customer_currency_code}')
                         break
                 else:
                     commission = None

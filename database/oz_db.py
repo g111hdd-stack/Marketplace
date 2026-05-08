@@ -57,6 +57,11 @@ class OzDbConnection(DbConnection):
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
+    def get_order_date(self, posting_number: str) -> datetime.date | None:
+        result = self.session.query(OzOrders.order_date).filter_by(posting_number=posting_number).first()
+        return result[0] if result else None
+
+    @retry_on_exception()
     def add_oz_operation(self, list_operations: list[DataOperation]) -> None:
         """
             Добавление в базу данных записей об операциях с товарами.
