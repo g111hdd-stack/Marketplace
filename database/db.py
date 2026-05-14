@@ -48,7 +48,7 @@ def retry_on_exception(retries=3, delay=10):
 
 class DbConnection:
     def __init__(self, echo: bool = False) -> None:
-        self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
+        self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True, isolation_level="AUTOCOMMIT")
         self.session = Session(self.engine)
 
     @retry_on_exception()
