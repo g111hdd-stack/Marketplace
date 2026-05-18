@@ -173,7 +173,8 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
         'Вознаграждение за продажу',  # new pass
         'Расширенный доступ к сервисам',  # new pass
         'Складская обработка',  # new
-        'Персональный менеджер'
+        'Персональный менеджер',
+        'Доставка (средняя миля)'
     ]
 
     try:
@@ -216,6 +217,10 @@ async def add_yandex_report_entry(path_file: str, campaigns: list[DataYaCampaign
                                         if ('Буст продаж' in sheet or sheet == 'Полки') and header == 'Стоимость услуги, ₽':
                                             spp = row.get('Скидка за участие в совместных акциях', 0)
                                             spp = float(spp) if isinstance(spp, (float, int)) else 0
+                                            row_data[metric][header] = float(row[header]) + spp
+                                        elif sheet == 'Доставка (средняя миля)' and header == 'Стоимость услуги, ₽':
+                                            spp = row.get('Скидка за участие в совместных акциях', 0)
+                                            spp = -float(spp) if isinstance(spp, (float, int)) else 0
                                             row_data[metric][header] = float(row[header]) + spp
                                         else:
                                             row_data[metric][header] = row[header]
