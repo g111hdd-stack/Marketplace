@@ -25,7 +25,7 @@ class ClientCampaign(BaseEntity):
     dailyBudget: str = None
     weeklyBudget: str = None
     placement: Optional[list[str]] = []
-    productAutopilotStrategy: str = None
+    productAutopilotStrategy: Optional[int | str] = None
     autopilot: Optional[ExtCampaignCampaignAutopilotProperties] = None
     createdAt: datetime = None
     updatedAt: datetime = None

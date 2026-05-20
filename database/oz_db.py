@@ -57,6 +57,11 @@ class OzDbConnection(DbConnection):
         return {sku: vendor_code for sku, vendor_code in result}
 
     @retry_on_exception()
+    def get_order_date(self, posting_number: str) -> datetime.date | None:
+        result = self.session.query(OzOrders.order_date).filter_by(posting_number=posting_number).first()
+        return result[0] if result else None
+
+    @retry_on_exception()
     def add_oz_operation(self, list_operations: list[DataOperation]) -> None:
         """
             Добавление в базу данных записей об операциях с товарами.
@@ -75,13 +80,15 @@ class OzDbConnection(DbConnection):
                 sku=row.sku,
                 sale=row.sale,
                 quantities=row.quantities,
-                commission=row.commission
+                commission=row.commission,
+                bonus=row.bonus
             ).on_conflict_do_update(
                 index_elements=['type_of_transaction', 'posting_number', 'sku'],
                 set_={'accrual_date': row.accrual_date,
                       'sale': row.sale,
                       'quantities': row.quantities,
-                      'commission': row.commission}
+                      'commission': row.commission,
+                      'bonus': row.bonus}
             )
             self.session.execute(stmt)
         self.session.commit()

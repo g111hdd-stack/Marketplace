@@ -36,6 +36,8 @@ class PostingFBOGetFinancialDataProduct(BaseEntity):
     quantity: int = None
     total_discount_percent: float = None
     total_discount_value: float = None
+    customer_currency_code: Optional[str] = None
+    customer_price: float = None
 
 
 class PostingFBOGetFinancialData(BaseEntity):

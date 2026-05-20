@@ -48,7 +48,7 @@ def retry_on_exception(retries=3, delay=10):
 
 class DbConnection:
     def __init__(self, echo: bool = False) -> None:
-        self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True)
+        self.engine = create_engine(url=DB_URL, echo=echo, pool_pre_ping=True, isolation_level="AUTOCOMMIT")
         self.session = Session(self.engine)
 
     @retry_on_exception()
@@ -86,6 +86,11 @@ class DbConnection:
         else:
             result = self.session.query(Client).all()
         return result
+
+    @retry_on_exception()
+    def get_exchange_rate(self, from_date: datetime.date, currency: str) -> float | None:
+        result = self.session.query(ExchangeRate.rate).filter_by(date=from_date, currency=currency).first()
+        return float(result[0]) if result else None
 
     @retry_on_exception()
     def get_orders(self, from_date: datetime.date) -> list[DataOrder]:

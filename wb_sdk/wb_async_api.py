@@ -23,7 +23,7 @@ class WBAsyncApi:
         data = await self._parse_response(response)
         return data
 
-    async def post(self, body=None, query=None, format_dict: dict = None):
+    async def post(self, body=None, query=None, format_dict: dict = None, chat: bool = False):
         if body:
             body = await self.params_to_dict(body)
         if query:
@@ -31,7 +31,7 @@ class WBAsyncApi:
         url = self._url
         if format_dict:
             url = url.format(**format_dict)
-        response = await self._engine.post(url, json=body, params=query)
+        response = await self._engine.post(url, json=body, params=query, chat=chat)
         data = await self._parse_response(response)
         return data
 

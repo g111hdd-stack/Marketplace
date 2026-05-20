@@ -20,3 +20,5 @@ from .fbs_orders import *
 from .fbs_warehouses import *
 from .fbs_stocks import *
 from .cards_list import *
+from .chats import *
+from .message import *

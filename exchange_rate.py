@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 db_conn = DbConnection()
 
 list_rate = []
-valutes = ['USD', 'CNY']
+valutes = ['USD', 'CNY', 'KZT', 'BYN']
 url = 'https://www.cbr-xml-daily.ru/daily_json.js'
 
 proxies = {
